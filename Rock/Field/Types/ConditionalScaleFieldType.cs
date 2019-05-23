@@ -1,8 +1,29 @@
-﻿using System.Collections.Generic;
+﻿// <copyright>
+// Copyright by the Spark Development Network
+//
+// Licensed under the Rock Community License (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.rockrms.com/license
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
+//
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
+
+using Rock.Model;
+using Rock.Reporting;
 using Rock.Web.UI.Controls;
 
 namespace Rock.Field.Types
@@ -83,7 +104,7 @@ namespace Rock.Field.Types
             conditionalScaleRangeRuleList = conditionalScaleRangeRuleList.OrderBy( a => a.RangeIndex ).ThenBy( a => a.Label ).ToList();
             if ( !conditionalScaleRangeRuleList.Any() )
             {
-                conditionalScaleRangeRuleList.Add( new ConditionalScaleRangeRule() );
+                conditionalScaleRangeRuleList.Add( new ConditionalScaleRangeRule { Guid = Guid.NewGuid() } );
             }
 
             conditionalScaleRulesControlsRepeater.DataSource = conditionalScaleRangeRuleList;
@@ -102,12 +123,17 @@ namespace Rock.Field.Types
             ConditionalScaleRangeRule conditionalScaleRangeRule = e.Item.DataItem as ConditionalScaleRangeRule;
 
             HtmlGenericContainer conditionalScaleRangeRuleContainer = repeaterItem.FindControl( "conditionalScaleRangeRuleContainer" ) as HtmlGenericContainer;
+
+            var hfRangeGuid = conditionalScaleRangeRuleContainer.FindControl( "hfRangeGuid" ) as HiddenField;
             var labelTextBox = conditionalScaleRangeRuleContainer.FindControl( "labelTextBox" ) as TextBox;
             var highValueNumberBox = conditionalScaleRangeRuleContainer.FindControl( "highValueNumberBox" ) as NumberBox;
             var colorPicker = conditionalScaleRangeRuleContainer.FindControl( "colorPicker" ) as ColorPicker;
             var lowValueNumberBox = conditionalScaleRangeRuleContainer.FindControl( "lowValueNumberBox" ) as NumberBox;
 
+            hfRangeGuid.Value = conditionalScaleRangeRule.Guid.ToString();
+
             labelTextBox.Text = conditionalScaleRangeRule.Label;
+
             // from http://stackoverflow.com/a/216705/1755417 (to trim trailing zeros)
             highValueNumberBox.Text = conditionalScaleRangeRule.HighValue?.ToString( "G29" );
             colorPicker.Text = conditionalScaleRangeRule.Color;
@@ -125,7 +151,7 @@ namespace Rock.Field.Types
             var pnlRulesEditor = btnAddRule.Parent as Panel;
             var conditionalScaleRulesControlsRepeater = pnlRulesEditor.FindControl( "conditionalScaleRulesControlsRepeater" ) as Repeater;
             List<ConditionalScaleRangeRule> conditionalScaleRangeRuleList = GetRangeRulesListFromRepeaterControls( conditionalScaleRulesControlsRepeater );
-            conditionalScaleRangeRuleList.Add( new ConditionalScaleRangeRule() );
+            conditionalScaleRangeRuleList.Add( new ConditionalScaleRangeRule() { Guid = Guid.NewGuid() } );
             conditionalScaleRulesControlsRepeater.DataSource = conditionalScaleRangeRuleList;
             conditionalScaleRulesControlsRepeater.DataBind();
         }
@@ -142,6 +168,7 @@ namespace Rock.Field.Types
             foreach ( var repeaterItem in conditionalScaleRulesControlsRepeater.Items.OfType<RepeaterItem>() )
             {
                 HtmlGenericContainer conditionalScaleRangeRuleContainer = repeaterItem.FindControl( "conditionalScaleRangeRuleContainer" ) as HtmlGenericContainer;
+                var hfRangeGuid = conditionalScaleRangeRuleContainer.FindControl( "hfRangeGuid" ) as HiddenField;
                 var labelTextBox = conditionalScaleRangeRuleContainer.FindControl( "labelTextBox" ) as TextBox;
                 var highValueNumberBox = conditionalScaleRangeRuleContainer.FindControl( "highValueNumberBox" ) as NumberBox;
                 var colorPicker = conditionalScaleRangeRuleContainer.FindControl( "colorPicker" ) as ColorPicker;
@@ -149,6 +176,7 @@ namespace Rock.Field.Types
                 conditionalScaleRangeRuleList.Add( new ConditionalScaleRangeRule
                 {
                     RangeIndex = rangeIndex++,
+                    Guid = hfRangeGuid.Value.AsGuid(),
                     Label = labelTextBox.Text,
                     Color = colorPicker.Value,
                     HighValue = highValueNumberBox.Text.AsDecimalOrNull(),
@@ -224,6 +252,9 @@ namespace Rock.Field.Types
         /// </summary>
         private class ConditionalScaleRangeRule
         {
+            // Identification of the Rule (so that DataFilter configs know which RangeRule is referenced ) 
+            public Guid Guid { get; set; }
+
             public int RangeIndex { get; set; }
 
             public string Label { get; set; }
@@ -248,9 +279,18 @@ namespace Rock.Field.Types
             public void InstantiateIn( Control container )
             {
                 HtmlGenericContainer conditionalScaleRangeRuleContainer = new HtmlGenericContainer { ID = $"conditionalScaleRangeRuleContainer", CssClass = "row" };
+
+                var hfRangeGuid = new HiddenField { ID = "hfRangeGuid" };
+                conditionalScaleRangeRuleContainer.Controls.Add( hfRangeGuid );
+
                 Panel pnlColumn1 = new Panel { ID = "pnlColumn1", CssClass = "col-md-5" };
-                var labelTextBox = new RockTextBox { ID = "labelTextBox", Placeholder = "Label", CssClass = "margin-b-md" };
+                var labelTextBox = new RockTextBox { ID = "labelTextBox", Placeholder = "Label", CssClass = "margin-b-md", Required = true };
                 pnlColumn1.Controls.Add( labelTextBox );
+                labelTextBox.Init += ( object sender, EventArgs e ) =>
+                {
+                    var parentValidationGroup = ( labelTextBox.FindFirstParentWhere( a => a is IHasValidationGroup ) as IHasValidationGroup )?.ValidationGroup;
+                    labelTextBox.ValidationGroup = parentValidationGroup;
+                };
                 var highValueNumberBox = new NumberBox { ID = "highValueNumberBox", Placeholder = "High Value", CssClass = "margin-b-md" };
                 pnlColumn1.Controls.Add( highValueNumberBox );
                 conditionalScaleRangeRuleContainer.Controls.Add( pnlColumn1 );
@@ -292,5 +332,208 @@ namespace Rock.Field.Types
         }
 
         #endregion
+
+        #region Filter Control
+
+        /// <summary>
+        /// Gets the filter compare control with the specified FilterMode
+        /// </summary>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="id">The identifier.</param>
+        /// <param name="required">if set to <c>true</c> [required].</param>
+        /// <param name="filterMode">The filter mode.</param>
+        /// <returns></returns>
+        public override Control FilterCompareControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
+        {
+            var lbl = new Label();
+            lbl.ID = string.Format( "{0}_lIs", id );
+            lbl.AddCssClass( "data-view-filter-label" );
+            lbl.Text = "Is";
+
+            // hide the compare control when in SimpleFilter mode
+            lbl.Visible = filterMode != FilterMode.SimpleFilter;
+
+            return lbl;
+        }
+
+        /// <summary>
+        /// Gets the type of the filter comparison.
+        /// </summary>
+        /// <value>
+        /// The type of the filter comparison.
+        /// </value>
+        public override ComparisonType FilterComparisonType
+        {
+            // #TODO#, probably ok
+            get { return ComparisonHelper.NumericFilterComparisonTypes; }
+        }
+
+        /// <summary>
+        /// Gets the filter value control.
+        /// </summary>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="id">The identifier.</param>
+        /// <param name="required">if set to <c>true</c> [required].</param>
+        /// <param name="filterMode">The filter mode.</param>
+        /// <returns></returns>
+        public override Control FilterValueControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
+        {
+            var configurationJSON = configurationValues.GetValueOrNull( ConfigurationKey.ConfigurationJSON );
+            List<ConditionalScaleRangeRule> conditionalScaleRangeRuleList = configurationJSON.FromJsonOrNull<List<ConditionalScaleRangeRule>>() ?? new List<ConditionalScaleRangeRule>();
+            var cblRangeRules = new RockCheckBoxList { ID = $"cblRangeRules_{id}", RepeatDirection = RepeatDirection.Horizontal };
+            cblRangeRules.AddCssClass( "js-filter-control" ).AddCssClass( "checkboxlist-group" );
+            foreach ( var conditionalScaleRangeRule in conditionalScaleRangeRuleList.OrderBy( a => a.RangeIndex ) )
+            {
+                cblRangeRules.Items.Add( new ListItem( conditionalScaleRangeRule.Label, conditionalScaleRangeRule.Guid.ToString() ) );
+            }
+
+            return cblRangeRules;
+        }
+
+        /// <summary>
+        /// Determines whether this filter has a filter control
+        /// </summary>
+        /// <returns></returns>
+        public override bool HasFilterControl()
+        {
+            return true;
+        }
+
+        /// <summary>
+        /// Gets the filter value value.
+        /// </summary>
+        /// <param name="control">The control.</param>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <returns></returns>
+        public override string GetFilterValueValue( Control control, Dictionary<string, ConfigurationValue> configurationValues )
+        {
+            var cblRangeRules = control as RockCheckBoxList;
+            return cblRangeRules.SelectedValues?.ToJson();
+        }
+
+        /// <summary>
+        /// Sets the filter value value.
+        /// </summary>
+        /// <param name="control">The control.</param>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="value">The value.</param>
+        public override void SetFilterValueValue( Control control, Dictionary<string, ConfigurationValue> configurationValues, string value )
+        {
+            var cblRangeRules = control as RockCheckBoxList;
+            var selectedRangeGuidList = value.FromJsonOrNull<List<Guid>>() ?? new List<Guid>();
+            cblRangeRules.SetValues( selectedRangeGuidList );
+        }
+
+        /// <summary>
+        /// Gets the filter format script.
+        /// </summary>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="title">The title.</param>
+        /// <returns></returns>
+        /// <remarks>
+        /// This script must set a javascript variable named 'result' to a friendly string indicating value of filter controls
+        /// a '$selectedContent' should be used to limit script to currently selected filter fields
+        /// </remarks>
+        public override string GetFilterFormatScript( Dictionary<string, ConfigurationValue> configurationValues, string title )
+        {
+            string titleJs = System.Web.HttpUtility.JavaScriptStringEncode( title );
+            var format = "return Rock.reporting.formatFilterForCheckBoxListFilterControl('{0}', $selectedContent);";
+            return string.Format( format, titleJs );
+        }
+
+        /// <summary>
+        /// Formats the filter values.
+        /// </summary>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="filterValues">The filter values.</param>
+        /// <returns></returns>
+        public override string FormatFilterValues( Dictionary<string, ConfigurationValue> configurationValues, List<string> filterValues )
+        {
+            if ( filterValues.Count < 2 )
+            {
+                return string.Empty;
+            }
+
+            var filterCompareType = filterValues[0];
+            var filterCompareValues = filterValues[1].FromJsonOrNull<List<Guid>>() ?? new List<Guid>();
+            var configurationJSON = configurationValues.GetValueOrNull( ConfigurationKey.ConfigurationJSON );
+            List<ConditionalScaleRangeRule> conditionalScaleRangeRuleList = configurationJSON.FromJsonOrNull<List<ConditionalScaleRangeRule>>() ?? new List<ConditionalScaleRangeRule>();
+
+            var selectedLabels = conditionalScaleRangeRuleList.Where( a => filterCompareValues.Contains( a.Guid ) ).Select( a => a.Label ).ToList();
+            var selectLabelsText = selectedLabels.AsDelimited( "' OR '" );
+            return "Is " + AddQuotes( selectLabelsText );
+        }
+
+        /// <summary>
+        /// Gets a filter expression for an entity property value.
+        /// </summary>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="filterValues">The filter values.</param>
+        /// <param name="parameterExpression">The parameter expression.</param>
+        /// <param name="propertyName">Name of the property.</param>
+        /// <param name="propertyType">Type of the property.</param>
+        /// <returns></returns>
+        public override Expression PropertyFilterExpression( Dictionary<string, ConfigurationValue> configurationValues, List<string> filterValues, Expression parameterExpression, string propertyName, Type propertyType )
+        {
+            if ( filterValues.Count < 2 )
+            {
+                return null;
+            }
+
+            var filterCompareValues = filterValues[1].FromJsonOrNull<List<Guid>>() ?? new List<Guid>();
+
+            var configurationJSON = configurationValues.GetValueOrNull( ConfigurationKey.ConfigurationJSON );
+            List<ConditionalScaleRangeRule> conditionalScaleRangeRuleList = configurationJSON.FromJsonOrNull<List<ConditionalScaleRangeRule>>() ?? new List<ConditionalScaleRangeRule>();
+
+            MemberExpression propertyExpression = Expression.Property( parameterExpression, propertyName );
+
+            Expression comparison = null;
+
+            var conditionalScaleRangeRuleListToFilter = conditionalScaleRangeRuleList.Where( a => filterCompareValues.Contains( a.Guid ) ).ToList();
+            foreach ( var conditionalScaleRangeRule in conditionalScaleRangeRuleListToFilter )
+            {
+                decimal lowValue = conditionalScaleRangeRule.LowValue ?? decimal.MinValue;
+                decimal highValue = conditionalScaleRangeRule.HighValue ?? decimal.MaxValue;
+
+                ConstantExpression constantExpressionLowValue = Expression.Constant( lowValue, typeof( decimal ) );
+                ConstantExpression constantExpressionHighValue = Expression.Constant( highValue, typeof( decimal ) );
+
+                var rangeBetweenExpression = ComparisonHelper.ComparisonExpression( ComparisonType.Between, propertyExpression, constantExpressionLowValue, constantExpressionHighValue );
+
+                if ( comparison == null )
+                {
+                    comparison = rangeBetweenExpression;
+                }
+                else
+                {
+                    comparison = Expression.Or( comparison, rangeBetweenExpression );
+                }
+            }
+
+            return comparison;
+        }
+
+        /// <summary>
+        /// Gets a filter expression for an attribute value.
+        /// </summary>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="filterValues">The filter values.</param>
+        /// <param name="parameterExpression">The parameter expression.</param>
+        /// <returns></returns>
+        public override Expression AttributeFilterExpression( Dictionary<string, ConfigurationValue> configurationValues, List<string> filterValues, ParameterExpression parameterExpression )
+        {
+            string attributeValuePropertyName = this.AttributeValueFieldName;
+            Type attributeValueFieldType = this.AttributeValueFieldType;
+            var comparison = PropertyFilterExpression( configurationValues, filterValues, parameterExpression, attributeValuePropertyName, attributeValueFieldType );
+
+            if ( comparison == null )
+            {
+                return new Rock.Data.NoAttributeFilterExpression();
+            }
+
+            return comparison;
+        }
+
+        #endregion Filter Control
     }
 }
