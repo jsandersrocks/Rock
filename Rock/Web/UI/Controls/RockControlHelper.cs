@@ -75,10 +75,12 @@ namespace Rock.Web.UI.Controls
         public static void RenderControl( IRockControl rockControl, HtmlTextWriter writer, string additionalCssClass = "" )
         {
             bool renderLabel = ( !string.IsNullOrEmpty( rockControl.Label ) );
+            bool renderFormGroup = true;
+
             bool renderHelp = ( rockControl.HelpBlock != null && !string.IsNullOrWhiteSpace( rockControl.Help ) );
             bool renderWarning = ( rockControl.WarningBlock != null && !string.IsNullOrWhiteSpace( rockControl.Warning ) );
 
-            if ( renderLabel )
+            if ( renderFormGroup )
             {
                 var cssClass = new StringBuilder();
                 cssClass.AppendFormat( "form-group {0} {1}", rockControl.GetType().Name.SplitCase().Replace( ' ', '-' ).ToLower(), rockControl.FormGroupCssClass );
@@ -105,7 +107,7 @@ namespace Rock.Web.UI.Controls
                 writer.AddAttribute( HtmlTextWriterAttribute.Class, cssClass.ToString() );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
 
-                if ( !( rockControl is RockLiteral ) )
+                if ( !( rockControl is RockLiteral )  && renderLabel )
                 {
                     writer.AddAttribute( HtmlTextWriterAttribute.Class, "control-label" );
                     writer.AddAttribute( HtmlTextWriterAttribute.For, rockControl.ClientID );
@@ -131,20 +133,24 @@ namespace Rock.Web.UI.Controls
                     }
                 }
 
-                writer.RenderBeginTag( HtmlTextWriterTag.Label );
-                writer.Write( rockControl.Label );
-
-                if ( renderHelp )
+                if ( renderLabel )
                 {
-                    rockControl.HelpBlock.RenderControl( writer );
-                }
+                    writer.RenderBeginTag( HtmlTextWriterTag.Label );
+                    writer.Write( rockControl.Label );
 
-                if ( renderWarning )
-                {
-                    rockControl.WarningBlock.RenderControl( writer );
-                }
+                    if ( renderHelp )
+                    {
+                        rockControl.HelpBlock.RenderControl( writer );
+                    }
 
-                writer.RenderEndTag();
+                    if ( renderWarning )
+                    {
+                        rockControl.WarningBlock.RenderControl( writer );
+                    }
+
+                    writer.RenderEndTag();
+                }
+               
 
                 if ( rockControl is IRockControlAdditionalRendering )
                 {
@@ -159,19 +165,19 @@ namespace Rock.Web.UI.Controls
 
             rockControl.RenderBaseControl( writer );
 
-            if ( renderLabel )
+            if ( renderFormGroup )
             {
                 writer.RenderEndTag();
             }
 
-            if ( !renderLabel && renderHelp )
+            if ( !renderFormGroup && renderHelp )
             {
-                rockControl.HelpBlock.RenderControl( writer );
+               rockControl.HelpBlock.RenderControl( writer );
             }
 
-            if ( !renderLabel && renderWarning )
+            if ( !renderFormGroup && renderWarning )
             {
-                rockControl.WarningBlock.RenderControl( writer );
+               rockControl.WarningBlock.RenderControl( writer );
             }
 
             if ( rockControl.RequiredFieldValidator != null )
@@ -181,8 +187,20 @@ namespace Rock.Web.UI.Controls
                     rockControl.RequiredFieldValidator.Enabled = true;
                     if ( string.IsNullOrWhiteSpace( rockControl.RequiredFieldValidator.ErrorMessage ) )
                     {
-                        rockControl.RequiredFieldValidator.ErrorMessage = rockControl.Label + " is required.";
+                        // if the control is a Label, use that. Otherwise, if the control has PlaceHolder, use that.
+                        string requiredName = string.Empty;
+                        if ( rockControl.Label.IsNotNullOrWhiteSpace() )
+                        {
+                            requiredName = rockControl.Label;
+                        }
+                        else if ( rockControl is RockTextBox )
+                        {
+                            requiredName = ( rockControl as RockTextBox ).Placeholder;
+                        }
+
+                        rockControl.RequiredFieldValidator.ErrorMessage = requiredName + " is required.";
                     }
+
                     rockControl.RequiredFieldValidator.RenderControl( writer );
                 }
                 else
@@ -191,7 +209,7 @@ namespace Rock.Web.UI.Controls
                 }
             }
 
-            if ( renderLabel )
+            if ( renderFormGroup )
             {
                 writer.RenderEndTag();
             }
