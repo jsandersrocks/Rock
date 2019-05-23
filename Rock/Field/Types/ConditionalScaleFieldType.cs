@@ -50,7 +50,7 @@ namespace Rock.Field.Types
             conditionalScaleRulesControlsRepeater.ItemDataBound += ConditionalScaleRulesControlsRepeater_ItemDataBound;
             pnlRulesEditor.Controls.Add( conditionalScaleRulesControlsRepeater );
 
-            LinkButton btnAddRule = new LinkButton { ID = "btnAddRule", CssClass = "btn btn-action btn-xs margin-b-md", Text = "<i class='fa fa-plus-circle'></i>", CausesValidation=false };
+            LinkButton btnAddRule = new LinkButton { ID = "btnAddRule", CssClass = "btn btn-action btn-xs margin-b-md", Text = "<i class='fa fa-plus-circle'></i>", CausesValidation = false };
             btnAddRule.Click += BtnAddRule_Click;
             pnlRulesEditor.Controls.Add( btnAddRule );
 
@@ -108,9 +108,10 @@ namespace Rock.Field.Types
             var lowValueNumberBox = conditionalScaleRangeRuleContainer.FindControl( "lowValueNumberBox" ) as NumberBox;
 
             labelTextBox.Text = conditionalScaleRangeRule.Label;
-            highValueNumberBox.Text = conditionalScaleRangeRule.HighValue.ToString();
+            // from http://stackoverflow.com/a/216705/1755417 (to trim trailing zeros)
+            highValueNumberBox.Text = conditionalScaleRangeRule.HighValue?.ToString( "G29" );
             colorPicker.Text = conditionalScaleRangeRule.Color;
-            lowValueNumberBox.Text = conditionalScaleRangeRule.LowValue.ToString();
+            lowValueNumberBox.Text = conditionalScaleRangeRule.LowValue?.ToString( "G29" );
         }
 
         /// <summary>
@@ -205,7 +206,7 @@ namespace Rock.Field.Types
             var matchingRangeRule = conditionalScaleRangeRuleList.FirstOrDefault( a => ( a.HighValue ?? decimal.MaxValue ) >= rangeValue.Value && rangeValue.Value >= ( a.LowValue ?? decimal.MinValue ) );
             if ( matchingRangeRule != null )
             {
-                return $"<span class='label scale-label' style='background-color:{matchingRangeRule.Color}'>{matchingRangeRule.Label}</span>";                
+                return $"<span class='label scale-label' style='background-color:{matchingRangeRule.Color}'>{matchingRangeRule.Label}</span>";
             }
             else
             {
