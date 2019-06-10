@@ -8,17 +8,11 @@
     }
     var postbackScript = $control.attr('data-postback-script');
 
-    var enabledPaymentTypes = JSON.parse($('.js-enabled-payment-types', $control).val());;
+    var enabledPaymentTypes = JSON.parse($('.js-enabled-payment-types', $control).val());
+    var tokenizerStyles = JSON.parse($('.js-tokenizer-styles', $control).val());
 
     var $creditCardContainer = $('.js-gateway-creditcard-iframe-container', $control);
     var $achContainer = $('.js-gateway-ach-iframe-container', $control);
-
-    var containerStyles = function (style) {
-        return $creditCardContainer.css(style);
-    };
-    var inputStyles = function (style) {
-        return $('.js-input-style-hook').css(style)
-    };
 
     var pubApiKey = $('.js-public-api-key', $control).val();
     var gatewayUrl = $('.js-gateway-url', $control).val();
@@ -45,21 +39,7 @@
             // Styles object will get converted into a css style sheet.
             // Inspect elements to see structured html elements
             // and style them the same way you would in css.
-            styles: {
-                'body': {
-                    'color': containerStyles('color')
-                },
-                'input': {
-                    'color': inputStyles('color'),
-                    'border-radius': inputStyles('border-radius'),
-                    'background-color': inputStyles('background-color'),
-                    'border': inputStyles('border')
-                },
-                '.payment .cvv input': {
-                    'border': inputStyles('border'),
-                    'padding-left': inputStyles('padding-left')
-                }
-            }
+            styles: tokenizerStyles
         }
     };
 

@@ -20,6 +20,7 @@ namespace Rock.TransNational.Pi.Controls
         private HiddenFieldWithClass _hfTokenizerRawResponse;
         private HiddenFieldWithClass _hfEnabledPaymentTypesJSON;
         private HiddenFieldWithClass _hfPublicApiKey;
+        private HiddenFieldWithClass _hfTokenizerStylesJSON;
         private HiddenFieldWithClass _hfGatewayUrl;
         private TextBox _hiddenInputStyleHook;
         private Panel _paymentTypeSelector;
@@ -87,6 +88,21 @@ namespace Rock.TransNational.Pi.Controls
             {
                 EnsureChildControls();
                 _hfPublicApiKey.Value = value;
+            }
+        }
+
+        /// <summary>
+        /// Sets the tokenizer styles json.
+        /// </summary>
+        /// <value>
+        /// The tokenizer styles json.
+        /// </value>
+        public string TokenizerStylesJSON
+        {
+            set
+            {
+                EnsureChildControls();
+                _hfTokenizerStylesJSON.Value = value;
             }
         }
 
@@ -246,6 +262,9 @@ namespace Rock.TransNational.Pi.Controls
 
             _hfPublicApiKey = new HiddenFieldWithClass() { ID = "_hfPublicApiKey", CssClass = "js-public-api-key" };
             Controls.Add( _hfPublicApiKey );
+
+            _hfTokenizerStylesJSON = new HiddenFieldWithClass() { ID = "_hfTokenizerStylesJSON", CssClass = "js-tokenizer-styles" };
+            Controls.Add( _hfTokenizerStylesJSON );
 
             _hiddenInputStyleHook = new TextBox();
             _hiddenInputStyleHook.Attributes["class"] = "js-input-style-hook";

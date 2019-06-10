@@ -14,6 +14,7 @@ using Rock.Model;
 using Rock.Security;
 using Rock.TransNational.Pi.Controls;
 using Rock.Web.Cache;
+using Rock.Web.UI.Controls;
 
 // Use Newtonsoft RestRequest which is the same as RestSharp.RestRequest but uses the JSON.NET serializer
 using RestRequest = RestSharp.Newtonsoft.Json.RestRequest;
@@ -49,8 +50,34 @@ namespace Rock.TransNational.Pi
         Description = "Set to Sandbox mode to use the sandbox test gateway instead of the production app gateway",
         ListSource = "Live,Sandbox",
         IsRequired = true,
+        DefaultValue = "Live",
+        Order = 3)]
 
-        DefaultValue = "Live" )]
+    [CodeEditorField("Tokenizer Styles Option",
+        Key = AttributeKey.TokenizerStylesJSON,
+        Description = "JSON that is used for the Custom CSS that is passed to the Tokenizer. See https://sandbox.gotnpgateway.com/docs/tokenizer/#style-examples",
+        Category = "Advanced",
+        IsRequired = false,
+        EditorMode = CodeEditorMode.JavaScript,
+        EditorHeight = 300,
+        Order = 4,
+        DefaultValue = @"
+{
+	""body"": {
+        ""color"": ""rgb(51, 51, 51)""
+    },
+	""input"": {
+		""color"": ""rgb(51, 51, 51)"",
+		""border-radius"": ""0px"",
+		""background-color"": ""rgb(255, 255, 255)"",
+		""border"": ""2px inset rgb(51, 51, 51)""
+	},
+	"".payment .cvv input"": {
+		""border"": ""2px inset rgb(51, 51, 51)"",
+		""padding-left"": ""0px""
+	}
+}"
+        )]
 
     #endregion Component Attributes
     public class PiGateway : GatewayComponent, IHostedGatewayComponent, IAutomatedGatewayComponent
@@ -65,6 +92,7 @@ namespace Rock.TransNational.Pi
             public const string PrivateApiKey = "PrivateApiKey";
             public const string PublicApiKey = "PublicApiKey";
             public const string Mode = "Mode";
+            public const string TokenizerStylesJSON = "TokenizerStylesJSON";
         }
 
         #endregion Attribute Keys
@@ -214,6 +242,7 @@ namespace Rock.TransNational.Pi
             piHostedPaymentControl.EnabledPaymentTypes = enabledPaymentTypes.ToArray();
 
             piHostedPaymentControl.PublicApiKey = this.GetPublicApiKey( financialGateway );
+            piHostedPaymentControl.TokenizerStylesJSON = this.GetAttributeValue( financialGateway, AttributeKey.TokenizerStylesJSON );
 
             return piHostedPaymentControl;
         }
