@@ -28,7 +28,7 @@ using Rock.Web.Cache;
 namespace Rock.Web.UI.Controls
 {
     /// <summary>
-    /// 
+    ///
     /// </summary>
     /// <seealso cref="System.Web.UI.WebControls.CompositeControl" />
     /// <seealso cref="System.Web.UI.INamingContainer" />
@@ -62,7 +62,7 @@ namespace Rock.Web.UI.Controls
         #region Enums
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         public enum AccountAmountEntryMode
         {
@@ -172,7 +172,7 @@ namespace Rock.Web.UI.Controls
                                     a.ParentAccountId == account.Id
                                     && a.IsActive
                                     && ( a.StartDate == null || a.StartDate <= RockDateTime.Today )
-                                    && ( a.EndDate == null || a.EndDate >= RockDateTime.Today ) 
+                                    && ( a.EndDate == null || a.EndDate >= RockDateTime.Today )
                                 )
                                 .ToList();
                             if ( account.ParentAccountId.HasValue )
@@ -759,21 +759,31 @@ namespace Rock.Web.UI.Controls
 
             Controls.Add( _pnlAccountAmountEntrySingle );
 
+            var pnlGiveBoxDiv = new Panel() { CssClass = "give-box" };
+            _pnlAccountAmountEntrySingle.Controls.Add( pnlGiveBoxDiv );
+
             // Special big entry for entering a single dollar amount
             _nbAmountAccountSingle = new TextBox();
             _nbAmountAccountSingle.ID = "_nbAmountAccountSingle";
-            _nbAmountAccountSingle.Attributes["placeholder"] = "Enter Amount";
+            _nbAmountAccountSingle.Attributes["placeholder"] = "0";
             _nbAmountAccountSingle.Attributes["type"] = "number";
-            _nbAmountAccountSingle.CssClass = "amount-input form-control";
+            _nbAmountAccountSingle.CssClass = "amount-input";
             _nbAmountAccountSingle.Attributes["min"] = "0";
             _nbAmountAccountSingle.Attributes["step"] = "0.01";
-            _pnlAccountAmountEntrySingle.Controls.Add( _nbAmountAccountSingle );
+            pnlGiveBoxDiv.Controls.Add( _nbAmountAccountSingle );
 
-            var pnlSingleCampusDiv = new Panel() { CssClass = "campus-dropdown " };
+            var literal = new Literal(){ Text = $@"
+<div class='decorator'>
+<span class='wrapper'><span class='currency-symbol' aria-hidden='true' role='presentation'>{GlobalAttributesCache.Value( "CurrencySymbol" )}</span><span class='shadow-amount'>0</span></span>
+</div>" };
+            pnlGiveBoxDiv.Controls.Add( literal );
+
+            var pnlSingleCampusDiv = new Panel() { CssClass = "campus-dropdown" };
             _pnlAccountAmountEntrySingle.Controls.Add( pnlSingleCampusDiv );
 
             _ddlSingleAccountCampus = new RockDropDownList();
             _ddlSingleAccountCampus.ID = "_ddlSingleAccountCampus";
+            _ddlSingleAccountCampus.CssClass = "input-lg";
             _ddlSingleAccountCampus.SelectedIndexChanged += _ddlCampus_SelectedIndexChanged;
             pnlSingleCampusDiv.Controls.Add( _ddlSingleAccountCampus );
 
@@ -782,6 +792,7 @@ namespace Rock.Web.UI.Controls
 
             _ddlAccountSingle = new RockDropDownList();
             _ddlAccountSingle.ID = "_ddlAccountSingle";
+            _ddlAccountSingle.CssClass = "input-lg";
             _ddlAccountSingle.SelectedIndexChanged += _ddlAccountSingle_SelectedIndexChanged;
             pnlAccountSingleDiv.Controls.Add( _ddlAccountSingle );
 
@@ -800,6 +811,7 @@ namespace Rock.Web.UI.Controls
 
             _ddlMultiAccountCampus = new RockDropDownList();
             _ddlMultiAccountCampus.ID = "_ddlMultiAccountCampus";
+            _ddlMultiAccountCampus.CssClass = "input-lg";
             _ddlMultiAccountCampus.SelectedIndexChanged += _ddlCampus_SelectedIndexChanged;
             _pnlAccountAmountEntryMulti.Controls.Add( _ddlMultiAccountCampus );
 
@@ -827,7 +839,7 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         private class PromptForAccountsMultiTemplate : ITemplate
         {
@@ -848,7 +860,7 @@ namespace Rock.Web.UI.Controls
                     new CurrencyBox
                     {
                         ID = RepeaterControlIds.ID_nbAccountAmountMulti,
-                        CssClass = "amount-input",
+                        CssClass = "amount-input input-group-lg",
                         NumberType = ValidationDataType.Currency,
                         MinimumValue = "0"
                     } );
@@ -859,7 +871,7 @@ namespace Rock.Web.UI.Controls
 
         /// <summary>
         /// Handles the ItemDataBound event of the _rptPromptForAccountAmountsMulti control.
-        /// </summary> 
+        /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RepeaterItemEventArgs"/> instance containing the event data.</param>
         private void _rptPromptForAccountAmountsMulti_ItemDataBound( object sender, RepeaterItemEventArgs e )
