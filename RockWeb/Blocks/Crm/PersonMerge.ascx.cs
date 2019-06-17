@@ -298,6 +298,11 @@ validity of the request before completing this merge." :
             }
         }
 
+        /// <summary>
+        /// Handles the DataBound event of the personCol control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="personMergeFieldRowEventArgs">The <see cref="MergePersonField.MergePersonFieldRowEventArgs"/> instance containing the event data.</param>
         private void personCol_DataBound( object sender, MergePersonField.MergePersonFieldRowEventArgs personMergeFieldRowEventArgs )
         {
             int personId = personMergeFieldRowEventArgs.MergePersonField.PersonId;
@@ -305,33 +310,24 @@ validity of the request before completing this merge." :
             ValuesRowPersonPersonProperty valuesRowPersonPersonProperty = rowValue.PersonPersonPropertyList.FirstOrDefault( a => a.Person.Id == personId );
             if ( rowValue.IsSectionHeading )
             {
-                personMergeFieldRowEventArgs.SelectionControl = null;
+                personMergeFieldRowEventArgs.SelectionControlType = MergePersonField.SelectionControlType.None;
                 personMergeFieldRowEventArgs.ContentHTML = rowValue.PropertyLabel;
                 return;
             }
 
-            if ( valuesRowPersonPersonProperty == null)
+            if ( valuesRowPersonPersonProperty == null )
             {
                 return;
             }
-            
+
             if ( rowValue.PersonProperty.Attribute != null && rowValue.PersonProperty.Attribute.FieldType.Field is Rock.Field.Types.MatrixFieldType )
             {
-                personMergeFieldRowEventArgs.SelectionControl = new RockCheckBox
-                {
-                    ID = "selectionControl_" + personId.ToString(),
-                };
+                personMergeFieldRowEventArgs.SelectionControlType = MergePersonField.SelectionControlType.Checkbox;
             }
             else
             {
-                personMergeFieldRowEventArgs.SelectionControl = new RockRadioButton {
-                    ID = "selectionControl_" + personId.ToString(),
-                    GroupName = "selectionControlGroup_" + personMergeFieldRowEventArgs.Row.RowIndex,
-                };
+                personMergeFieldRowEventArgs.SelectionControlType = MergePersonField.SelectionControlType.RadioButton;
             }
-
-            personMergeFieldRowEventArgs.SelectionControl.CssClass = "js-selection-control";
-            personMergeFieldRowEventArgs.SelectionControl.Attributes["data-person-id"] = personId.ToString();
 
             personMergeFieldRowEventArgs.ContentHTML = valuesRowPersonPersonProperty.PersonPropertyValue.FormattedValue;
             personMergeFieldRowEventArgs.Selected = valuesRowPersonPersonProperty.PersonPropertyValue.Selected;
@@ -381,8 +377,6 @@ validity of the request before completing this merge." :
 
             GetValuesSelection();
 
-            return;
-
             int? primaryPersonId = null;
 
             var oldPhotos = new List<int>();
@@ -401,6 +395,7 @@ validity of the request before completing this merge." :
                     var phoneNumberService = new PhoneNumberService( rockContext );
                     var taggedItemService = new TaggedItemService( rockContext );
                     var personSearchKeyService = new PersonSearchKeyService( rockContext );
+                    
                     Person primaryPerson = personService.Get( MergeData.PrimaryPersonId ?? 0 );
                     if ( primaryPerson != null )
                     {
@@ -504,14 +499,21 @@ validity of the request before completing this merge." :
                         primaryPerson.LoadAttributes( rockContext );
                         foreach ( var property in MergeData.Properties.Where( p => p.Key.StartsWith( "attr_" ) ) )
                         {
-                            string attributeKey = AttributeCache.Get( property.AttributeId.Value ).Key;
-                            string oldValue = primaryPerson.GetAttributeValue( attributeKey ) ?? string.Empty;
-                            string newValue = GetNewStringValue( property.Key ) ?? string.Empty;
-
-                            if ( !oldValue.Equals( newValue ) )
+                            var attribute = AttributeCache.Get( property.AttributeId.Value );
+                            if ( attribute.FieldType.Field is Rock.Field.Types.MatrixFieldType )
                             {
-                                var attribute = primaryPerson.Attributes[attributeKey];
-                                Rock.Attribute.Helper.SaveAttributeValue( primaryPerson, attribute, newValue, rockContext );
+                                MergeAttributeMatrixAttributeValues( rockContext, primaryPerson, property, attribute );
+                            }
+                            else
+                            {
+
+                                string oldValue = primaryPerson.GetAttributeValue( attribute.Key ) ?? string.Empty;
+                                string newValue = GetNewStringValue( property.Key ) ?? string.Empty;
+
+                                if ( !oldValue.Equals( newValue ) )
+                                {
+                                    Rock.Attribute.Helper.SaveAttributeValue( primaryPerson, attribute, newValue, rockContext );
+                                }
                             }
                         }
 
@@ -702,6 +704,62 @@ validity of the request before completing this merge." :
         }
 
         /// <summary>
+        /// Merges the attribute matrix attribute values' Items into one AttributeMatrixValue
+        /// </summary>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="primaryPerson">The primary person.</param>
+        /// <param name="property">The property.</param>
+        /// <param name="attribute">The attribute.</param>
+        private void MergeAttributeMatrixAttributeValues( RockContext rockContext, Person primaryPerson, PersonProperty property, AttributeCache attribute )
+        {
+            var attributeMatrixService = new AttributeMatrixService( rockContext );
+            AttributeMatrix primaryPersonAttributeMatrix = null;
+            var primaryPersonAttributeMatrixGuid = primaryPerson.GetAttributeValue( attribute.Key ).AsGuidOrNull();
+            if ( primaryPersonAttributeMatrixGuid.HasValue )
+            {
+                primaryPersonAttributeMatrix = attributeMatrixService.Get( primaryPersonAttributeMatrixGuid.Value );
+            }
+
+            var selectedPersonAttributeMatrixList = new List<AttributeMatrix>();
+
+            Guid? newPersonAttributeMatrixGuid = null;
+
+            var selectedAttributeMatrixGuidList = GetSelectedValues( property.Key ).Select( a => a.Value ).AsGuidList();
+            if ( selectedAttributeMatrixGuidList.Count > 1 )
+            {
+                var selectedAttributeMatrixList = attributeMatrixService.GetByGuids( selectedAttributeMatrixGuidList ).ToList();
+                int attributeMatrixTemplateId;
+                if ( primaryPersonAttributeMatrix != null )
+                {
+                    attributeMatrixTemplateId = primaryPersonAttributeMatrix.AttributeMatrixTemplateId;
+                }
+                else
+                {
+                    attributeMatrixTemplateId = selectedAttributeMatrixList.Select( a => a.AttributeMatrixTemplateId ).First();
+                }
+
+                var newPersonAttributeMatrix = new AttributeMatrix() { AttributeMatrixTemplateId = attributeMatrixTemplateId };
+                var combinedMatrixItems = selectedAttributeMatrixList.SelectMany( a => a.AttributeMatrixItems ).ToList();
+
+                newPersonAttributeMatrix.AttributeMatrixItems = combinedMatrixItems;
+                attributeMatrixService.Add( newPersonAttributeMatrix );
+
+                rockContext.SaveChanges();
+
+                newPersonAttributeMatrixGuid = newPersonAttributeMatrix.Guid;
+            }
+            else
+            {
+                newPersonAttributeMatrixGuid = selectedAttributeMatrixGuidList.FirstOrDefault();
+            }
+
+            if ( primaryPersonAttributeMatrixGuid != newPersonAttributeMatrixGuid )
+            {
+                Rock.Attribute.Helper.SaveAttributeValue( primaryPerson, attribute, newPersonAttributeMatrixGuid.ToString(), rockContext );
+            }
+        }
+
+        /// <summary>
         /// Handles the Click event of the btnSaveRequestNote control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
@@ -858,21 +916,12 @@ validity of the request before completing this merge." :
 
                 foreach ( GridViewRow row in gValues.Rows )
                 {
-                    var selectionControl = row.FindControl( "selectionControl_" + personId.ToString() ) as ICheckBoxControl;
-                    var hfMergeFieldSelected = row.FindControl( "hfMergeFieldSelected_" + personId.ToString() ) as HiddenFieldWithClass;
-                    var selected = hfMergeFieldSelected.Value.AsBoolean();
-                    var propertyKey = gValues.DataKeys[row.RowIndex].Value;
-
-                    /*//ValuesRow valuesRow = row.DataItem as ValuesRow;
-                    if ( valuesRow != null && !valuesRow.IsSectionHeading )
+                    var propertySelection = MergePersonField.GetPropertySelection( row, personId );
+                    if ( !propertySelection.IsSectionHeader )
                     {
-                        foreach ( ValuesRowPersonPersonProperty valuesRowPersonPersonProperty in valuesRow.PersonPersonPropertyList )
-                        {
-                            
-                            PersonPropertyValue personPropertyValue = mergeDataPropertiesLookup[valuesRow.PropertyKey][valuesRowPersonPersonProperty.Person.Id];
-                            personPropertyValue.Selected = selectionControl.Checked;
-                        }
-                    }*/
+                        PersonPropertyValue personPropertyValue = mergeDataPropertiesLookup[propertySelection.PropertyKey][personId];
+                        personPropertyValue.Selected = propertySelection.Selected;
+                    }
                 }
             }
         }
@@ -946,6 +995,15 @@ validity of the request before completing this merge." :
             var selectedPersonValue = property.Values.Where( v => v.Selected ).FirstOrDefault();
 
             return selectedPersonValue;
+        }
+
+        private PersonPropertyValue[] GetSelectedValues( string key )
+        {
+            var property = MergeData.GetProperty( key );
+            var primaryPersonValue = property.Values.Where( v => v.PersonId == MergeData.PrimaryPersonId ).FirstOrDefault();
+            var selectedPersonValues = property.Values.Where( v => v.Selected );
+
+            return selectedPersonValues.ToArray();
         }
 
         #endregion
@@ -1241,7 +1299,7 @@ validity of the request before completing this merge." :
 
         private void AddPerson( Person person )
         {
-            string personPhotoTag =  string.Format("<img src='{0}' style='max-width:65px;max-height:65px' />", Person.GetPersonPhotoUrl( person ) + "&width=65" );
+            string personPhotoTag = string.Format( "<img src='{0}' style='max-width:65px;max-height:65px' />", Person.GetPersonPhotoUrl( person ) + "&width=65" );
 
             People.Add( new MergePerson( person ) );
             AddProperty( "Photo", "Photo", person.Id, person.PhotoId.ToString(), personPhotoTag );

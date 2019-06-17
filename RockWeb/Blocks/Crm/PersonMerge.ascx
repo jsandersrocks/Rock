@@ -2,8 +2,6 @@
 
 <asp:UpdatePanel ID="upnlContent" runat="server">
     <ContentTemplate>
-
-
         <div class="panel panel-block">
             <div class="panel-heading">
                 <h1 class="panel-title"><i class="fa fa-copy"></i>&nbsp;Merge Records</h1>
@@ -50,32 +48,31 @@
         </div>
 
         <script>
+            Sys.Application.add_load(function () {
+                $('.js-merge-header-summary').off('click').on('click', function (event) {
+                    // The checkbox in the header was clicked, so we want to set the checkbox/radiobuttons as checked for all the person's selection controls
+                    var $checkboxIcon = $(this).children('.js-header-checkbox-icon');
 
-            $('.js-merge-header-summary').click(function (event) {
-                var $checkboxIcon = $(this).children('.js-header-checkbox-icon');
-                if ($checkboxIcon.hasClass('fa-square-o')) {
-                    $checkboxIcon.removeClass('fa-square-o').addClass('fa-check-square-o');
-                    $('.js-header-checkbox-icon').not($checkboxIcon).removeClass('fa-check-square-o').addClass('fa-square-o');
-                    var personId = $(this).attr('data-person-id');
-                    $('#<%=hfSelectedColumnPersonId.ClientID%>').val(personId);
+                    if ($checkboxIcon.hasClass('fa-square-o')) {
+                        $checkboxIcon.removeClass('fa-square-o').addClass('fa-check-square-o');
+                        $('.js-header-checkbox-icon').not($checkboxIcon).removeClass('fa-check-square-o').addClass('fa-square-o');
+                        var personId = $(this).attr('data-person-id');
+                        $('#<%=hfSelectedColumnPersonId.ClientID%>').val(personId);
 
+                        // set all selection Checkbox/RadioButtons for the person to checked
+                        // note: If they are radio buttons, they other radiobuttons in the group will be unselected automatically
+                        $(this).closest('.js-person-merge-table').find('.js-selection-control[data-person-id=' + personId + ']').each(function (index) {
+                            $(this).prop('checked', true);
+                            $(this).closest('.js-merge-field-cell').addClass('selected');
+                        });
+                    }
+                });
 
-                    $(this).closest('.js-person-merge-table').find('.js-selection-control[data-person-id=' + personId + ']').each(function (index) {
-                        $(this).prop('checked', true);
-                        $(this).closest('.js-merge-field-cell').addClass('selected');
-                    });
-
-                    $('.js-selection-control:checked').closest('.js-merge-field-cell').addClass('selected').find('.js-merge-field-selected').val(1);
-                    $('.js-selection-control').not(':checked').closest('.js-merge-field-cell').removeClass('selected').find('.js-merge-field-selected').val(0);
-                }
+                $('.js-selection-control').off('click').on('click', function () {
+                    $(this).closest('.js-merge-field-row').find('.js-selection-control[type=radio]').not($(this)).closest('.js-merge-field-cell').removeClass('selected')
+                    $(this).closest('.js-merge-field-cell').addClass('selected')
+                });
             });
-
-            $('.js-selection-control').click(function () {
-                $(this).closest('.js-merge-field-row').find('.js-selection-control[type=radio]').not($(this)).closest('.js-merge-field-cell').removeClass('selected').find('.js-merge-field-selected').val(0);
-                $(this).closest('.js-merge-field-cell').addClass('selected').find('.js-merge-field-selected').val(1);
-            });
-
-
         </script>
 
     </ContentTemplate>
