@@ -6,17 +6,15 @@
         // control hasn't been rendered so skip
         return;
     }
+    tokenizerComputeStyles();
+
     var postbackScript = $control.attr('data-postback-script');
 
     var enabledPaymentTypes = JSON.parse($('.js-enabled-payment-types', $control).val());
-    var tokenizerStyles = JSON.parse($('.js-tokenizer-styles', $control).val());
+    // var tokenizerStyles = JSON.parse($('.js-tokenizer-styles', $control).val());
 
     var $creditCardContainer = $('.js-gateway-creditcard-iframe-container', $control);
     var $achContainer = $('.js-gateway-ach-iframe-container', $control);
-
-    var inputStyles = function (style) {
-        return $('.js-input-style-hook').css(style)
-    };
 
     var pubApiKey = $('.js-public-api-key', $control).val();
     var gatewayUrl = $('.js-gateway-url', $control).val();
@@ -43,47 +41,7 @@
             // Styles object will get converted into a css style sheet.
             // Inspect elements to see structured html elements
             // and style them the same way you would in css.
-            styles: {
-                'body': {
-                    'color': getComputedStyle(document.documentElement).getPropertyValue('--text-color'),
-                    'transition': getComputedStyle(document.documentElement).getPropertyValue('--input-focus-transition')
-                },
-                '#app': {
-                    'padding': '5px 15px'
-                },
-                'input,select': {
-                    'color': getComputedStyle(document.documentElement).getPropertyValue('--input-color'),
-                    'border-radius': getComputedStyle(document.documentElement).getPropertyValue('--input-border-radius'),
-                    'background-color': getComputedStyle(document.documentElement).getPropertyValue('--input-bg'),
-                    'border': getComputedStyle(document.documentElement).getPropertyValue('--input-border'),
-                    'box-shadow': inputStyles('box-shadow'),
-                    'padding': inputStyles('padding'),
-                    'font-size': inputStyles('font-size'),
-                    'height': inputStyles('height'),
-                    'font-family': inputStyles('font-family'),
-                },
-                '.card,.ach': {
-                    '-ms-flex-wrap': 'wrap',
-                    'flex-wrap': 'wrap'
-                },
-                '.card .cc,.ach .fieldset': {
-                    '-ms-flex': '0 0 100%!important',
-                    'flex': '0 0 100%!important',
-                    'padding': '0',
-                    'margin-bottom': '15px'
-                },
-                '.card .cvv, .card .exp': {
-                    '-ms-flex': '0 0 50%!important',
-                    'flex': '0 0 50%!important'
-                },
-                'input:focus,select:focus': {
-                    'border': getComputedStyle(document.documentElement).getPropertyValue('--focus-state-border'),
-                    'box-shadow': getComputedStyle(document.documentElement).getPropertyValue('--focus-state-shadow')
-                },
-                'select': {
-                    'padding': '6px 4px'
-                }
-            }
+            styles: tokenizerStyles
         }
     };
 

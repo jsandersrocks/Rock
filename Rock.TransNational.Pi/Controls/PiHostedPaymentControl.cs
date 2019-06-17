@@ -99,6 +99,12 @@ namespace Rock.TransNational.Pi.Controls
         /// </value>
         public string TokenizerStylesJSON
         {
+            get
+            {
+                EnsureChildControls();
+                return string.Format( "var tokenizerStyles;function tokenizerComputeStyles(){{ var inputStyles = function (style) {{return getComputedStyle(document.querySelectorAll('.js-input-style-hook')[0])[style]}};tokenizerStyles = {{ {0} }} }}", _hfTokenizerStylesJSON.Value);
+            }
+
             set
             {
                 EnsureChildControls();
@@ -163,6 +169,8 @@ namespace Rock.TransNational.Pi.Controls
         {
             // Script that lets us use the Tokenizer API (see https://sandbox.gotnpgateway.com/docs/tokenizer/)
             RockPage.AddScriptSrcToHead( this.Page, "gotnpgatewayTokenizer", $"{GatewayBaseUrl}/tokenizer/tokenizer.js" );
+
+            RockPage.AddScriptToHead( this.Page, $"{TokenizerStylesJSON}", true );
 
             // Script that contains the initializeTokenizer scripts for us to use on the client
             System.Web.UI.ScriptManager.RegisterClientScriptBlock( this, this.GetType(), "piGatewayTokenizerBlock", Scripts.gatewayTokenizer, true );
