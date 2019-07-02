@@ -15,10 +15,8 @@
 // </copyright>
 //
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Caching;
-using Rock.Data;
+
 using Rock.Web.Cache;
 
 namespace Rock.Model
@@ -30,6 +28,18 @@ namespace Rock.Model
     {
 
         /// <summary>
+        /// Gets components by channel identifier.
+        /// </summary>
+        /// <param name="channelId">The channel identifier.</param>
+        /// <returns></returns>
+        public IOrderedQueryable<InteractionComponent> GetByChannelId( int channelId )
+        {
+            return Queryable()
+                .Where( c => c.ChannelId == channelId )
+                .OrderBy( c => c.Name );
+        }
+
+        /// <summary>
         /// Gets the component by entity identifier, and creates it if it doesn't exist
         /// </summary>
         /// <param name="channelId">The channel identifier.</param>
@@ -38,10 +48,57 @@ namespace Rock.Model
         /// <returns></returns>
         public InteractionComponent GetComponentByEntityId( int channelId, int entityId, string name )
         {
-            var component = this.Queryable()
-                .FirstOrDefault( c =>
+            return GetComponentByPredicate( channelId, entityId, name, c =>
+                c.ChannelId == channelId &&
+                c.EntityId == entityId );
+        }
+
+        /// <summary>
+        /// Gets the component by component name, and creates it if it doesn't exist
+        /// </summary>
+        /// <param name="channelId">The channel identifier.</param>
+        /// <param name="name">The name.</param>
+        /// <returns></returns>
+        public InteractionComponent GetComponentByComponentName( int channelId, string name )
+        {
+            return GetComponentByPredicate( channelId, null, name, c =>
                     c.ChannelId == channelId &&
-                    c.EntityId == entityId );
+                    c.Name == name );
+        }
+
+        /// <summary>
+        /// Gets the component by entity identifier, and creates it if it doesn't exist
+        /// </summary>
+        /// <param name="channelGuid">The channel unique identifier.</param>
+        /// <param name="entityId">The entity identifier.</param>
+        /// <param name="name">The name.</param>
+        /// <returns></returns>
+        public InteractionComponent GetComponentByEntityId( Guid channelGuid, int entityId, string name )
+        {
+            var channel = InteractionChannelCache.Get( channelGuid );
+            if ( channel != null )
+            {
+                return GetComponentByEntityId( channel.Id, entityId, name );
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the component by predicate.
+        /// </summary>
+        /// <param name="channelId">The channel identifier.</param>
+        /// <param name="entityId">The entity identifier.</param>
+        /// <param name="name">The name.</param>
+        /// <param name="predicate">The predicate.</param>
+        /// <returns></returns>
+        private InteractionComponent GetComponentByPredicate( int channelId, int? entityId, string name, System.Linq.Expressions.Expression<Func<InteractionComponent, bool>> predicate )
+        {
+            var component = this.Queryable()
+                .FirstOrDefault( predicate );
+
             if ( component != null )
             {
                 component.Name = name;
@@ -55,75 +112,7 @@ namespace Rock.Model
                 this.Add( component );
             }
 
-            component.Name = name;
-
             return component;
         }
-
-        /// <summary>
-        /// Gets the component by component name, and creates it if it doesn't exist
-        /// </summary>
-        /// <param name="channelId">The channel identifier.</param>
-        /// <param name="name">The name.</param>
-        /// <returns></returns>
-        public InteractionComponent GetComponentByComponentName( int channelId, string name )
-        {
-            var component = this.Queryable()
-                .FirstOrDefault( c =>
-                    c.ChannelId == channelId &&
-                    c.Name == name );
-            if ( component != null )
-            {
-                component.Name = name;
-            }
-            else
-            {
-                component = new InteractionComponent();
-                component.EntityId = null;
-                component.ChannelId = channelId;
-                component.Name = name;
-                this.Add( component );
-            }
-
-            component.Name = name;
-
-            return component;
-        }
-
-        /// <summary>
-        /// Gets the component by entity identifier, and creates it if it doesn't exist
-        /// </summary>
-        /// <param name="channelGuid">The channel unique identifier.</param>
-        /// <param name="entityId">The entity identifier.</param>
-        /// <param name="name">The name.</param>
-        /// <returns></returns>
-        public InteractionComponent GetComponentByEntityId( Guid channelGuid, int entityId, string name )
-        {
-            var component = this.Queryable()
-                .FirstOrDefault( c =>
-                    c.Channel.Guid == channelGuid &&
-                    c.EntityId == entityId );
-            if ( component != null )
-            {
-                component.Name = name;
-            }
-            else
-            {
-                var channel = new InteractionChannelService( (RockContext)this.Context ).Get( channelGuid );
-                if ( channel != null )
-                {
-                    component = new InteractionComponent();
-                    component.EntityId = entityId;
-                    component.ChannelId = channel.Id;
-                    component.Name = name;
-                    this.Add( component );
-                }
-            }
-
-            component.Name = name;
-
-            return component;
-        }
-
     }
 }

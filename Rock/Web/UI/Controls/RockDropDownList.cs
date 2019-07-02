@@ -14,7 +14,6 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -307,36 +306,10 @@ namespace Rock.Web.UI.Controls
             {
                 ( (WebControl)this ).AddCssClass( "chosen-select" );
 
-                var script = new System.Text.StringBuilder();
-                script.AppendFormat( @"
-    $('#{0}').chosen({{
-        width: '100%',
-        allow_single_deselect: true,
-        placeholder_text_multiple: ' ',
-        placeholder_text_single: ' '
-    }});
-", this.ClientID );
-
                 if ( DisplayEnhancedAsAbsolute )
                 {
-                    script.AppendFormat( @"
-    $( '#{0}').on('chosen:showing_dropdown', function( evt, params ) {{
-        $(this).next('.chosen-container').find('.chosen-drop').css('position','relative');
-    }});
-    $('#{0}').on('chosen:hiding_dropdown', function( evt, params ) {{
-        $(this).next('.chosen-container').find('.chosen-drop').css('position','absolute');
-    }});
-", this.ClientID );
+                    ( ( WebControl ) this ).AddCssClass( "chosen-select-absolute" );
                 }
-                
-                script.AppendFormat( @"
-    $( '#{0}').on('chosen:showing_dropdown chosen:hiding_dropdown', function( evt, params ) {{
-        // update the outer modal  
-        Rock.dialogs.updateModalScrollBar('{0}');
-    }});
-", this.ClientID );
-
-                ScriptManager.RegisterStartupScript( this, this.GetType(), "ChosenScript_" + this.ClientID, script.ToString(), true );
             }
 
             base.RenderControl( writer );
@@ -372,7 +345,13 @@ namespace Rock.Web.UI.Controls
         protected override void LoadViewState( object savedState )
         {
             base.LoadViewState( savedState );
-            var savedAttributes = ViewState["ItemAttributes"] as List<Dictionary<string, string>>;
+            var savedAttributes = ( ViewState["ItemAttributes"] as string ).FromJsonOrNull<List<Dictionary<string, string>>>();
+
+            if ( savedAttributes == null )
+            {
+                return;
+            }
+
             int itemPosition = 0;
 
             // make sure the list has the same number of items as it did when ViewState was saved
@@ -401,7 +380,16 @@ namespace Rock.Web.UI.Controls
         /// </returns>
         protected override object SaveViewState()
         {
-            ViewState["ItemAttributes"] = this.Items.OfType<ListItem>().Select( a => a.Attributes.Keys.OfType<string>().ToDictionary( k => k, v => a.Attributes[v] ) ).ToList();
+            var itemAttributes = this.Items.OfType<ListItem>().Select( a => a.Attributes.Keys.OfType<string>().ToDictionary( k => k, v => a.Attributes[v] ) ).ToList();
+            if ( itemAttributes.Any( a => a.Any() ) )
+            {
+                ViewState["ItemAttributes"] = itemAttributes.ToJson();
+            }
+            else
+            {
+                ViewState["ItemAttributes"] = null;
+            }
+
             return base.SaveViewState();
         }
 

@@ -28,6 +28,40 @@ namespace Rock.Client.Enums
     #pragma warning disable CS1591
     /// <summary>
     /// </summary>
+    public enum AddressInvalidReason
+    {
+        None = 0x0,
+        NotFound = 0x1,
+        Vacant = 0x2,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum AddressStatus
+    {
+        Invalid = 0x0,
+        Valid = 0x1,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum AgeClassification
+    {
+        Unknown = 0x0,
+        Adult = 0x1,
+        Child = 0x2,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum AssessmentRequestStatus
+    {
+        Pending = 0x0,
+        Complete = 0x1,
+    }
+
+    /// <summary>
+    /// </summary>
     public enum AttendanceGraphBy
     {
         Total = 0x0,
@@ -35,6 +69,15 @@ namespace Rock.Client.Enums
         Campus = 0x2,
         Schedule = 0x3,
         Location = 0x4,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum AttendanceRecordRequiredForCheckIn
+    {
+        ScheduleNotRequired = 0x0,
+        PreSelect = 0x1,
+        ScheduleRequired = 0x2,
     }
 
     /// <summary>
@@ -125,6 +168,9 @@ namespace Rock.Client.Enums
         Email = 0x1,
         SMS = 0x2,
         PushNotification = 0x3,
+
+        [Obsolete( "Not Supported", false )]
+        Other = 0x4,
     }
 
     /// <summary>
@@ -282,12 +328,60 @@ namespace Rock.Client.Enums
 
     /// <summary>
     /// </summary>
+    public enum HistoryChangeType
+    {
+        Record = 0x0,
+        Property = 0x1,
+        Attribute = 0x2,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum HistoryVerb
+    {
+        Add = 0x0,
+        Modify = 0x1,
+        Delete = 0x2,
+        Registered = 0x3,
+        Process = 0x4,
+        Matched = 0x5,
+        Unmatched = 0x6,
+        Sent = 0x7,
+        Login = 0x8,
+        Merge = 0x9,
+        AddedToGroup = 0xa,
+        RemovedFromGroup = 0xb,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum IconCssWeight
+    {
+        Regular = 0x0,
+        Solid = 0x1,
+        Light = 0x2,
+        Thin = 0x3,
+    }
+
+    /// <summary>
+    /// </summary>
     public enum JobNotificationStatus
     {
         All = 0x1,
         Success = 0x2,
         Error = 0x3,
         None = 0x4,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum MatchFlag
+    {
+        None = 0x0,
+        Moved = 0x1,
+        POBoxClosed = 0x2,
+        MovedNoForwarding = 0x3,
+        MovedToForeignCountry = 0x4,
     }
 
     /// <summary>
@@ -337,12 +431,57 @@ namespace Rock.Client.Enums
 
     /// <summary>
     /// </summary>
+    public enum MoveType
+    {
+        None = 0x0,
+        Family = 0x1,
+        Individual = 0x2,
+        Business = 0x3,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum NcoaType
+    {
+        None = 0x0,
+        NoMove = 0x1,
+        Month48Move = 0x2,
+        Move = 0x3,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum NoteApprovalStatus
+    {
+        PendingApproval = 0x0,
+        Approved = 0x1,
+        Denied = 0x2,
+    }
+
+    /// <summary>
+    /// </summary>
     public enum NotificationClassification
     {
         Success = 0x0,
         Info = 0x1,
         Warning = 0x2,
         Danger = 0x3,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum OptionType
+    {
+        Agreement = 0x0,
+        Frequency = 0x1,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum PersonAliasType
+    {
+        FromPersonAlias = 0x0,
+        ToPersonAlias = 0x1,
     }
 
     /// <summary>
@@ -364,11 +503,32 @@ namespace Rock.Client.Enums
 
     /// <summary>
     /// </summary>
+    public enum Processed
+    {
+        NotProcessed = 0x0,
+        Complete = 0x1,
+        ManualUpdateRequired = 0x2,
+        ManualUpdateRequiredOrNotProcessed = 0x3,
+        All = 0x4,
+    }
+
+    /// <summary>
+    /// </summary>
     public enum RegistrantsSameFamily
     {
         No = 0x0,
         Yes = 0x1,
         Ask = 0x2,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum RegistrarOption
+    {
+        PromptForRegistrar = 0x0,
+        PrefillFirstRegistrant = 0x1,
+        UseFirstRegistrant = 0x2,
+        UseLoggedInPerson = 0x3,
     }
 
     /// <summary>
@@ -396,6 +556,9 @@ namespace Rock.Client.Enums
         PersonField = 0x0,
         PersonAttribute = 0x1,
         GroupMemberAttribute = 0x2,
+        RegistrantAttribute = 0x4,
+
+        [Obsolete( "Use RegistrantAttribute instead", false )]
         RegistrationAttribute = 0x4,
     }
 
@@ -427,6 +590,9 @@ namespace Rock.Client.Enums
         HomePhone = 0x9,
         WorkPhone = 0xa,
         Grade = 0xb,
+        ConnectionStatus = 0xc,
+        MiddleName = 0xd,
+        AnniversaryDate = 0xe,
     }
 
     /// <summary>
@@ -465,6 +631,34 @@ namespace Rock.Client.Enums
         No = 0x0,
         Yes = 0x1,
         Maybe = 0x2,
+        Unknown = 0x3,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum ScheduledAttendanceItemStatus
+    {
+        Pending = 0x0,
+        Confirmed = 0x1,
+        Declined = 0x2,
+        Unscheduled = 0x3,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum SchedulerResourceGroupMemberFilterType
+    {
+        ShowMatchingPreference = 0x0,
+        ShowAllGroupMembers = 0x1,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum SchedulerResourceListSourceType
+    {
+        Group = 0x0,
+        AlternateGroup = 0x1,
+        DataView = 0x2,
     }
 
     /// <summary>
@@ -507,6 +701,14 @@ namespace Rock.Client.Enums
 
     /// <summary>
     /// </summary>
+    public enum SiteType
+    {
+        Web = 0x0,
+        Mobile = 0x1,
+    }
+
+    /// <summary>
+    /// </summary>
     public enum SpecialRole
     {
         None = 0x0,
@@ -534,6 +736,15 @@ namespace Rock.Client.Enums
 
     /// <summary>
     /// </summary>
+    public enum UpdatedAddressType
+    {
+        None = 0x0,
+        Residential = 0x1,
+        Business = 0x2,
+    }
+
+    /// <summary>
+    /// </summary>
     public enum WorkflowLoggingLevel
     {
         None = 0x0,
@@ -551,6 +762,15 @@ namespace Rock.Client.Enums
         PreDelete = 0x2,
         PostDelete = 0x3,
         ImmediatePostSave = 0x4,
+        PostAdd = 0x5,
+    }
+
+    /// <summary>
+    /// </summary>
+    public enum WorkflowTriggerValueChangeType
+    {
+        ChangeFromTo = 0x0,
+        ValueEqual = 0x1,
     }
 
     #pragma warning restore CS1591

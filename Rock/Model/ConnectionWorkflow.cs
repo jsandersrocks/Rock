@@ -14,9 +14,6 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
@@ -115,10 +112,10 @@ namespace Rock.Model
         public virtual WorkflowType WorkflowType { get; set; }
 
         /// <summary>
-        /// Gets the workflow type cache.
+        /// Gets the type of the cache workflow.
         /// </summary>
         /// <value>
-        /// The workflow type cache.
+        /// The type of the cache workflow.
         /// </value>
         [LavaInclude]
         public virtual WorkflowTypeCache WorkflowTypeCache
@@ -127,7 +124,7 @@ namespace Rock.Model
             {
                 if ( WorkflowTypeId.HasValue && WorkflowTypeId.Value > 0 )
                 {
-                    return WorkflowTypeCache.Read( WorkflowTypeId.Value );
+                    return WorkflowTypeCache.Get( WorkflowTypeId.Value );
                 }
                 return null;
             }

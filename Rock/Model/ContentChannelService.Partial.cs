@@ -17,7 +17,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Rock.Data;
 
 namespace Rock.Model
 {
@@ -54,6 +53,21 @@ namespace Rock.Model
         public IQueryable<ContentChannel> GetParentContentChannels( int contentChannelId )
         {
             return Queryable().Where( t => t.ChildContentChannels.Select( p => p.Id ).Contains( contentChannelId ) );
+        }
+
+        /// <summary>
+        /// Determines whether the specified content channel is manually sorted
+        /// </summary>
+        /// <param name="contentChannelId">The content channel ID.</param>
+        /// <returns>
+        ///   <c>true</c> if manually sorted otherwise, <c>false</c>.
+        /// </returns>
+        public bool IsManuallySorted( int contentChannelId )
+        {
+            return Queryable()
+                    .Where( c => c.Id == contentChannelId )
+                    .Select( c => c.ItemsManuallyOrdered )
+                    .FirstOrDefault();
         }
 
         /// <summary>
@@ -94,7 +108,7 @@ namespace Rock.Model
         {
             return this.Context.Database.SqlQuery<ContentChannelPath>(
                 @"
-                -- Get ContentChannel association heirarchy with ContentChannel ancestor path information
+                -- Get ContentChannel association hierarchy with ContentChannel ancestor path information
                 WITH CTE (ChildContentChannelId,ContentChannelId, HierarchyPath) AS
                 (
                       SELECT [ChildContentChannelId], [ContentChannelId], CONVERT(nvarchar(500),'')

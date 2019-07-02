@@ -20,12 +20,11 @@ using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Elasticsearch.Net;
+
 using Nest;
-using Newtonsoft.Json;
+
 using Newtonsoft.Json.Linq;
+
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
@@ -65,6 +64,10 @@ namespace Rock.UniversalSearch.IndexComponents
                 if ( _client == null )
                 {
                     ConnectToServer();
+                    if ( _client == null )
+                    {
+                        return false;
+                    }
                 }
 
                 return (_client.Ping().IsValid);
@@ -384,6 +387,13 @@ namespace Rock.UniversalSearch.IndexComponents
                         // get entities search model name
                         var entityType = new EntityTypeService( new RockContext() ).Get( entityId );
                         entityTypes.Add( entityType.IndexModelType.Name.ToLower() );
+
+                        // check if this is a person model, if so we need to add two model types one for person and the other for businesses
+                        // wish there was a cleaner way to do this
+                        if ( entityType.Guid == SystemGuid.EntityType.PERSON.AsGuid() )
+                        {
+                            entityTypes.Add( "businessindex" );
+                        }
                     }
 
                     searchDescriptor = searchDescriptor.Type( string.Join( ",", entityTypes ) ); // todo: consider adding indexmodeltype to the entity cache
@@ -531,7 +541,7 @@ namespace Rock.UniversalSearch.IndexComponents
 
                             var indexBoost = GlobalAttributesCache.Value( "UniversalSearchIndexBoost" );
 
-                            if ( indexBoost.IsNotNullOrWhitespace() )
+                            if ( indexBoost.IsNotNullOrWhiteSpace() )
                             {
                                 var boostItems = indexBoost.Split( new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries );
                                 foreach (var boostItem in boostItems )
@@ -554,7 +564,7 @@ namespace Rock.UniversalSearch.IndexComponents
 
                 totalResultsAvailable = results.Total;
 
-                // normallize the results to rock search results
+                // normalize the results to rock search results
                 if ( results != null )
                 {
                     foreach ( var hit in results.Hits )

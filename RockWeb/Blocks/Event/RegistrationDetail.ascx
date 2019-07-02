@@ -56,7 +56,7 @@
 
             <div class="panel panel-block">
 
-                <div class="panel-heading clearfix">
+                <div class="panel-heading">
                     <h1 class="panel-title pull-left">Registration Details</h1>
                     <div class="panel-labels">
                         <Rock:HighlightLabel ID="hlCost" runat="server" LabelType="Info" ToolTip="Cost" />
@@ -67,7 +67,7 @@
                 <div class="panel-body">
 
                     <Rock:NotificationBox ID="nbEditModeMessage" runat="server" NotificationBoxType="Info" />
-                    <asp:ValidationSummary ID="ValidationSummary1" runat="server" HeaderText="Please Correct the Following" CssClass="alert alert-danger" />
+                    <asp:ValidationSummary ID="ValidationSummary1" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" />
 
                     <div id="pnlEditDetails" runat="server">
 
@@ -76,6 +76,7 @@
                                 <Rock:PersonPicker ID="ppPerson" runat="server" Label="Registered By" OnSelectPerson="ppPerson_SelectPerson" EnableSelfSelection="true" />
                                 <Rock:EmailBox ID="ebConfirmationEmail" runat="server" Label="Confirmation Email" />
                                 <Rock:RockDropDownList ID="ddlGroup" runat="server" Label="Target Group" />
+                                <Rock:AttributeValuesContainer ID="avcEditAttributes" runat="server" />
                             </div>
                             <div class="col-md-6">
                                 <Rock:RockTextBox ID="tbFirstName" runat="server" Label="Registered by First Name" Required="true" />
@@ -109,6 +110,7 @@
                                 <asp:LinkButton ID="lbResendConfirmation" runat="server" CssClass="btn btn-default btn-xs margin-b-sm" Text="Resend Confirmation" OnClick="lbResendConfirmation_Click" CausesValidation="false"></asp:LinkButton>
                                 <Rock:NotificationBox ID="nbConfirmationQueued" runat="server" NotificationBoxType="Success" Text="A new confirmation email has been sent." Visible="false" Dismissable="true"  />
                                 <Rock:RockLiteral ID="lGroup" runat="server" Label="Target Group" />
+                                <Rock:AttributeValuesContainer ID="avcDisplayAttributes" runat="server" />
                             </div>
                             <div class="col-md-6">
 
@@ -168,7 +170,7 @@
 
                                     <div class="row">
                                         <div class="col-md-12">
-                                            <asp:LinkButton ID="lbViewPaymentDetails" runat="server" CssClass="btn btn-link pull-right" Text="View/Edit Payments" OnClick="lbViewPaymentDetails_Click" CausesValidation="false"></asp:LinkButton>
+                                            <asp:LinkButton ID="lbViewPaymentDetails" runat="server" CssClass="btn btn-link pull-right" Text="Payment Details" OnClick="lbViewPaymentDetails_Click" CausesValidation="false"></asp:LinkButton>
                                         </div>
                                     </div>
 
@@ -187,8 +189,8 @@
                                     </asp:PlaceHolder>
 
                                     <asp:PlaceHolder ID="phManualDetails" runat="server">
-                                        <Rock:RockDropDownList ID="ddlCurrencyType" runat="server" Label="Currency Type" AutoPostBack="true" OnSelectedIndexChanged="ddlCurrencyType_SelectedIndexChanged" />
-                                        <Rock:RockDropDownList ID="ddlCreditCardType" runat="server" Label="Credit Card Type" />
+                                        <Rock:DefinedValuePicker ID="dvpCurrencyType" runat="server" Label="Currency Type" AutoPostBack="true" OnSelectedIndexChanged="dvpCurrencyType_SelectedIndexChanged" />
+                                        <Rock:DefinedValuePicker ID="dvpCreditCardType" runat="server" Label="Credit Card Type" />
                                         <Rock:RockTextBox ID="tbTransactionCode" runat="server" Label="Transaction Code" />
                                     </asp:PlaceHolder>
 
@@ -203,7 +205,7 @@
                                             <li class="card-amex"></li>
                                             <li class="card-discover"></li>
                                         </ul>
-                                        
+
                                         <div class="row">
                                             <div class="col-sm-6">
                                                 <Rock:MonthYearPicker ID="mypExpiration" runat="server" Label="Expiration Date" Required="true" ValidationGroup="Payment" />
@@ -213,7 +215,7 @@
                                             </div>
                                         </div>
 
-                                        <Rock:AddressControl ID="acBillingAddress" runat="server" Label="Billing Address" UseStateAbbreviation="true" UseCountryAbbreviation="false" ShowAddressLine2="false" 
+                                        <Rock:AddressControl ID="acBillingAddress" runat="server" Label="Billing Address" UseStateAbbreviation="true" UseCountryAbbreviation="false" ShowAddressLine2="false"
                                             Required="true" ValidationGroup="Payment" RequiredErrorMessage="Billing Address is required" />
 
                                     </asp:PlaceHolder>
@@ -240,6 +242,7 @@
 
                                     <div class="row">
                                         <div class="col-md-12">
+                                            <Rock:NotificationBox ID="nbNoAssociatedPerson" runat="server" CssClass="margin-t-md" NotificationBoxType="Info" Text="In order to process a payment you will need to link this registration to an individual." Visible="false" />
                                             <asp:LinkButton ID="lbProcessPayment" runat="server" CssClass="btn btn-primary btn-xs margin-t-sm" Text="Process New Payment" OnClick="lbProcessPayment_Click" CausesValidation="false"></asp:LinkButton>
                                             <asp:LinkButton ID="lbAddPayment" runat="server" CssClass="btn btn-default btn-xs margin-t-sm margin-l-sm" Text="Add Manual Payment" OnClick="lbAddPayment_Click" CausesValidation="false"></asp:LinkButton>
                                             <asp:LinkButton ID="lbCancelPaymentDetails" runat="server" Text="Cancel" CssClass="btn btn-link pull-right" OnClick="lbCancelPaymentDetails_Click" CausesValidation="false" />
@@ -256,7 +259,7 @@
                             <Rock:ModalAlert ID="mdDeleteWarning" runat="server" />
                             <Rock:HiddenFieldWithClass ID="hfHasPayments" runat="server" CssClass="js-has-payments" />
                             <asp:LinkButton ID="btnDelete" runat="server" Text="Delete" CssClass="btn btn-link js-delete-registration" OnClick="btnDelete_Click" CausesValidation="false" />
-                            
+
                             <asp:LinkButton ID="lbShowMoveRegistrationDialog" runat="server" CssClass="btn btn-default btn-sm pull-right margin-l-sm" ToolTip="Move Registration" CausesValidation="false" OnClick="lbShowMoveRegistrationDialog_Click"><i class="fa fa-external-link"></i></asp:LinkButton>
                             <asp:LinkButton ID="lbHistory" runat="server" CssClass="btn btn-default pull-right btn-sm" CausesValidation="false" ToolTip="View Audit Log" OnClick="lbHistory_Click"><i class="fa fa-file-text-o"></i> Audit Log</asp:LinkButton>
                         </div>
@@ -289,7 +292,7 @@
 
         <Rock:ModalDialog ID="mdMoveRegistration" runat="server" Title="Move Registration" ValidationGroup="vgMoveRegistration" CancelLinkVisible="false">
             <Content>
-                <asp:ValidationSummary ID="vsMoveRegistration" runat="server" ValidationGroup="vgMoveRegistration" HeaderText="Please Correct the Following" CssClass="alert alert-danger"  />
+                <asp:ValidationSummary ID="vsMoveRegistration" runat="server" ValidationGroup="vgMoveRegistration" HeaderText="Please correct the following:" CssClass="alert alert-validation"  />
                 <div class="row">
                     <div class="col-md-6">
                         <Rock:RockLiteral ID="lCurrentRegistrationInstance" runat="server" Label="Current Registration Instance" />

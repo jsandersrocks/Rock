@@ -49,7 +49,18 @@ namespace Rock.Web.UI.Controls
         /// <value>
         /// The type of the notification box.
         /// </value>
-        public NotificationBoxType NotificationBoxType { get; set; }
+        public NotificationBoxType NotificationBoxType
+        {
+            get
+            {
+                return ViewState["NotificationBoxType"] as NotificationBoxType? ?? NotificationBoxType.Info;
+            }
+
+            set
+            {
+                ViewState["NotificationBoxType"] = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether [dismissable].
@@ -175,26 +186,31 @@ namespace Rock.Web.UI.Controls
         /// <summary>
         /// Display an information box
         /// </summary>
-        Info,
+        Info = 0,
+
+        /// <summary>
+        /// Display an information box
+        /// </summary>
+        Validation = 5,
 
         /// <summary>
         /// Display a warning box
         /// </summary>
-        Warning,
+        Warning = 1,
 
         /// <summary>
         /// Display an error box
         /// </summary>
-        Danger,
+        Danger = 2,
 
         /// <summary>
         /// Display a success box
         /// </summary>
-        Success,
+        Success = 3,
 
         /// <summary>
         /// The default
         /// </summary>
-        Default
+        Default = 4
     }
 }

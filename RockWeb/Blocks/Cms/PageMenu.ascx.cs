@@ -19,32 +19,32 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
-using System.Runtime.Caching;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Web.UI;
+
 using DotLiquid;
+
 using Rock;
 using Rock.Attribute;
-using Rock.Data;
-using Rock.Security;
 using Rock.Web.Cache;
+using Rock.Data;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
 
 namespace RockWeb.Blocks.Cms
 {
-    [DisplayName("Page Menu")]
-    [Category("CMS")]
-    [Description("Renders a page menu based on a root page and liquid template.")]
-    [CodeEditorField( "Template", "The liquid template to use for rendering. This template would typically be in the theme's \"Assets/Lava\" folder.",
-        CodeEditorMode.Lava, CodeEditorTheme.Rock, 200, true, @"{% include '~~/Assets/Lava/PageNav.lava' %}" )]
+    [DisplayName( "Page Menu" )]
+    [Category( "CMS" )]
+    [Description( "Renders a page menu based on a root page and lava template." )]
+    [CodeEditorField( "Template", "The lava template to use for rendering. This template would typically be in the theme's \"Assets/Lava\" folder.",
+        CodeEditorMode.Lava, CodeEditorTheme.Rock, 200, true, @"{% include '~~/Assets/Lava/PageNav.lava' %}", order: 0)]
+    [LavaCommandsField("Enabled Lava Commands", description: "The Lava commands that should be enabled for this content channel item block.", required: false, order: 1)]
     [LinkedPage( "Root Page", "The root page to use for the page collection. Defaults to the current page instance if not set.", false, "" )]
     [TextField( "Number of Levels", "Number of parent-child page levels to display. Default 3.", false, "3" )]
-    [TextField( "CSS File", "Optional CSS file to add to the page for styling. Example 'Styles/nav.css' would point the stylesheet in the current theme's styles folder.", false, "" )]
-    [BooleanField( "Include Current Parameters", "Flag indicating if current page's parameters should be used when building url for child pages", false )]
-    [BooleanField( "Include Current QueryString", "Flag indicating if current page's QueryString should be used when building url for child pages", false )]
+    [TextField( "CSS File", "Optional CSS file to add to the page for styling. Example 'Styles/nav.css' would point the style sheet in the current theme's styles folder.", false, "" )]
+    [BooleanField( "Include Current Parameters", "Flag indicating if current page's route parameters should be used when building URL for child pages", false )]
+    [BooleanField( "Include Current QueryString", "Flag indicating if current page's QueryString should be used when building URL for child pages", false )]
     [BooleanField( "Is Secondary Block", "Flag indicating whether this block is considered secondary and should be hidden when other secondary blocks are hidden.", false )]
     [KeyValueListField( "Include Page List", "List of pages to include in the Lava. Any ~/ will be resolved by Rock. Enable debug for assistance. Example 'Give Now' with '~/page/186' or 'Me' with '~/MyAccount'.", false, "", "Title", "Link" )]
 
@@ -86,21 +86,20 @@ namespace RockWeb.Blocks.Cms
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void PageMenu_BlockUpdated( object sender, EventArgs e )
         {
-            RockMemoryCache cache = RockMemoryCache.Default;
-            cache.Remove( CacheKey() );
+            LavaTemplateCache.Remove( CacheKey() );
         }
 
         private void Render()
-        { 
+        {
             try
             {
-                PageCache currentPage = PageCache.Read( RockPage.PageId );
+                PageCache currentPage = PageCache.Get( RockPage.PageId );
                 PageCache rootPage = null;
 
-                Guid pageGuid = Guid.Empty;
-                if ( Guid.TryParse( GetAttributeValue( ROOT_PAGE ), out pageGuid ) )
+                var pageRouteValuePair = GetAttributeValue( ROOT_PAGE ).SplitDelimitedValues(false).AsGuidOrNullList();
+                if ( pageRouteValuePair.Any() && pageRouteValuePair[0].HasValue && !pageRouteValuePair[0].Value.IsEmpty() )
                 {
-                    rootPage = PageCache.Read( pageGuid );
+                    rootPage = PageCache.Get( pageRouteValuePair[0].Value );
                 }
 
                 // If a root page was not found, use current page
@@ -123,14 +122,14 @@ namespace RockWeb.Blocks.Cms
                     queryString = CurrentPageReference.QueryString;
                 }
 
-                // Get list of pages in current page's heirarchy
+                // Get list of pages in current page's hierarchy
                 var pageHeirarchy = new List<int>();
                 if ( currentPage != null )
                 {
                     pageHeirarchy = currentPage.GetPageHierarchy().Select( p => p.Id ).ToList();
                 }
 
-                // add context to merge fields
+                // Add context to merge fields
                 var contextEntityTypes = RockPage.GetContextEntityTypes();
                 var contextObjects = new Dictionary<string, object>();
                 foreach ( var conextEntityType in contextEntityTypes )
@@ -144,18 +143,20 @@ namespace RockWeb.Blocks.Cms
                 pageProperties.Add( "Context", contextObjects );
                 pageProperties.Add( "Site", GetSiteProperties( RockPage.Site ) );
                 pageProperties.Add( "IncludePageList", GetIncludePageList() );
+                pageProperties.Add( "CurrentPage", this.PageCache );
 
                 using ( var rockContext = new RockContext() )
                 {
                     pageProperties.Add( "Page", rootPage.GetMenuProperties( levelsDeep, CurrentPerson, rockContext, pageHeirarchy, pageParameters, queryString ) );
                 }
-                string content = GetTemplate().Render( Hash.FromDictionary( pageProperties ) );
 
-                // check for errors
-                if ( content.Contains( "error" ) )
-                {
-                    content = "<div class='alert alert-warning'><h4>Warning</h4>" + content + "</div>";
-                }
+                var lavaTemplate = GetTemplate();
+
+                // Apply Enabled Lava Commands
+                var enabledCommands = GetAttributeValue( "EnabledLavaCommands" );
+                lavaTemplate.Registers.AddOrReplace( "EnabledCommands", enabledCommands);
+
+                string content = lavaTemplate.Render( Hash.FromDictionary( pageProperties ) );
 
                 phContent.Controls.Clear();
                 phContent.Controls.Add( new LiteralControl( content ) );
@@ -163,13 +164,14 @@ namespace RockWeb.Blocks.Cms
             }
             catch ( Exception ex )
             {
+                LogException( ex );
                 StringBuilder errorMessage = new StringBuilder();
-                errorMessage.Append( "<div class='alert alert-warning'>");
+                errorMessage.Append( "<div class='alert alert-warning'>" );
                 errorMessage.Append( "An error has occurred while generating the page menu. Error details:" );
                 errorMessage.Append( ex.Message );
                 errorMessage.Append( "</div>" );
 
-                phContent.Controls.Add( new LiteralControl( errorMessage.ToString()) );
+                phContent.Controls.Add( new LiteralControl( errorMessage.ToString() ) );
             }
         }
 
@@ -182,24 +184,8 @@ namespace RockWeb.Blocks.Cms
 
         private Template GetTemplate()
         {
-            string cacheKey = CacheKey();
-
-            RockMemoryCache cache = RockMemoryCache.Default;
-            Template template = cache[cacheKey] as Template;
-
-            if ( template != null )
-            {
-                return template;
-            }
-            else
-            {
-                template = Template.Parse( GetAttributeValue( "Template" ) );
-
-                var cachePolicy = new CacheItemPolicy();
-                cache.Set( cacheKey, template, cachePolicy );
-
-                return template;
-            }
+            var cacheTemplate = LavaTemplateCache.Get( CacheKey(), GetAttributeValue( "Template" ) );
+            return cacheTemplate != null ? cacheTemplate.Template : null;
         }
 
         /// <summary>

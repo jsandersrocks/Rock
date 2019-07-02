@@ -50,10 +50,16 @@ namespace Rock.Client
         public decimal ControlAmount { get; set; }
 
         /// <summary />
+        public int? ControlItemCount { get; set; }
+
+        /// <summary />
         public Guid? ForeignGuid { get; set; }
 
         /// <summary />
         public string ForeignKey { get; set; }
+
+        /// <summary />
+        public bool IsAutomated { get; set; }
 
         /// <summary>
         /// If the ModifiedByPersonAliasId is being set manually and should not be overwritten with current user when saved, set this value to true
@@ -107,8 +113,10 @@ namespace Rock.Client
             this.BatchStartDateTime = source.BatchStartDateTime;
             this.CampusId = source.CampusId;
             this.ControlAmount = source.ControlAmount;
+            this.ControlItemCount = source.ControlItemCount;
             this.ForeignGuid = source.ForeignGuid;
             this.ForeignKey = source.ForeignKey;
+            this.IsAutomated = source.IsAutomated;
             this.ModifiedAuditValuesAlreadyUpdated = source.ModifiedAuditValuesAlreadyUpdated;
             this.Name = source.Name;
             this.Note = source.Note;

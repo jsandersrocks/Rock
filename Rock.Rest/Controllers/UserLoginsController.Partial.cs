@@ -14,9 +14,11 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Web.Http;
+
 using Newtonsoft.Json;
 
 using Rock.Model;
@@ -39,7 +41,7 @@ namespace Rock.Rest.Controllers
         [System.Web.Http.Route( "api/userlogins/available" )]
         public bool Available( string username )
         {
-            return ( (UserLoginService)Service ).GetByUserName( username ) == null;
+            return ( (UserLoginService)Service ).Exists( username ) == false;
         }
 
         /// <summary>
@@ -52,6 +54,11 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         public override System.Net.Http.HttpResponseMessage Post( UserLogin value )
         {
+            if ( ( ( UserLoginService ) Service ).Exists( value.UserName ) )
+            {
+                return ControllerContext.Request.CreateResponse( HttpStatusCode.Conflict, "The username already exists." );
+            }
+
             SetPasswordFromRest( value );
             return base.Post( value );
         }

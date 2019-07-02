@@ -127,8 +127,8 @@ namespace RockWeb.Blocks.Communication
             base.OnInit( e );
 
             // NOTE: moment.js needs to be loaded before chartjs
-            RockPage.AddScriptLink( "/Scripts/moment.min.js", true );
-            RockPage.AddScriptLink( "/Scripts/Chartjs/Chart.js", true );
+            RockPage.AddScriptLink( "~/Scripts/moment.min.js", true );
+            RockPage.AddScriptLink( "~/Scripts/Chartjs/Chart.js", true );
 
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
             this.BlockUpdated += Block_BlockUpdated;
@@ -298,11 +298,9 @@ namespace RockWeb.Blocks.Communication
                 } )
                 .ToList();
 
-            List<SummaryInfo> interactionsSummary = new List<SummaryInfo>();
             TimeSpan roundTimeSpan = TimeSpan.FromDays( 1 );
 
             this.SeriesColorsJSON = this.GetAttributeValue( "SeriesColors" ).SplitDelimitedValues().ToArray().ToJson();
-
             this.LineChartTimeFormat = "LL";
 
             if ( interactionsList.Any() )
@@ -329,6 +327,7 @@ namespace RockWeb.Blocks.Communication
                 }
             }
 
+            List<SummaryInfo> interactionsSummary = new List<SummaryInfo>();
             interactionsSummary = interactionsList.GroupBy( a => new { a.CommunicationRecipientId, a.Operation } )
                 .Select( a => new
                 {
@@ -350,10 +349,28 @@ namespace RockWeb.Blocks.Communication
             nbOpenClicksLineChartMessage.Text = "No communications activity" + ( !string.IsNullOrEmpty( noDataMessageName ) ? " for " + noDataMessageName : string.Empty );
 
             this.LineChartDataLabelsJSON = "[" + interactionsSummary.Select( a => "new Date('" + a.SummaryDateTime.ToString( "o" ) + "')" ).ToList().AsDelimited( ",\n" ) + "]";
-            this.LineChartDataClicksJSON = interactionsSummary.Select( a => a.ClickCounts ).ToList().ToJson();
 
+            List<int> cumulativeClicksList = new List<int>();
+            List<int> clickCountsList = interactionsSummary.Select( a => a.ClickCounts ).ToList();
+            int clickCountsSoFar = 0;
+            foreach ( var clickCounts in clickCountsList )
+            {
+                clickCountsSoFar += clickCounts;
+                cumulativeClicksList.Add( clickCountsSoFar );
+            }
+
+            this.LineChartDataClicksJSON = cumulativeClicksList.ToJson();
+
+            List<int> cumulativeOpensList = new List<int>();
             List<int> openCountsList = interactionsSummary.Select( a => a.OpenCounts ).ToList();
-            this.LineChartDataOpensJSON = openCountsList.ToJson();
+            int openCountsSoFar = 0;
+            foreach (var openCounts in openCountsList)
+            {
+                openCountsSoFar += openCounts;
+                cumulativeOpensList.Add( openCountsSoFar );
+            }
+
+            this.LineChartDataOpensJSON = cumulativeOpensList.ToJson();
 
             int? deliveredRecipientCount = null;
             int? failedRecipientCount = null;
@@ -387,37 +404,37 @@ namespace RockWeb.Blocks.Communication
 
             /* Actions Pie Chart and Stats */
             int totalOpens = interactionsList.Where( a => a.Operation == "Opened" ).Count();
-            int totalClicks = interactionsList.Where( a => a.Operation == "Click" && !string.IsNullOrEmpty( a.InteractionData ) ).Count();
+            int totalClicks = interactionsList.Where( a => a.Operation == "Click" ).Count();
 
             // Unique Opens is the number of times a Recipient opened at least once
             int uniqueOpens = interactionsList.Where( a => a.Operation == "Opened" ).GroupBy( a => a.CommunicationRecipientId ).Count();
 
             // Unique Clicks is the number of times a Recipient clicked at least once in an email
-            int uniqueClicks = interactionsList.Where( a => a.Operation == "Click" && !string.IsNullOrEmpty( a.InteractionData ) ).GroupBy( a => a.CommunicationRecipientId ).Count();
+            int uniqueClicks = interactionsList.Where( a => a.Operation == "Click" ).GroupBy( a => a.CommunicationRecipientId ).Count();
 
-            string actionsStatFormatNumber =  "<span>{0}</span><br><span class='js-actions-statistic' title='{1}' style='font-size: 45px; font-weight: 700; line-height: 40px;'>{2:#,##0}</span>";
-            string actionsStatFormatPercent = "<span>{0}</span><br><span class='js-actions-statistic' title='{1}' style='font-size: 45px; font-weight: 700; line-height: 40px;'>{2:P2}</span>";
+            string actionsStatFormatNumber =  "<span class='{0}'>{1}</span><br><span class='js-actions-statistic' title='{2}' style='font-size: 45px; font-weight: 700; line-height: 40px;'>{3:#,##0}</span>";
+            string actionsStatFormatPercent = "<span class='{0}'>{1}</span><br><span class='js-actions-statistic' title='{2}' style='font-size: 45px; font-weight: 700; line-height: 40px;'>{3:P2}</span>";
 
             if ( deliveredRecipientCount.HasValue  )
             {
-                lDelivered.Text = string.Format( actionsStatFormatNumber, "Delivered", "The number of recipients that the email was successfully delivered to", deliveredRecipientCount );
-                lPercentOpened.Text = string.Format( actionsStatFormatPercent, "Percent Opened", "The percent of the delivered emails that were opened at least once", deliveredRecipientCount > 0 ? ( decimal) uniqueOpens  / deliveredRecipientCount : 0 );
-                lFailedRecipients.Text = string.Format( actionsStatFormatNumber, "Failed Recipients", "The number of emails that failed to get delivered", failedRecipientCount );
+                lDelivered.Text = string.Format( actionsStatFormatNumber, "label label-default", "Delivered", "The number of recipients that the email was successfully delivered to", deliveredRecipientCount );
+                lPercentOpened.Text = string.Format( actionsStatFormatPercent, "label label-opened", "Percent Opened", "The percent of the delivered emails that were opened at least once", deliveredRecipientCount > 0 ? ( decimal) uniqueOpens  / deliveredRecipientCount : 0 );
+                lFailedRecipients.Text = string.Format( actionsStatFormatNumber, "label label-danger", "Failed Recipients", "The number of emails that failed to get delivered", failedRecipientCount );
 
                 // just in case there are more opens then delivered, don't let it go negative
                 var unopenedCount = Math.Max( deliveredRecipientCount.Value - uniqueOpens, 0 );
-                lUnopened.Text = string.Format( actionsStatFormatNumber, "Unopened", "The number of emails that were delivered but not yet opened", unopenedCount );
+                lUnopened.Text = string.Format( actionsStatFormatNumber, "label label-unopened", "Unopened", "The number of emails that were delivered but not yet opened", unopenedCount );
             }
 
-            lUniqueOpens.Text = string.Format( actionsStatFormatNumber, "Unique Opens", "The number of emails that were opened at least once", uniqueOpens );
-            lTotalOpens.Text = string.Format( actionsStatFormatNumber, "Total Opens", "The total number of times the emails were opened, including ones that were already opened once", totalOpens );
+            lUniqueOpens.Text = string.Format( actionsStatFormatNumber, "label label-opened", "Unique Opens", "The number of emails that were opened at least once", uniqueOpens );
+            lTotalOpens.Text = string.Format( actionsStatFormatNumber, "label label-opened", "Total Opens", "The total number of times the emails were opened, including ones that were already opened once", totalOpens );
 
-            lUniqueClicks.Text = string.Format( actionsStatFormatNumber, "Unique Clicks", "The number of times a recipient clicked on a link at least once in any of the opened emails", uniqueClicks );
-            lTotalClicks.Text = string.Format( actionsStatFormatNumber, "Total Clicks", "The total number of times a link was clicked in any of the opened emails", totalClicks );
+            lUniqueClicks.Text = string.Format( actionsStatFormatNumber, "label label-clicked", "Unique Clicks", "The number of times a recipient clicked on a link at least once in any of the opened emails", uniqueClicks );
+            lTotalClicks.Text = string.Format( actionsStatFormatNumber, "label label-clicked", "Total Clicks", "The total number of times a link was clicked in any of the opened emails", totalClicks );
 
             if ( uniqueOpens > 0 )
             {
-                lClickThroughRate.Text = string.Format( actionsStatFormatPercent, "Click Through Rate (CTR)", "The percent of emails that had at least one click", ( decimal ) uniqueClicks / uniqueOpens );
+                lClickThroughRate.Text = string.Format( actionsStatFormatPercent, "label label-clicked", "Click Through Rate (CTR)", "The percent of emails that had at least one click", ( decimal ) uniqueClicks / uniqueOpens );
             }
             else
             {

@@ -42,7 +42,7 @@ namespace RockWeb.Blocks.Core
     [Description( "List of dates that schedules are not active for an entire category." )]
 
     [CategoryField("Category", "Optional Category to use (if not specified, query will be determined by query string).", false, "Rock.Model.Schedule", "", "", false, "", "", 0)]
-    public partial class ScheduleCategoryExclusionList : RockBlock, ISecondaryBlock
+    public partial class ScheduleCategoryExclusionList : RockBlock, ISecondaryBlock, ICustomGridColumns
     {
         #region Fields
 
@@ -64,7 +64,7 @@ namespace RockWeb.Blocks.Core
             var categoryGuid = GetAttributeValue( "Category" ).AsGuidOrNull();
             if ( categoryGuid.HasValue )
             {
-                var category = CategoryCache.Read( categoryGuid.Value );
+                var category = CategoryCache.Get( categoryGuid.Value );
                 if ( category != null )
                 {
                     _categoryId = category.Id;
@@ -162,9 +162,8 @@ namespace RockWeb.Blocks.Core
 
                     service.Delete( exclusion );
                     rockContext.SaveChanges();
-
-                    CategoryCache.Flush( categoryId );
-                    Rock.CheckIn.KioskDevice.FlushAll();
+                    
+                    Rock.CheckIn.KioskDevice.Clear();
                 }
                 else
                 {
@@ -234,9 +233,8 @@ namespace RockWeb.Blocks.Core
             if ( exclusion.IsValid )
             {
                 rockContext.SaveChanges();
-
-                CategoryCache.Flush( exclusion.CategoryId );
-                Rock.CheckIn.KioskDevice.FlushAll();
+                
+                Rock.CheckIn.KioskDevice.Clear();
 
                 hfIdValue.Value = string.Empty;
                 modalDetails.Hide();

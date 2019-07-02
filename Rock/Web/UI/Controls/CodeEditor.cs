@@ -22,7 +22,6 @@ using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
-
 namespace Rock.Web.UI.Controls
 {
     /// <summary>
@@ -344,6 +343,39 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
+        /// Gets or sets the line wrap mode.
+        /// </summary>
+        /// <value>
+        /// The line wrap mode.
+        /// </value>
+        [
+        Bindable( false ),
+        Category( "Appearance" ),
+        DefaultValue( "" ),
+        Description( "The theme of the editor" )
+        ]
+        public bool LineWrap
+        {
+            get
+            {
+                if ( ViewState["LineWrap"] != null )
+                {
+                    return ViewState["LineWrap"].ToString().AsBoolean();
+                }
+                else
+                {
+                    // Default value
+                    return true;
+                }
+            }
+
+            set
+            {
+                ViewState["LineWrap"] = value.ToString();
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the mergfields.
         /// </summary>
         /// <remarks>
@@ -403,6 +435,44 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
+        /// Gets or sets the javascript that will get executed when the codeeditor 'on blur' event occurs
+        /// </summary>
+        /// <value>
+        /// The on change press script.
+        /// </value>
+        public string OnBlurScript
+        {
+            get
+            {
+                return ViewState["OnBlurScript"] as string;
+            }
+
+            set
+            {
+                ViewState["OnBlurScript"] = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the javascript that will get executed after the ace editor is done initializing
+        /// </summary>
+        /// <value>
+        /// The on load complete script.
+        /// </value>
+        public string OnLoadCompleteScript
+        {
+            get
+            {
+                return ViewState["OnLoadCompleteScript"] as string;
+            }
+
+            set
+            {
+                ViewState["OnLoadCompleteScript"] = value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the merge field help.
         /// </summary>
         /// <value>
@@ -435,12 +505,6 @@ namespace Rock.Web.UI.Controls
         {
             base.OnInit( e );
             this.TextMode = TextBoxMode.MultiLine;
-
-            if ( this.Visible && !ScriptManager.GetCurrent( this.Page ).IsInAsyncPostBack )
-            {
-                // if the codeeditor is .Visible and this isn't an Async, add ace.js to the page (If the codeeditor is made visible during an Async Post, RenderBaseControl will take care of adding ace.js)
-                RockPage.AddScriptLink( Page, ResolveUrl( "~/Scripts/ace/ace.js" ) );
-            }
         }
 
         /// <summary>
@@ -456,6 +520,22 @@ namespace Rock.Web.UI.Controls
             _mfpMergeFields.ID = string.Format( "mfpMergeFields_{0}", this.ID );
             _mfpMergeFields.SelectItem += MergeFields_SelectItem;
             Controls.Add( _mfpMergeFields );
+        }
+
+        /// <summary>
+        /// Called by the ASP.NET page framework after event processing has finished but
+        /// just before rendering begins.
+        /// </summary>
+        /// <param name="e">An <see cref="T:System.EventArgs" /> object that contains the event data.</param>
+        protected override void OnPreRender( EventArgs e )
+        {
+            base.OnPreRender( e );
+
+            if ( this.Visible && !ScriptManager.GetCurrent( this.Page ).IsInAsyncPostBack )
+            {
+                // if the codeeditor is .Visible and this isn't an Async, add ace.js to the page (If the codeeditor is made visible during an Async Post, RenderBaseControl will take care of adding ace.js)
+                RockPage.AddScriptLink( Page, "~/Scripts/ace/ace.js" );
+            }
         }
 
         /// <summary>
@@ -520,6 +600,7 @@ namespace Rock.Web.UI.Controls
                 var ce_{0} = ace.edit('codeeditor-div-{0}');
                 ce_{0}.setTheme('ace/theme/{1}');
                 ce_{0}.getSession().setMode('ace/mode/{2}');
+                ce_{0}.getSession().setUseWrapMode({7});
                 ce_{0}.setShowPrintMargin(false);
                 $('#codeeditor-div-{0}').data('aceEditor', ce_{0});
 
@@ -539,6 +620,17 @@ namespace Rock.Web.UI.Controls
                 ce_{0}.$blockScrolling = Infinity;
 
                 ce_{0}.setReadOnly({4});
+
+                ce_{0}.on('blur', function(e) {{
+                    {5}
+                }});
+
+                // make sure the editor is sized correctly (fixes an issue when editor is used in a modal)
+                setTimeout(function () {{
+                    ce_{0}.resize();
+                }}, 0);
+
+                {6}
 ";
 
             string script = string.Format( 
@@ -547,7 +639,10 @@ namespace Rock.Web.UI.Controls
                 EditorThemeAsString( this.EditorTheme ),  // {1}
                 EditorModeAsString( this.EditorMode ),  // {2} 
                 this.OnChangeScript,  // {3}
-                this.ReadOnly.ToTrueFalse().ToLower()  // {4}
+                this.ReadOnly.ToTrueFalse().ToLower(),  // {4}
+                this.OnBlurScript, // {5}
+                this.OnLoadCompleteScript, // {6}
+                this.LineWrap.ToString().ToLower() // {7}
             );
 
             ScriptManager.RegisterStartupScript( this, this.GetType(), "codeeditor_" + this.ClientID, script, true );
@@ -580,7 +675,7 @@ namespace Rock.Web.UI.Controls
         /// <returns>The text value of the mode.</returns>
         private string EditorModeAsString( CodeEditorMode mode )
         {
-            string[] modeValues = new string[] { "text", "css", "html", "liquid", "javascript", "less", "powershell", "sql", "typescript", "csharp", "markdown" };
+            string[] modeValues = new string[] { "text", "css", "html", "liquid", "javascript", "less", "powershell", "sql", "typescript", "csharp", "markdown", "xml" };
 
             return modeValues[(int)mode];
         }
@@ -674,7 +769,12 @@ namespace Rock.Web.UI.Controls
         /// <summary>
         /// markdown
         /// </summary>
-        Markdown = 10
+        Markdown = 10,
+
+        /// <summary>
+        /// The XML
+        /// </summary>
+        Xml = 11
     }
 
     /// <summary>

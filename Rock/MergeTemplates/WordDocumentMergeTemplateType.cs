@@ -20,9 +20,12 @@ using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+
 using OpenXmlPowerTools;
+
 using Rock.Data;
 using Rock.Model;
 
@@ -466,7 +469,7 @@ namespace Rock.MergeTemplates
             RemoveComments = true,
             RemoveContentControls = true,
             RemoveEndAndFootNotes = true,
-            RemoveFieldCodes = true,
+            RemoveFieldCodes = false,
             RemoveLastRenderedPageBreak = true,
             RemovePermissions = true,
             RemoveProof = true,

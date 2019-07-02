@@ -18,8 +18,6 @@ using System;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
-using Rock;
-
 namespace Rock.Web.UI.Controls
 {
     /// <summary>
@@ -46,8 +44,8 @@ namespace Rock.Web.UI.Controls
         public TimeField()
             : base()
         {
-            // Let the Header be left aligned (that's how Bootstrap wants it), but have the item be right-aligned
             this.ItemStyle.HorizontalAlign = HorizontalAlign.Right;
+            this.HeaderStyle.HorizontalAlign = HorizontalAlign.Right;
             this.DataFormatString = "{0:t}";
         }
 

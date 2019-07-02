@@ -16,16 +16,17 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
-using Newtonsoft.Json;
+
 using Newtonsoft.Json.Linq;
+
 using Rock.Data;
+using Rock.Web.UI.Controls;
 
 namespace Rock.Model
 {
@@ -91,6 +92,15 @@ namespace Rock.Model
         public string StatusNote { get; set; }
 
         /// <summary>
+        /// Gets or sets the datetime that communication was sent.
+        /// </summary>
+        /// <value>
+        /// The send date time.
+        /// </value>
+        [DataMember]
+        public DateTime? SendDateTime { get; set; }
+
+        /// <summary>
         /// Gets or sets the datetime that communication was opened by recipient.
         /// </summary>
         /// <value>
@@ -106,7 +116,7 @@ namespace Rock.Model
         /// The client.
         /// </value>
         [DataMember]
-        [MaxLength(200)]
+        [MaxLength( 200 )]
         public string OpenedClient { get; set; }
 
         /// <summary>
@@ -160,16 +170,24 @@ namespace Rock.Model
                 var objectKeys = AdditionalMergeValues
                     .Where( m => m.Value != null && m.Value.GetType() == typeof( JObject ) )
                     .Select( m => m.Key ).ToList();
-                objectKeys.ForEach( k => AdditionalMergeValues[k] = ( (JObject)AdditionalMergeValues[k] ).ToDictionary() );
+                objectKeys.ForEach( k => AdditionalMergeValues[k] = ( ( JObject ) AdditionalMergeValues[k] ).ToDictionary() );
 
                 // Convert any arrays to a list, and also check to see if it contains objects that need to be converted to a dictionary for Lava
                 var arrayKeys = AdditionalMergeValues
                     .Where( m => m.Value != null && m.Value.GetType() == typeof( JArray ) )
                     .Select( m => m.Key ).ToList();
-                arrayKeys.ForEach( k => AdditionalMergeValues[k] = ( (JArray)AdditionalMergeValues[k] ).ToObjectArray() );
+                arrayKeys.ForEach( k => AdditionalMergeValues[k] = ( ( JArray ) AdditionalMergeValues[k] ).ToObjectArray() );
             }
         }
 
+        /// <summary>
+        /// Gets or sets the message as it was sent to the recipient (i.e. after lava merge).
+        /// </summary>
+        /// <value>
+        /// The sent message.
+        /// </value>
+        [DataMember]
+        public string SentMessage { get; set; }
         #endregion
 
         #region Virtual Properties
@@ -325,7 +343,35 @@ namespace Rock.Model
             {
                 if ( !mergeValues.ContainsKey( mergeField.Key ) )
                 {
-                    mergeValues.Add( mergeField.Key, mergeField.Value );
+                    var entityTypeInfo = MergeFieldPicker.GetEntityTypeInfoFromMergeFieldId( mergeField.Key );
+                    if ( entityTypeInfo?.EntityType != null )
+                    {
+                        // Merge Field is reference to an Entity record. So, get the Entity from the database and use that as a merge object
+                        var entityTypeType = entityTypeInfo.EntityType.GetEntityType();
+                        var entityIdString = mergeField.Value.ToString();
+                        IEntity mergeEntity = null;
+                        var entityId = entityIdString.AsIntegerOrNull();
+                        if ( entityId.HasValue )
+                        {
+                            mergeEntity = Reflection.GetIEntityForEntityType( entityTypeType, entityId.Value );
+                        }
+                        else
+                        {
+                            var entityGuid = entityIdString.AsGuidOrNull();
+                            if ( entityGuid.HasValue )
+                            {
+                                mergeEntity = Reflection.GetIEntityForEntityType( entityTypeType, entityGuid.Value );
+                            }
+                        }
+
+                        // Add Entity as Merge field. For example ("GroupMember", groupMember)
+                        mergeValues.Add( entityTypeType.Name, mergeEntity );
+                    }
+                    else
+                    {
+                        // regular mergefield value
+                        mergeValues.Add( mergeField.Key, mergeField.Value );
+                    }
                 }
             }
 
@@ -361,18 +407,25 @@ namespace Rock.Model
         public static string GetInteractionDetails( Interaction interaction )
         {
             string interactionDetails = string.Empty;
-            string deviceTypeDetails = $"{interaction.InteractionSession.DeviceType.OperatingSystem} {interaction.InteractionSession.DeviceType.DeviceTypeData} {interaction.InteractionSession.DeviceType.Application} {interaction.InteractionSession.DeviceType.ClientType}";
+            string ipAddress = interaction?.InteractionSession?.IpAddress ?? "'unknown'";
+
             if ( interaction.Operation == "Opened" )
             {
-                interactionDetails = $"Opened from {interaction.InteractionSession.IpAddress} using {deviceTypeDetails}";
+                interactionDetails = $"Opened from {ipAddress}";
             }
             else if ( interaction.Operation == "Click" )
             {
-                interactionDetails = $"Clicked the address {interaction.InteractionData} from {interaction.InteractionSession.IpAddress} using {deviceTypeDetails}";
+                interactionDetails = $"Clicked the address {interaction?.InteractionData} from {ipAddress}";
             }
             else
             {
-                interactionDetails = $"{interaction.Operation} using {deviceTypeDetails}";
+                interactionDetails = $"{interaction?.Operation}";
+            }
+
+            string deviceTypeDetails = $"{interaction?.InteractionSession?.DeviceType?.OperatingSystem} {interaction?.InteractionSession?.DeviceType?.DeviceTypeData} {interaction?.InteractionSession?.DeviceType?.Application} {interaction?.InteractionSession?.DeviceType?.ClientType}";
+            if ( deviceTypeDetails.IsNotNullOrWhiteSpace() )
+            {
+                interactionDetails += $" using {deviceTypeDetails}";
             }
 
             return interactionDetails;
@@ -394,7 +447,7 @@ namespace Rock.Model
         /// </summary>
         public CommunicationRecipientConfiguration()
         {
-            this.HasRequired( r => r.PersonAlias).WithMany().HasForeignKey( r => r.PersonAliasId ).WillCascadeOnDelete( false );
+            this.HasRequired( r => r.PersonAlias ).WithMany().HasForeignKey( r => r.PersonAliasId ).WillCascadeOnDelete( false );
             this.HasRequired( r => r.Communication ).WithMany( c => c.Recipients ).HasForeignKey( r => r.CommunicationId ).WillCascadeOnDelete( true );
             this.HasOptional( c => c.MediumEntityType ).WithMany().HasForeignKey( c => c.MediumEntityTypeId ).WillCascadeOnDelete( false );
         }

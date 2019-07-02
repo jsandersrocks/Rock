@@ -27,6 +27,7 @@
 
                                         <asp:Repeater ID="rptAccountList" runat="server">
                                             <ItemTemplate>
+                                                <asp:HiddenField ID="hfAccountId" runat="server" Value='<%# Eval("Id") %>' />
                                                 <Rock:CurrencyBox ID="txtAccountAmount" runat="server" Label='<%# Eval("PublicName") %>' Text='<%# Eval("AmountFormatted") %>' Placeholder="0.00" CssClass="account-amount" />
                                             </ItemTemplate>
                                         </asp:Repeater>
@@ -54,7 +55,7 @@
                         <div class="col-md-6">
                         <% } %>
 
-                            <div class="panel panel-default contribution-payment">
+                            <div runat="server" ID="divPaymentMethodModification" class="panel panel-default contribution-payment">
 
                                 <asp:HiddenField ID="hfPaymentTab" runat="server" />
 

@@ -17,9 +17,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Rock.Data;
 using Rock.Model;
 using Rock.Transactions;
+using Rock.Web.Cache;
 
 namespace Rock.Web.UI
 {
@@ -122,7 +124,7 @@ namespace Rock.Web.UI
                 return PersonGroups( (int)Context.Items[itemKey] );
             }
 
-            var groupType = Rock.Web.Cache.GroupTypeCache.Read( groupTypeGuid );
+            var groupType = GroupTypeCache.Get( groupTypeGuid );
             int groupTypeId = groupType != null ? groupType.Id : 0;
 
             if ( !Context.Items.Contains( itemKey ) )

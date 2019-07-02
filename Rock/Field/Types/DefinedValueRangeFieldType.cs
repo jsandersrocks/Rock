@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock.Data;
 using Rock.Reporting;
 using Rock.Web.Cache;
@@ -162,8 +163,8 @@ namespace Rock.Field.Types
                         useDescription = true;
                     }
 
-                    var lowerDefinedValue = DefinedValueCache.Read( valuePair[0].AsGuid() );
-                    var upperDefinedValue = DefinedValueCache.Read( valuePair[1].AsGuid() );
+                    var lowerDefinedValue = DefinedValueCache.Get( valuePair[0].AsGuid() );
+                    var upperDefinedValue = DefinedValueCache.Get( valuePair[1].AsGuid() );
                     if ( lowerDefinedValue != null || upperDefinedValue != null )
                     {
                         if ( useDescription )
@@ -221,7 +222,7 @@ namespace Rock.Field.Types
             if ( configurationValues != null && configurationValues.ContainsKey( DEFINED_TYPE_KEY ) )
             {
                 Guid definedTypeGuid = configurationValues.GetValueOrNull( DEFINED_TYPE_KEY ).AsGuid();
-                DefinedTypeCache definedType = DefinedTypeCache.Read( definedTypeGuid );
+                DefinedTypeCache definedType = DefinedTypeCache.Get( definedTypeGuid );
 
                 if ( definedType != null )
                 {
@@ -260,7 +261,11 @@ namespace Rock.Field.Types
             {
                 RockDropDownList lowerValueControl = pnlRange.Controls.OfType<RockDropDownList>().FirstOrDefault( a => a.ID.EndsWith( "_ddlLower" ) );
                 RockDropDownList upperValueControl = pnlRange.Controls.OfType<RockDropDownList>().FirstOrDefault( a => a.ID.EndsWith( "_ddlUpper" ) );
-                return string.Format( "{0},{1}", lowerValueControl.SelectedValue, upperValueControl.SelectedValue );
+
+                if ( !string.IsNullOrEmpty( lowerValueControl.SelectedValue ) || !string.IsNullOrEmpty( upperValueControl.SelectedValue ) )
+                {
+                    return string.Format( "{0},{1}", lowerValueControl.SelectedValue, upperValueControl.SelectedValue );
+                }
             }
 
             return null;
@@ -297,6 +302,20 @@ namespace Rock.Field.Types
         #region Filter Control
 
         /// <summary>
+        /// Creates the control needed to filter (query) values using this field type.
+        /// </summary>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="id">The identifier.</param>
+        /// <param name="required">if set to <c>true</c> [required].</param>
+        /// <param name="filterMode">The filter mode.</param>
+        /// <returns></returns>
+        public override System.Web.UI.Control FilterControl( System.Collections.Generic.Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, Rock.Reporting.FilterMode filterMode )
+        {
+            // This field type does not support filtering
+            return null;
+        }
+
+        /// <summary>
         /// Gets the filter compare control.
         /// </summary>
         /// <param name="configurationValues">The configuration values.</param>
@@ -308,6 +327,15 @@ namespace Rock.Field.Types
         {
             // This fieldtype does not support filtering
             return null;
+        }
+
+        /// <summary>
+        /// Determines whether this filter has a filter control
+        /// </summary>
+        /// <returns></returns>
+        public override bool HasFilterControl()
+        {
+            return false;
         }
 
         #endregion

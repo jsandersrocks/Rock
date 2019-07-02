@@ -51,7 +51,7 @@
                                                 <i class="fa fa-map-marker"></i>
                                             </a>
                                             <div class="address">
-                                                <%# Eval("Location.FormattedHtmlAddress") %>
+                                                <%# FormatAddress(Eval("Location")) %>
                                             </div>
                                             <div class="pull-left rollover-item">
                                                 <asp:LinkButton ID="lbVerify" runat="server" CommandName="verify" ToolTip="Verify Address">
@@ -112,7 +112,8 @@
                     update: function (event, ui) {
                         {
                             var newItemIndex = $(ui.item).prevAll('.panel-widget').length;
-                            __doPostBack('<%=upGroupMembers.ClientID %>', 're-order-panel-widget:' + ui.item.attr('id') + ';' + newItemIndex);
+                            var postbackArg = 're-order-panel-widget:' + ui.item.attr('id') + ';' + newItemIndex;
+                            window.location = "javascript:__doPostBack('<%=upGroupMembers.ClientID %>', '" +  postbackArg + "')";
                         }
                     }
                 });

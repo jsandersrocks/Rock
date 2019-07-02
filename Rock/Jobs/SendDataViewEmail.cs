@@ -16,21 +16,18 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System.IO;
+using System.Data.Entity;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Web;
 
 using Quartz;
 
-using Rock;
 using Rock.Attribute;
-using Rock.Model;
-using Rock.Data;
-using Rock.Web.Cache;
-using Rock.Web;
 using Rock.Communication;
-using System.Data.Entity;
+using Rock.Data;
+using Rock.Model;
 
 namespace Rock.Jobs
 {
@@ -97,22 +94,42 @@ namespace Rock.Jobs
                     }
                 }
 
-                var recipients = new List<RecipientData>();
+                var recipients = new List<RockEmailMessageRecipient>();
                 if( resultSet.Any() )
                 {
                     foreach( Person person in resultSet )
                     {
+                        if ( !person.IsEmailActive || person.Email.IsNullOrWhiteSpace() || person.EmailPreference == EmailPreference.DoNotEmail )
+                        {
+                            continue;
+                        }
                         var mergeFields = Lava.LavaHelper.GetCommonMergeFields( null );
                         mergeFields.Add( "Person", person );
-                        recipients.Add( new RecipientData( person.Email, mergeFields ) );
+                        recipients.Add( new RockEmailMessageRecipient( person, mergeFields ) );
                     }
                 }
 
                 var emailMessage = new RockEmailMessage( emailTemplateGuid.Value );
                 emailMessage.SetRecipients( recipients );
-                emailMessage.Send();
+
+                var errors = new List<string>();
+                emailMessage.Send(out errors);
 
                 context.Result = string.Format( "{0} emails sent", recipients.Count() );
+
+                if ( errors.Any() )
+                {
+                    StringBuilder sb = new StringBuilder();
+                    sb.AppendLine();
+                    sb.Append( string.Format( "{0} Errors: ", errors.Count() ) );
+                    errors.ForEach( e => { sb.AppendLine(); sb.Append( e ); } );
+                    string errorMessage = sb.ToString();
+                    context.Result += errorMessage;
+                    var exception = new Exception( errorMessage );
+                    HttpContext context2 = HttpContext.Current;
+                    ExceptionLogService.LogException( exception, context2 );
+                    throw exception;
+                }
             }
         }
     }

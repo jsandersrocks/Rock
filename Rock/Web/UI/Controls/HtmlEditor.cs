@@ -18,9 +18,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock.Data;
 using Rock.Security;
 using Rock.Web.Cache;
@@ -306,7 +306,8 @@ namespace Rock.Web.UI.Controls
         /// <value>
         /// The custom on change press script.
         /// </value>
-        [Obsolete( "Use CallbackOnKeyupScript or CallbackOnChangeScript instead" )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "Use CallbackOnKeyupScript or CallbackOnChangeScript instead", true )]
         public string OnChangeScript
         {
             get
@@ -477,19 +478,6 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
-        /// Gets or sets the additional configurations.
-        /// </summary>
-        /// <value>
-        /// The additional configurations.
-        /// </value>
-        [Obsolete( "Doesn't do anything anymore" )]
-        public string AdditionalConfigurations
-        {
-            get { return ViewState["AdditionalConfigurations"] as string ?? string.Empty; }
-            set { ViewState["AdditionalConfigurations"] = value; }
-        }
-
-        /// <summary>
         /// Gets or sets a value indicating whether [start in code editor mode].
         /// </summary>
         /// <value>
@@ -499,7 +487,21 @@ namespace Rock.Web.UI.Controls
         {
             get
             {
-                return ViewState["StartInCodeEditorMode"] as bool? ?? false;
+                bool startInCodeEditorMode = ViewState["StartInCodeEditorMode"] as bool? ?? false;
+
+                if ( !startInCodeEditorMode )
+                {
+                    EnsureChildControls();
+                    if ( _ceEditor.Text.HasLavaCommandFields() )
+                    {
+                        // if there are lava commands {% %} in the text, force code editor mode
+                        startInCodeEditorMode = true;
+                    }
+                }
+
+                ViewState["StartInCodeEditorMode"] = startInCodeEditorMode;
+
+                return startInCodeEditorMode;
             }
 
             set
@@ -536,7 +538,7 @@ namespace Rock.Web.UI.Controls
 
             if ( this.Visible && !ScriptManager.GetCurrent( this.Page ).IsInAsyncPostBack )
             {
-                RockPage.AddScriptLink( Page, ResolveUrl( "~/Scripts/summernote/summernote.min.js" ), true );
+                RockPage.AddScriptLink( Page, "~/Scripts/summernote/summernote.min.js" );
                 RockPage.AddScriptLink( Page, "~/Scripts/Bundles/RockHtmlEditorPlugins", false );
             }
 
@@ -580,6 +582,7 @@ namespace Rock.Web.UI.Controls
 
             set
             {
+                _ceEditor.Text = value;
                 base.Text = value;
             }
         }
@@ -606,7 +609,7 @@ namespace Rock.Web.UI.Controls
 
             _ceEditor = new CodeEditor();
             _ceEditor.ID = this.ID + "_codeEditor";
-            _ceEditor.EditorMode = CodeEditorMode.Html;
+            _ceEditor.EditorMode = CodeEditorMode.Lava;
             if ( !string.IsNullOrEmpty(this.CallbackOnChangeScript) )
             {
                 _ceEditor.OnChangeScript = this.CallbackOnChangeScript;
@@ -625,8 +628,14 @@ namespace Rock.Web.UI.Controls
             {
                 if ( this.StartInCodeEditorMode )
                 {
-                    _ceEditor.Text = this.Text;
-                    this.Text = "";
+                    if ( _ceEditor.Text != this.Text )
+                    {
+                        _ceEditor.Text = this.Text;
+                    }
+
+                    // in the case of when StartInCodeEditorMode = true, we can set base.Text to string.Empty to help prevent bad html and/or javascript from messing up things
+                    // However, if StartInCodeEditorMode = false, we can't do this because the WYSIWIG editor needs to know the base.Text value
+                    base.Text = string.Empty;
                 }
 
                 RockControlHelper.RenderControl( this, writer );
@@ -644,25 +653,31 @@ namespace Rock.Web.UI.Controls
         {
             bool rockMergeFieldEnabled = MergeFields.Any();
             bool rockFileBrowserEnabled = false;
-
+            bool rockAssetManagerEnabled = false;
+            var currentPerson = this.RockBlock().CurrentPerson;
+                
             // only show the File/Image plugin if they have Auth to the file browser page
             var fileBrowserPage = new Rock.Model.PageService( new RockContext() ).Get( Rock.SystemGuid.Page.HTMLEDITOR_ROCKFILEBROWSER_PLUGIN_FRAME.AsGuid() );
-            if ( fileBrowserPage != null )
+            if ( fileBrowserPage != null && currentPerson != null )
             {
-                var currentPerson = this.RockBlock().CurrentPerson;
-                if ( currentPerson != null )
-                {
-                    if ( fileBrowserPage.IsAuthorized( Authorization.VIEW, currentPerson ) )
-                    {
-                        rockFileBrowserEnabled = true;
-                    }
-                }
+                rockFileBrowserEnabled = fileBrowserPage.IsAuthorized( Authorization.VIEW, currentPerson );
             }
 
-            var globalAttributesCache = GlobalAttributesCache.Read();
+            var assetManagerPage = new Rock.Model.PageService( new RockContext() ).Get( Rock.SystemGuid.Page.HTMLEDITOR_ROCKASSETMANAGER_PLUGIN_FRAME.AsGuid() );
+            if ( assetManagerPage != null && currentPerson != null )
+            {
+                rockAssetManagerEnabled = assetManagerPage.IsAuthorized( Authorization.VIEW, currentPerson );
+            }
+
+            //TODO: Look for a valid asset manager and disable the control if one is not found
+
+
+
+            var globalAttributesCache = GlobalAttributesCache.Get();
 
             string imageFileTypeWhiteList = globalAttributesCache.GetValue( "ContentImageFiletypeWhitelist" );
             string fileTypeBlackList = globalAttributesCache.GetValue( "ContentFiletypeBlacklist" );
+            string fileTypeWhiteList = globalAttributesCache.GetValue( "ContentFiletypeWhitelist" );
 
             string documentFolderRoot = this.DocumentFolderRoot;
             string imageFolderRoot = this.ImageFolderRoot;
@@ -712,7 +727,7 @@ $(document).ready( function() {{
           image: [
             ['custom1', ['rockimagelink']],
             ['imagesize', ['imageSize100', 'imageSize50', 'imageSize25']],
-            ['custom2', ['rockimagebrowser']],
+            ['custom2', ['rockimagebrowser', 'rockassetmanager']],
             ['float', ['floatLeft', 'floatRight', 'floatNone']],
             ['remove', ['removeMedia']]
           ],
@@ -735,7 +750,8 @@ $(document).ready( function() {{
         buttons: {{
             rockfilebrowser: RockFileBrowser,
             rockimagebrowser: RockImageBrowser, 
-            rockimagelink: RockImageLink, 
+            rockimagelink: RockImageLink,
+            rockassetmanager: RockAssetManager,
             rockmergefield: RockMergeField,
             rockcodeeditor: RockCodeEditor,
             rockpastetext: RockPasteText,
@@ -747,7 +763,12 @@ $(document).ready( function() {{
             documentFolderRoot: '{Rock.Security.Encryption.EncryptString( documentFolderRoot )}', 
             imageFolderRoot: '{Rock.Security.Encryption.EncryptString( imageFolderRoot )}',
             imageFileTypeWhiteList: '{imageFileTypeWhiteList}',
-            fileTypeBlackList: '{fileTypeBlackList}'
+            fileTypeBlackList: '{fileTypeBlackList}',
+            fileTypeWhiteList: '{fileTypeWhiteList}'
+        }},
+
+        rockAssetManagerOptions: {{
+            enabled: { rockAssetManagerEnabled.ToTrueFalse().ToLower() }
         }},
 
         rockMergeFieldOptions: {{ 

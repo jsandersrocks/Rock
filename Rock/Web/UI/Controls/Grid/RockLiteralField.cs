@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -54,29 +55,43 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
-        /// Gets or sets the ID of the Literal control that will be created for this field.
+        /// Gets the value that should be exported to Excel
         /// </summary>
-        /// <value>
-        /// The identifier.
-        /// </value>
-        public string ID
+        /// <param name="row">The row.</param>
+        /// <param name="dataControlFieldCell">The data control field cell.</param>
+        /// <returns></returns>
+        public override object GetExportValue( GridViewRow row, DataControlFieldCell dataControlFieldCell )
         {
-            get
-            {
-                return ViewState["ID"] as string;
-            }
+            var literal = dataControlFieldCell.FindControl( this.ID ) as Literal;
+            return literal?.Text;
+        }
 
-            set
+        /// <summary>
+        /// Occurs when [on data bound].
+        /// </summary>
+        public event EventHandler<RowEventArgs> DataBound;
+
+        /// <summary>
+        /// Handles the on data bound.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
+        internal void HandleOnDataBound( object sender, RowEventArgs e )
+        {
+            if ( this.DataBound != null )
             {
-                ViewState["ID"] = value;
+                this.DataBound( sender, e );
             }
         }
 
         /// <summary>
         /// 
         /// </summary>
+        /// <seealso cref="System.Web.UI.ITemplate" />
         public class LiteralTemplate : ITemplate
         {
+            private RockLiteralField RockLiteralField { get; set; }
+
             /// <summary>
             /// When implemented by a class, defines the <see cref="T:System.Web.UI.Control" /> object that child controls and templates belong to. These child controls are in turn defined within an inline template.
             /// </summary>
@@ -87,6 +102,7 @@ namespace Rock.Web.UI.Controls
                 if ( cell != null )
                 {
                     var rockLiteralField = cell.ContainingField as RockLiteralField;
+                    this.RockLiteralField = rockLiteralField;
                     if ( rockLiteralField != null )
                     {
                         if ( container.Controls.Count == 0 )
@@ -95,11 +111,24 @@ namespace Rock.Web.UI.Controls
                             lLiteral.ID = rockLiteralField.ID;
                             lLiteral.Text = rockLiteralField.Text;
                             lLiteral.Visible = rockLiteralField.Visible;
+                            lLiteral.DataBinding += literal_DataBinding;
 
                             container.Controls.Add( lLiteral );
                         }
                     }
                 }
+            }
+
+            /// <summary>
+            /// Handles the DataBinding event of the literal control.
+            /// </summary>
+            /// <param name="sender">The source of the event.</param>
+            /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+            private void literal_DataBinding( object sender, EventArgs e )
+            {
+                GridViewRow row = ( GridViewRow ) ( ( Literal ) sender ).Parent.Parent;
+                RowEventArgs args = new RowEventArgs( row );
+                this.RockLiteralField.HandleOnDataBound( sender, args );
             }
         }
     }

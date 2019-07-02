@@ -16,12 +16,13 @@
 //
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Web;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
+
 using Rock.Data;
 using Rock.Model;
 
@@ -119,7 +120,7 @@ namespace Rock.Web.UI.Controls
             }
             
 
-            html.Append( @"<a href=""#"" class=""btn btn-sm btn-danger key-value-remove""><i class=""fa fa-minus-circle""></i></a></div>" );
+            html.Append( @"<a href=""#"" class=""btn btn-sm btn-danger key-value-remove""><i class=""fa fa-times""></i></a></div>" );
 
             var hfValueHtml = new HtmlInputHidden();
             hfValueHtml.AddCssClass( "js-value-html" );
@@ -134,6 +135,7 @@ namespace Rock.Web.UI.Controls
             foreach ( string nameValue in nameValues )
             {
                 string[] nameAndValue = nameValue.Split( new char[] { '^' } );
+                nameAndValue = nameAndValue.Select( s => HttpUtility.UrlDecode( s ) ).ToArray(); // url decode array items
 
                 writer.AddAttribute( HtmlTextWriterAttribute.Class, "controls controls-row form-control-group" );
                 writer.RenderBeginTag( HtmlTextWriterTag.Div );
@@ -154,7 +156,7 @@ namespace Rock.Web.UI.Controls
                 writer.AddAttribute( HtmlTextWriterAttribute.Href, "#" );
                 writer.AddAttribute( HtmlTextWriterAttribute.Class, "btn btn-sm btn-danger key-value-remove" );
                 writer.RenderBeginTag( HtmlTextWriterTag.A );
-                writer.AddAttribute(HtmlTextWriterAttribute.Class, "fa fa-minus-circle");
+                writer.AddAttribute(HtmlTextWriterAttribute.Class, "fa fa-times" );
                 writer.RenderBeginTag( HtmlTextWriterTag.I );
                 writer.RenderEndTag();
                 writer.RenderEndTag();
@@ -167,12 +169,17 @@ namespace Rock.Web.UI.Controls
 
             writer.RenderEndTag();
             writer.WriteLine();
-            
 
             writer.AddAttribute( HtmlTextWriterAttribute.Class, "actions" );
             writer.RenderBeginTag( HtmlTextWriterTag.Div );
 
-            writer.AddAttribute( HtmlTextWriterAttribute.Class, "btn btn-action btn-xs key-value-add" );
+            var addButtonCssClass = "btn btn-action btn-xs key-value-add";
+            if ( !this.Enabled )
+            {
+                addButtonCssClass += " aspNetDisabled disabled";
+            }
+
+            writer.AddAttribute( HtmlTextWriterAttribute.Class, addButtonCssClass );
             writer.AddAttribute( HtmlTextWriterAttribute.Href, "#" );
             writer.RenderBeginTag( HtmlTextWriterTag.A );
             writer.AddAttribute(HtmlTextWriterAttribute.Class, "fa fa-plus-circle");
@@ -185,8 +192,6 @@ namespace Rock.Web.UI.Controls
 
             writer.RenderEndTag();
             writer.WriteLine();
-
-            RegisterClientScript();
         }
 
         /// <summary>
@@ -243,7 +248,7 @@ namespace Rock.Web.UI.Controls
                 ddl.DataBind();
                 if ( nameAndValue.Length >= 2 )
                 {
-                    ddl.SelectedValue = nameAndValue[1];
+                    ddl.SelectedValue = HttpUtility.UrlDecode( nameAndValue[1] );
                 }
                 ddl.RenderControl( writer );
             }
@@ -303,52 +308,5 @@ namespace Rock.Web.UI.Controls
                 html.AppendFormat( @"<input class=""key-value-value input-width-md form-control js-key-value-input"" type=""text"" placeholder=""{0}""></input>", ValuePrompt );
             }
         }
-
-        private void RegisterClientScript()
-        {
-            string script = @"
-;(function () {
-    function updateKeyValues( e ) {
-        var $span = e.closest('span.key-value-list');
-        var newValue = '';
-        $span.children('span.key-value-rows:first').children('div.controls-row').each(function( index ) {
-            if ( newValue !== ''){
-                newValue += '|';
-            }
-            newValue += $(this).children('.key-value-key:first').val() + '^' + $(this).children('.key-value-value:first').val()
-        });
-        $span.children('input:first').val(newValue);            
     }
-
-    $('a.key-value-add').click(function (e) {
-        e.preventDefault();
-        var $keyValueList = $(this).closest('.key-value-list');
-        $keyValueList.find('.key-value-rows').append($keyValueList.find('.js-value-html').val());
-        updateKeyValues($(this));
-        Rock.controls.modal.updateSize($(this));
-    });
-
-    $(document).on('click', 'a.key-value-remove', function (e) {
-        e.preventDefault();
-        var $rows = $(this).closest('span.key-value-rows');
-        $(this).closest('div.controls-row').remove();
-        updateKeyValues($rows);            
-        Rock.controls.modal.updateSize($(this));
-    });
-
-    $(document).on('keyup', '.js-key-value-input', function (e) {
-        updateKeyValues($(this));            
-    });
-    $(document).on('focusout', '.js-key-value-input', function (e) {
-        updateKeyValues($(this));            
-    });
-})();
-";
-
-            ScriptManager.RegisterStartupScript( this, this.GetType(), "key-value-list", script, true );
-        }
-
-    }
-
-    
 }

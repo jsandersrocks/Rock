@@ -15,6 +15,8 @@
 // </copyright>
 //
 using System;
+using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 
 using Rock.Model;
 
@@ -95,13 +97,21 @@ namespace Rock.Data
         /// <summary>
         /// Method that will be called on an entity immediately before the item is saved
         /// </summary>
-        void PreSaveChanges( Rock.Data.DbContext dbContext, System.Data.Entity.Infrastructure.DbEntityEntry entry );
+        void PreSaveChanges( Rock.Data.DbContext dbContext, DbEntityEntry entry );
 
         /// <summary>
         /// Method that will be called on an entity immediately after the item is saved
         /// </summary>
         /// <param name="dbContext">The database context.</param>
         void PostSaveChanges( Rock.Data.DbContext dbContext );
+
+        /// <summary>
+        /// Pres the save changes.
+        /// </summary>
+        /// <param name="dbContext">The database context.</param>
+        /// <param name="entry">The entry.</param>
+        /// <param name="state">The state.</param>
+        void PreSaveChanges( Rock.Data.DbContext dbContext, DbEntityEntry entry, EntityState state );
 
         /// <summary>
         /// Gets the Created By audit HTML details.

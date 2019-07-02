@@ -16,9 +16,13 @@
 //
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 using System.Data.Entity.ModelConfiguration;
 using System.Runtime.Serialization;
+
 using Rock.Data;
+using Rock.Web.Cache;
 
 namespace Rock.Model
 {
@@ -29,7 +33,7 @@ namespace Rock.Model
     [NotAudited]
     [Table( "InteractionComponent" )]
     [DataContract]
-    public partial class InteractionComponent : Model<InteractionComponent>
+    public partial class InteractionComponent : Model<InteractionComponent>, ICacheable
     {
 
         #region Entity Properties
@@ -54,7 +58,16 @@ namespace Rock.Model
         public string ComponentData { get; set; }
 
         /// <summary>
-        /// Gets or sets the Id of the entity that this interaction component is related to.
+        /// Gets or sets the component summary.
+        /// </summary>
+        /// <value>
+        /// The component summary.
+        /// </value>
+        [DataMember]
+        public string ComponentSummary { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Id of the entity that this interaction component is related to (determined by Channel.ComponentEntityType)
         /// For example:
         ///  if this is a Page View:
         ///     InteractionComponent.EntityId is the SiteId of the page that was viewed
@@ -81,7 +94,6 @@ namespace Rock.Model
 
         #region Virtual Properties
 
-
         /// <summary>
         /// Gets or sets the channel.
         /// </summary>
@@ -91,9 +103,71 @@ namespace Rock.Model
         [DataMember]
         public virtual InteractionChannel Channel { get; set; }
 
+        [NotMapped]
+        private EntityState SaveState { get; set; }
+
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Method that will be called on an entity immediately before the item is saved by context
+        /// </summary>
+        /// <param name="dbContext"></param>
+        /// <param name="entry"></param>
+        public override void PreSaveChanges( Data.DbContext dbContext, DbEntityEntry entry )
+        {
+            this.SaveState = entry.State;
+            base.PreSaveChanges( dbContext, entry );
+        }
+
+        /// <summary>
+        /// Method that will be called on an entity immediately after the item is saved by context
+        /// </summary>
+        /// <param name="dbContext">The database context.</param>
+        public override void PostSaveChanges( Data.DbContext dbContext )
+        {
+            if ( this.SaveState == EntityState.Added || this.SaveState == EntityState.Deleted )
+            {
+                var channel = InteractionChannelCache.Get( this.ChannelId );
+                if ( channel != null )
+                {
+                    if ( this.SaveState == EntityState.Added )
+                    {
+                        channel.AddComponentId( this.Id );
+                    }
+                    else
+                    {
+                        channel.RemoveComponentId( this.Id );
+                    }
+                }
+            }
+
+            base.PostSaveChanges( dbContext );
+        }
+
+        #endregion
+
+        #region ICacheable
+
+        /// <summary>
+        /// Gets the cache object associated with this Entity
+        /// </summary>
+        /// <returns></returns>
+        public IEntityCache GetCacheObject()
+        {
+            return InteractionComponentCache.Get( this.Id );
+        }
+
+        /// <summary>
+        /// Updates any Cache Objects that are associated with this entity
+        /// </summary>
+        /// <param name="entityState">State of the entity.</param>
+        /// <param name="dbContext">The database context.</param>
+        public void UpdateCache( EntityState entityState, Rock.Data.DbContext dbContext )
+        {
+            InteractionComponentCache.UpdateCachedEntity( this.Id, this.SaveState );
+        }
 
         #endregion
 

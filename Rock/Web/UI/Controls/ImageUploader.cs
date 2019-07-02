@@ -171,8 +171,14 @@ namespace Rock.Web.UI.Controls
         /// </value>
         public string ValidationGroup
         {
-            get { return ViewState["ValidationGroup"] as string; }
-            set { ViewState["ValidationGroup"] = value; }
+            get
+            {
+                return RequiredFieldValidator.ValidationGroup;
+            }
+            set
+            {
+                RequiredFieldValidator.ValidationGroup = value;
+            }
         }
 
         /// <summary>
@@ -232,6 +238,7 @@ namespace Rock.Web.UI.Controls
         public ImageUploader()
             : base()
         {
+            RequiredFieldValidator = new HiddenFieldValidator();
             HelpBlock = new HelpBlock();
             WarningBlock = new WarningBlock();
             _hfBinaryFileId = new HiddenField();
@@ -274,7 +281,15 @@ namespace Rock.Web.UI.Controls
             set
             {
                 EnsureChildControls();
-                _hfBinaryFileId.Value = value.ToString();
+
+                if ( value.HasValue )
+                {
+                    _hfBinaryFileId.Value = value.ToString();
+                }
+                else
+                {
+                    _hfBinaryFileId.Value = "0";
+                }
             }
         }
 
@@ -545,7 +560,12 @@ namespace Rock.Web.UI.Controls
         /// </summary>
         protected override void CreateChildControls()
         {
+            base.CreateChildControls();
+            Controls.Clear();
+            RockControlHelper.CreateChildControls( this, Controls );
+
             _hfBinaryFileId.ID = this.ID + "_hfBinaryFileId";
+            _hfBinaryFileId.Value = "0";
             Controls.Add( _hfBinaryFileId );
 
             _hfBinaryFileTypeGuid.ID = this.ID + "_hfBinaryFileTypeGuid";
@@ -559,6 +579,10 @@ namespace Rock.Web.UI.Controls
             _fileUpload = new FileUpload();
             _fileUpload.ID = this.ID + "_fu";
             Controls.Add( _fileUpload );
+
+            RequiredFieldValidator.InitialValue = "0";
+            RequiredFieldValidator.ControlToValidate = _hfBinaryFileId.ID;
+            RequiredFieldValidator.Display = ValidatorDisplay.Dynamic;
         }
 
         /// <summary>
@@ -574,7 +598,7 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
-        /// This is where you implment the simple aspects of rendering your control.  The rest
+        /// This is where you implement the simple aspects of rendering your control.  The rest
         /// will be handled by calling RenderControlHelper's RenderControl() method.
         /// </summary>
         /// <param name="writer">The writer.</param>
@@ -762,16 +786,16 @@ Rock.controls.imageUploader.initialize({{
         {
             if ( eventArgument == "ImageUploaded" && ImageUploaded != null )
             {
-                ImageUploaded( this, new ImageUploaderEventArgs( this.BinaryFileId ) );
+                ImageUploaded( this, new ImageUploaderEventArgs( this.BinaryFileId, ImageUploaderEventArgs.ArgumentType.ImageUploaded ) );
             }
 
             if ( eventArgument == "ImageRemoved" )
             {
                 if ( ImageRemoved != null )
                 {
-                    ImageRemoved( this, new ImageUploaderEventArgs( this.BinaryFileId ) );
-
+                    ImageRemoved( this, new ImageUploaderEventArgs( this.BinaryFileId, ImageUploaderEventArgs.ArgumentType.ImageRemoved ) );
                 }
+
                 this.BinaryFileId = 0;
             }
         }
@@ -784,20 +808,58 @@ Rock.controls.imageUploader.initialize({{
     public class ImageUploaderEventArgs : EventArgs
     {
         /// <summary>
-        /// Gets the field value.
+        /// Gets the binary file identifier of the Image that was Uploaded or Removed (see EventArgument)
         /// </summary>
         /// <value>
-        /// The field value.
+        /// The binary file identifier.
         /// </value>
         public int? BinaryFileId { get; private set; }
+
+        /// <summary>
+        /// Gets the event argument.
+        /// </summary>
+        /// <value>
+        /// The event argument.
+        /// </value>
+        public ArgumentType EventArgument { get; private set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public enum ArgumentType
+        {
+            /// <summary>
+            /// The image uploaded
+            /// </summary>
+            ImageUploaded,
+            
+            /// <summary>
+            /// The image removed
+            /// </summary>
+            ImageRemoved
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageUploaderEventArgs"/> class.
         /// </summary>
         /// <param name="binaryFileId">The binary file identifier.</param>
-        public ImageUploaderEventArgs(int? binaryFileId) : base()
+        [RockObsolete( "1.7" )]
+        [Obsolete( "ImageUploaderEventArgs(binaryFileId, eventArgument) instead", true )]
+        public ImageUploaderEventArgs( int? binaryFileId ) : base()
         {
             BinaryFileId = binaryFileId;
+            EventArgument = ArgumentType.ImageUploaded;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageUploaderEventArgs" /> class.
+        /// </summary>
+        /// <param name="binaryFileId">The binary file identifier.</param>
+        /// <param name="eventArgument">The event argument.</param>
+        public ImageUploaderEventArgs(int? binaryFileId, ArgumentType eventArgument ) : base()
+        {
+            BinaryFileId = binaryFileId;
+            EventArgument = eventArgument;
         }
     }
 }

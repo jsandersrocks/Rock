@@ -14,16 +14,15 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Linq;
 
-using Rock.Attribute;
+using Rock.Communication;
 using Rock.Data;
 using Rock.Model;
-using Rock.Communication;
+using Rock.Web.Cache;
 
 namespace Rock.Workflow.Action
 {
@@ -33,7 +32,7 @@ namespace Rock.Workflow.Action
     [ActionCategory( "Workflow Control" )]
     [Description( "Prompts user for attribute values" )]
     [Export( typeof( ActionComponent ) )]
-    [ExportMetadata( "ComponentName", "User Entry Form" )]
+    [ExportMetadata( "ComponentName", "Form" )]
 
     public class UserEntryForm : ActionComponent
     {
@@ -57,7 +56,7 @@ namespace Rock.Workflow.Action
             {
                 if ( action.Activity != null && ( action.Activity.AssignedPersonAliasId.HasValue || action.Activity.AssignedGroupId.HasValue ) )
                 {
-                    var recipients = new List<RecipientData>();
+                    var recipients = new List<RockMessageRecipient>();
                     var workflowMergeFields = GetMergeFields( action );
 
                     if ( action.Activity.AssignedPersonAliasId.HasValue)
@@ -69,7 +68,7 @@ namespace Rock.Workflow.Action
 
                         if ( person != null && !string.IsNullOrWhiteSpace( person.Email ) )
                         {
-                            recipients.Add( new RecipientData( person.Email, CombinePersonMergeFields( person, workflowMergeFields ) ) );
+                            recipients.Add( new RockEmailMessageRecipient( person, CombinePersonMergeFields( person, workflowMergeFields ) ) );
                             action.AddLogEntry( string.Format( "Form notification sent to '{0}'", person.FullName ) );
                         }
                     }
@@ -85,19 +84,24 @@ namespace Rock.Workflow.Action
 
                         foreach( var person in personList)
                         {
-                            recipients.Add( new RecipientData( person.Email, CombinePersonMergeFields( person, workflowMergeFields ) ) );
+                            recipients.Add( new RockEmailMessageRecipient( person, CombinePersonMergeFields( person, workflowMergeFields ) ) );
                             action.AddLogEntry( string.Format( "Form notification sent to '{0}'", person.FullName ) );
                         }
                     }
 
                     if ( recipients.Count > 0 )
                     {
+                        // The email may need to reference activity Id, so we need to save here.
+                        WorkflowService workflowService = new WorkflowService( rockContext );
+                        workflowService.PersistImmediately( action );
+
                         var systemEmail = new SystemEmailService( rockContext ).Get( action.ActionTypeCache.WorkflowForm.NotificationSystemEmailId.Value );
                         if ( systemEmail != null )
                         {
                             var emailMessage = new RockEmailMessage( systemEmail );
                             emailMessage.SetRecipients( recipients );
                             emailMessage.CreateCommunicationRecord = false;
+                            emailMessage.AppRoot = GlobalAttributesCache.Get().GetValue( "InternalApplicationRoot" ) ?? string.Empty;
                             emailMessage.Send();
                         }
                         else

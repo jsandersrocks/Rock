@@ -19,7 +19,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Runtime.Serialization;
-using System.Text;
 
 using Rock.Data;
 
@@ -83,13 +82,33 @@ namespace Rock.Model
         public bool? RecordFound { get; set; }
 
         /// <summary>
-        /// Gets or sets the response XML.
+        /// Gets or sets the response data (usually JSON, but could be XML or whatever the provider wants to do)
         /// </summary>
         /// <value>
-        /// The response XML.
+        /// The response data.
         /// </value>
         [DataMember]
-        public string ResponseXml { get; set; }
+        public string ResponseData { get; set; }
+
+        /// <summary>
+        /// Gets or sets the response identifier.
+        /// </summary>
+        /// <value>
+        /// The response identifier.
+        /// </value>
+        [DataMember]
+        [MaxLength(100)]
+        public string ResponseId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the request identifier.
+        /// </summary>
+        /// <value>
+        /// The request identifier.
+        /// </value>
+        [DataMember]
+        [MaxLength( 100 )]
+        public string RequestId { get; set; }
 
         /// <summary>
         /// Gets or sets the response document identifier.
@@ -99,6 +118,35 @@ namespace Rock.Model
         /// </value>
         [DataMember]
         public int? ResponseDocumentId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the processor entity type identifier.
+        /// </summary>
+        /// <value>
+        /// The processor entity type identifier.
+        /// </value>
+        [DataMember]
+        public int? ProcessorEntityTypeId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the status.
+        /// </summary>
+        /// <value>
+        /// The status.
+        /// </value>
+        [DataMember]
+        [MaxLength(25)]
+        public string Status { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name of the package.
+        /// </summary>
+        /// <value>
+        /// The name of the package.
+        /// </value>
+        [DataMember]
+        [MaxLength( 100 )]
+        public string PackageName { get; set; }
 
         #endregion
 
@@ -131,6 +179,26 @@ namespace Rock.Model
         [LavaInclude]
         public virtual Model.BinaryFile ResponseDocument { get; set; }
 
+        /// <summary>
+        /// Gets or sets the type of the processor entity.
+        /// </summary>
+        /// <value>
+        /// The type of the processor entity.
+        /// </value>
+        [DataMember]
+        public virtual Rock.Model.EntityType ProcessorEntityType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the response XML.
+        /// </summary>
+        /// <value>
+        /// The response XML.
+        /// </value>
+        [NotMapped]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "Use ResponseData Instead", true )]
+        public virtual string ResponseXml { get; set; }
+
         #endregion
     }
 
@@ -149,6 +217,7 @@ namespace Rock.Model
             this.HasRequired( p => p.PersonAlias ).WithMany().HasForeignKey( p => p.PersonAliasId ).WillCascadeOnDelete( true );
             this.HasOptional( p => p.Workflow ).WithMany().HasForeignKey( p => p.WorkflowId ).WillCascadeOnDelete( true );
             this.HasOptional( p => p.ResponseDocument ).WithMany().HasForeignKey( p => p.ResponseDocumentId ).WillCascadeOnDelete( false );
+            this.HasOptional( p => p.ProcessorEntityType ).WithMany().HasForeignKey( p => p.ProcessorEntityTypeId ).WillCascadeOnDelete( false );
         }
     }
 

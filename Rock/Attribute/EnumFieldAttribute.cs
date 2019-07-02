@@ -16,19 +16,18 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-
-using Rock;
 
 namespace Rock.Attribute
 {
     /// <summary>
     /// Field Attribute for selecting radio button options from an enum.
     /// </summary>
-    [AttributeUsage( AttributeTargets.Class, AllowMultiple = false, Inherited = true )]
-    public class EnumFieldAttribute : FieldAttribute
+    [AttributeUsage( AttributeTargets.Class, AllowMultiple = true, Inherited = true )]
+    public class EnumFieldAttribute : SelectFieldAttribute
     {
+        private const string VALUES = "values";
+        private const string FIELDTYPE = "fieldtype";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="EnumFieldAttribute" /> class.
         /// </summary>
@@ -50,8 +49,8 @@ namespace Rock.Attribute
             }
             
             var listSource = string.Join( ",", list );
-            FieldConfigurationValues.Add( "values", new Field.ConfigurationValue( listSource ) );
-            FieldConfigurationValues.Add( "fieldtype", new Field.ConfigurationValue( "rb" ) );
+            FieldConfigurationValues.Add( VALUES, new Field.ConfigurationValue( listSource ) );
+            FieldConfigurationValues.Add( FIELDTYPE, new Field.ConfigurationValue( "rb" ) );
         }
     }
 }

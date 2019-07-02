@@ -55,7 +55,7 @@ namespace Rock.Client
         public bool ModifiedAuditValuesAlreadyUpdated { get; set; }
 
         /// <summary />
-        public string Value { get; set; }
+        public string Value { get; set; } = @"";
 
         /// <summary>
         /// Leave this as NULL to let Rock set this
@@ -114,6 +114,9 @@ namespace Rock.Client
     {
         /// <summary />
         public Attribute Attribute { get; set; }
+
+        /// <summary />
+        public ICollection<AttributeValueHistorical> AttributeValuesHistorical { get; set; }
 
         /// <summary />
         public bool? ValueAsBoolean { get; set; }

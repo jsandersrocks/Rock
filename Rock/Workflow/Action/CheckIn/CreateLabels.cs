@@ -21,11 +21,11 @@ using System.ComponentModel.Composition;
 using System.Data.Entity;
 using System.Linq;
 
+using Newtonsoft.Json;
 using Rock.Attribute;
 using Rock.CheckIn;
 using Rock.Data;
 using Rock.Model;
-using Rock.Web.Cache;
 
 namespace Rock.Workflow.Action.CheckIn
 {
@@ -36,6 +36,8 @@ namespace Rock.Workflow.Action.CheckIn
     [Description( "Creates Check-in Labels" )]
     [Export( typeof( ActionComponent ) )]
     [ExportMetadata( "ComponentName", "Create Labels" )]
+    [BooleanField( "Enable Saving Label Data", "Select 'Yes' if the label data should be temporarily saved on the attendance record. Select 'No' to disable saving label data.", true )]
+
     public class CreateLabels : CheckInActionComponent
     {
         /// <summary>
@@ -59,7 +61,7 @@ namespace Rock.Workflow.Action.CheckIn
                     var commonMergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null );
                     var groupMemberService = new GroupMemberService( rockContext );
 
-                    var familyLabels = new List<Guid>();
+                    var familyLabelsAdded = new List<Guid>();
 
                     var people = family.GetPeople( true );
                     foreach ( var person in people )
@@ -69,49 +71,55 @@ namespace Rock.Workflow.Action.CheckIn
 
                         // Get Primary area group types first
                         personGroupTypes.Where( t => checkInState.ConfiguredGroupTypes.Contains( t.GroupType.Id ) ).ToList().ForEach( t => groupTypes.Add( t ) );
-                        
+
                         // Then get additional areas
                         personGroupTypes.Where( t => !checkInState.ConfiguredGroupTypes.Contains( t.GroupType.Id ) ).ToList().ForEach( t => groupTypes.Add( t ) );
 
-                        var personLabels = new List<Guid>();
+                        var personLabels = GetLabels( person.Person, new List<KioskLabel>() );
 
-                        foreach ( var groupType in groupTypes ) 
+                        var personLabelsAdded = new List<Guid>();
+
+                        foreach ( var groupType in groupTypes )
                         {
                             groupType.Labels = new List<CheckInLabel>();
 
-                            var groupTypeLabels = GetGroupTypeLabels( groupType.GroupType );
+                            var groupTypeLabels = GetLabels( groupType.GroupType, personLabels );
 
                             var PrinterIPs = new Dictionary<int, string>();
 
-                            foreach ( var labelCache in groupTypeLabels.OrderBy( l => l.LabelType ).ThenBy( l => l.Order ) )
+                            foreach ( var group in groupType.GetGroups( true ) )
                             {
-                                person.SetOptions( labelCache );
+                                var groupLabels = GetLabels( group.Group, groupTypeLabels );
 
-                                foreach ( var group in groupType.GetGroups( true ) )
+                                foreach ( var location in group.GetLocations( true ) )
                                 {
-                                    foreach ( var location in group.GetLocations( true ) )
+                                    var locationLabels = GetLabels( location.Location, groupLabels );
+
+                                    foreach ( var labelCache in locationLabels.OrderBy( l => l.LabelType ).ThenBy( l => l.Order ) )
                                     {
+                                        person.SetOptions( labelCache );
+
                                         if ( labelCache.LabelType == KioskLabelType.Family )
                                         {
-                                            if ( familyLabels.Contains( labelCache.Guid ) ||
-                                                personLabels.Contains( labelCache.Guid ) )
+                                            if ( familyLabelsAdded.Contains( labelCache.Guid ) ||
+                                                personLabelsAdded.Contains( labelCache.Guid ) )
                                             {
-                                                break;
+                                                continue;
                                             }
                                             else
                                             {
-                                                familyLabels.Add( labelCache.Guid );
+                                                familyLabelsAdded.Add( labelCache.Guid );
                                             }
                                         }
                                         else if ( labelCache.LabelType == KioskLabelType.Person )
                                         {
-                                            if ( personLabels.Contains( labelCache.Guid ) )
+                                            if ( personLabelsAdded.Contains( labelCache.Guid ) )
                                             {
-                                                break;
+                                                continue;
                                             }
                                             else
                                             {
-                                                personLabels.Add( labelCache.Guid );
+                                                personLabelsAdded.Add( labelCache.Guid );
                                             }
                                         }
 
@@ -186,6 +194,13 @@ namespace Rock.Workflow.Action.CheckIn
                             }
                         }
                     }
+
+                    // Save the label data
+                    var enableSavingLabelData = GetAttributeValue( action, "EnableSavingLabelData" ).AsBoolean( true );
+                    if ( enableSavingLabelData )
+                    {
+                        SaveLabelToAttendance( family );
+                    }
                 }
 
                 return true;
@@ -195,28 +210,106 @@ namespace Rock.Workflow.Action.CheckIn
             return false;
         }
 
-        private List<KioskLabel> GetGroupTypeLabels( GroupTypeCache groupType )
-        {
-            var labels = new List<KioskLabel>();
 
-            //groupType.LoadAttributes();
-            foreach ( var attribute in groupType.Attributes.OrderBy( a => a.Value.Order ) )
+        /// <summary> Saves the family's label set as AttendanceData to the attendance records
+        /// associated with the current check-in (using the given attendanceIds). The label
+        /// data looks like:
+        /// <![CDATA[
+        ///   [
+        ///      {
+        ///         "LabelType":0,
+        ///         "Order":0,
+        ///         "PersonId":4,
+        ///         "PrinterDeviceId":1,
+        ///         "PrinterAddress":"10.1.20.200",
+        ///         "PrintFrom":0,
+        ///         "PrintTo":1,
+        ///         "FileGuid":"9b098db0-952c-43fb-a5bd-511e3c2b72fb",
+        ///         "LabelFile":"/GetFile.ashx?id=33",
+        ///         "LabelKey":"9b098db0-952c-43fb-a5bd-511e3c2b72fb",
+        ///         "MergeFields":{ 
+        ///                  "WWW":"K46", 
+        ///                  "2":"Ted Decker", 
+        ///                  "AAA":"", 
+        ///                  "3":"Bears Room 4:30 (test)", 
+        ///                  "LLL":"", 
+        ///                  "5":"", 
+        ///                  "7":"" 
+        ///         }
+        ///      },
+        ///      {
+        ///         "LabelType":1,
+        ///         ...
+        ///      },
+        ///      ...
+        ///   ]
+        /// ]]>
+        /// </summary>
+        /// <param name="family">A CheckInFamily that holds the labels to be stored.</param>
+        private void SaveLabelToAttendance( CheckInFamily family )
+        {
+            if ( family == null || family.People == null )
             {
-                if ( attribute.Value.FieldType.Guid == SystemGuid.FieldType.BINARY_FILE.AsGuid() &&
-                    attribute.Value.QualifierValues.ContainsKey( "binaryFileType" ) &&
-                    attribute.Value.QualifierValues["binaryFileType"].Value.Equals( SystemGuid.BinaryFiletype.CHECKIN_LABEL, StringComparison.OrdinalIgnoreCase ) )
+                return;
+            }
+
+            var labels = family.People.SelectMany( p => p.GroupTypes ).Where( gt => gt.Labels != null ).SelectMany( gt => gt.Labels ).ToList();
+
+            if ( labels == null || labels.Count == 0 )
+            {
+                return;
+            }
+
+            var rockContext = new RockContext();
+            var attendanceRecords = new AttendanceService( rockContext ).Queryable().Where( a => family.AttendanceIds.Contains( a.Id ) );
+            var labelData = JsonConvert.SerializeObject( labels );
+
+            foreach ( var attendance in attendanceRecords )
+            {
+                if (attendance.AttendanceData == null)
                 {
-                    Guid? binaryFileGuid = groupType.GetAttributeValue( attribute.Key ).AsGuidOrNull();
+                    attendance.AttendanceData = new AttendanceData();
+                }
+
+                attendance.AttendanceData.LabelData = labelData;
+            }
+
+            rockContext.SaveChanges();
+        }
+
+        /// <summary>
+        /// Gets the labels for an item (person, grouptype, group, location).
+        /// </summary>
+        /// <param name="item">The item.</param>
+        /// <param name="existingLabels">The existing labels.</param>
+        /// <returns></returns>
+        public virtual List<KioskLabel> GetLabels( Attribute.IHasAttributes item, List<KioskLabel> existingLabels )
+        {
+            var labels = new List<KioskLabel>( existingLabels );
+
+            if ( item.Attributes == null )
+            {
+                item.LoadAttributes();
+            }
+
+            foreach ( var attribute in item.Attributes.OrderBy( a => a.Value.Order ) )
+            {
+                if ( attribute.Value.FieldType.Class == typeof( Rock.Field.Types.LabelFieldType ).FullName )
+                {
+                    Guid? binaryFileGuid = item.GetAttributeValue( attribute.Key ).AsGuidOrNull();
                     if ( binaryFileGuid != null )
                     {
-                        var labelCache = KioskLabel.Read( binaryFileGuid.Value );
-                        labelCache.Order = attribute.Value.Order;
-                        if ( labelCache != null && (
-                            labelCache.LabelType == KioskLabelType.Family ||
-                            labelCache.LabelType == KioskLabelType.Person ||
-                            labelCache.LabelType == KioskLabelType.Location ) )
+                        if ( !labels.Any( l => l.Guid == binaryFileGuid.Value ) )
                         {
-                            labels.Add( labelCache );
+                            var labelCache = KioskLabel.Get( binaryFileGuid.Value );
+                            labelCache.Order = attribute.Value.Order;
+                            if ( labelCache != null && (
+                                labelCache.LabelType == KioskLabelType.Family ||
+                                labelCache.LabelType == KioskLabelType.Person ||
+                                labelCache.LabelType == KioskLabelType.Location ) )
+                            {
+                                labels.Add( labelCache );
+                            }
                         }
                     }
                 }
@@ -224,5 +317,6 @@ namespace Rock.Workflow.Action.CheckIn
 
             return labels;
         }
+
     }
 }

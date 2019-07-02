@@ -20,6 +20,7 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Web.UI;
+
 using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
@@ -59,6 +60,28 @@ namespace Rock.Reporting.DataFilter.Person
             get { return "Additional Filters"; }
         }
 
+        /// <summary>
+        /// Gets the control class name.
+        /// </summary>
+        /// <value>
+        /// The name of the control class.
+        /// </value>
+        internal virtual string ControlClassName
+        {
+            get { return "js-campus-picker"; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether to include inactive campuses.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [include inactive]; otherwise, <c>false</c>.
+        /// </value>
+        internal virtual bool IncludeInactive
+        {
+            get { return true; }
+        }
+
         #endregion
 
         #region Public Methods
@@ -87,14 +110,13 @@ namespace Rock.Reporting.DataFilter.Person
         /// </value>
         public override string GetClientFormatSelection( Type entityType )
         {
-            return @"
-function() {
-    var campusPicker = $('.js-campus-picker', $content);
+            return $@"
+function() {{
+    var campusPicker = $('.{this.ControlClassName}', $content);
     var campusName = $(':selected', campusPicker).text();
 
     return 'Campus: ' + campusName;
-}
-";
+}}";
         }
 
         /// <summary>
@@ -111,7 +133,7 @@ function() {
             if ( selectionValues.Length >= 1 )
             {
                 Guid campusGuid = selectionValues[0].AsGuid();
-                var campus = CampusCache.Read( campusGuid );
+                var campus = CampusCache.Get( campusGuid );
                 if ( campus != null )
                 {
                     result = "Campus: " + campus.Name;
@@ -130,8 +152,8 @@ function() {
             CampusPicker campusPicker = new CampusPicker();
             campusPicker.ID = filterControl.ID + "_0";
             campusPicker.Label = string.Empty;
-            campusPicker.CssClass = "js-campus-picker";
-            campusPicker.Campuses = CampusCache.All();
+            campusPicker.CssClass = $"{ControlClassName}";
+            campusPicker.Campuses = CampusCache.All( IncludeInactive );
 
             filterControl.Controls.Add( campusPicker );
 
@@ -161,7 +183,7 @@ function() {
             var campusId = ( controls[0] as CampusPicker ).SelectedCampusId;
             if ( campusId.HasValue )
             {
-                var campus = CampusCache.Read( campusId.Value );
+                var campus = CampusCache.Get( campusId.Value );
                 if ( campus != null )
                 {
                     return campus.Guid.ToString();
@@ -183,7 +205,7 @@ function() {
             if ( selectionValues.Length >= 1 )
             {
                 var campusPicker = controls[0] as CampusPicker;
-                var selectedCampus = CampusCache.Read( selectionValues[0].AsGuid() );
+                var selectedCampus = CampusCache.Get( selectionValues[0].AsGuid() );
                 if ( selectedCampus != null )
                 {
                     campusPicker.SelectedCampusId = selectedCampus.Id;
@@ -218,7 +240,7 @@ function() {
 
                 if ( campusId.HasValue )
                 {
-                    var selectedCampus = CampusCache.Read( campusId.Value );
+                    var selectedCampus = CampusCache.Get( campusId.Value );
                     if ( selectedCampus != null )
                     {
                         selectionValues[0] = selectedCampus.Guid.ToString();
@@ -245,7 +267,7 @@ function() {
             string[] selectionValues = selection.Split( '|' );
             if ( selectionValues.Length >= 1 )
             {
-                var campus = CampusCache.Read( selectionValues[0].AsGuid() );
+                var campus = CampusCache.Get( selectionValues[0].AsGuid() );
                 if ( campus == null )
                 {
                     return null;

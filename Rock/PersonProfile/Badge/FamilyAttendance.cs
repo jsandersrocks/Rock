@@ -14,18 +14,12 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
-using System.IO;
 
 using Rock.Attribute;
 using Rock.Model;
-using Rock.Web.UI.Controls;
-using Rock.Data;
-using System.Collections.Generic;
-using System.Data;
-using System;
-using System.Diagnostics;
 using Rock.Web.Cache;
 
 namespace Rock.PersonProfile.Badge
@@ -61,7 +55,17 @@ namespace Rock.PersonProfile.Badge
                 animateClass = " animate";
             }
 
-            writer.Write(String.Format( "<div class='badge badge-attendance{0} badge-id-{1}' data-toggle='tooltip' data-original-title='Family attendance for the last 24 months. Each bar is a month.'>", animateClass, badge.Id));
+            string tooltip = string.Empty;
+            if ( Person.AgeClassification == AgeClassification.Child )
+            {
+                tooltip = $"{Person.NickName.ToPossessive().EncodeHtml()} attendance for the last 24 months. Each bar is a month.";
+            }
+            else
+            {
+                tooltip = "Family attendance for the last 24 months. Each bar is a month.";
+            }
+
+            writer.Write( String.Format( "<div class='badge badge-attendance{0} badge-id-{1}' data-toggle='tooltip' data-original-title='{2}'>", animateClass, badge.Id, tooltip ) );
 
             writer.Write("</div>");
 

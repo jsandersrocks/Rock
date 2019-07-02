@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock.Communication;
 using Rock.Data;
 using Rock.Model;
@@ -43,7 +44,7 @@ namespace Rock.Web.UI.Controls.Communication
         private RockTextBox tbSubject;
         private HtmlEditor htmlMessage;
         private HiddenField hfAttachments;
-        private FileUploader fuAttachments;
+        private FileUploader fupEmailAttachments;
 
         #endregion
 
@@ -174,6 +175,7 @@ namespace Rock.Web.UI.Controls.Communication
             tbFromName = new RockTextBox();
             tbFromName.ID = string.Format( "tbFromName_{0}", this.ID );
             tbFromName.Label = "From Name";
+            tbFromName.MaxLength = 100;
             Controls.Add( tbFromName );
 
             lFromName = new RockLiteral();
@@ -200,6 +202,7 @@ namespace Rock.Web.UI.Controls.Communication
             tbSubject.ID = string.Format( "tbSubject_{0}", this.ID );
             tbSubject.Label = "Subject";
             tbSubject.Help = "<span class='tip tip-lava'></span>";
+            tbSubject.MaxLength = 100;
             Controls.Add( tbSubject );
 
             htmlMessage = new HtmlEditor();
@@ -215,22 +218,22 @@ namespace Rock.Web.UI.Controls.Communication
             hfAttachments.ID = string.Format( "hfAttachments_{0}", this.ID );
             Controls.Add( hfAttachments );
 
-            fuAttachments = new FileUploader();
-            fuAttachments.ID = string.Format( "fuAttachments_{0}", this.ID );
-            fuAttachments.Label = "Attachments";
-            fuAttachments.FileUploaded += fuAttachments_FileUploaded;
-            Controls.Add( fuAttachments );
+            fupEmailAttachments = new FileUploader();
+            fupEmailAttachments.ID = string.Format( "fupEmailAttachments_{0}", this.ID );
+            fupEmailAttachments.Label = "Attachments";
+            fupEmailAttachments.FileUploaded += fupEmailAttachments_FileUploaded;
+            Controls.Add( fupEmailAttachments );
 
             ebCcAddress = new EmailBox();
             ebCcAddress.ID = string.Format( "ebCcAddress_{0}", this.ID );
             ebCcAddress.Label = "CC Address";
-            ebCcAddress.Help = "Any address in this field will be copied on the email sent to every recipient.  Lava can be used to access recipent data. <span class='tip tip-lava'></span>";
+            ebCcAddress.Help = "Any address in this field will be copied on the email sent to every recipient.  Lava can be used to access recipient data. <span class='tip tip-lava'></span>";
             Controls.Add( ebCcAddress );
 
             ebBccAddress = new EmailBox();
             ebBccAddress.ID = string.Format( "ebBccAddress{0}", this.ID );
             ebBccAddress.Label = "Bcc Address";
-            ebBccAddress.Help = "Any address in this field will be copied on the email sent to every recipient.  Lava can be used to access recipent data. <span class='tip tip-lava'></span>";
+            ebBccAddress.Help = "Any address in this field will be copied on the email sent to every recipient.  Lava can be used to access recipient data. <span class='tip tip-lava'></span>";
             Controls.Add( ebBccAddress );
         }
 
@@ -311,7 +314,7 @@ namespace Rock.Web.UI.Controls.Communication
 
             writer.AddAttribute( HtmlTextWriterAttribute.Class, "col-md-6" );
             writer.RenderBeginTag( HtmlTextWriterTag.Div );
-            fuAttachments.RenderControl( writer );
+            fupEmailAttachments.RenderControl( writer );
             hfAttachments.RenderControl( writer );
 
             writer.AddAttribute( HtmlTextWriterAttribute.Class, "attachment" );
@@ -391,17 +394,17 @@ namespace Rock.Web.UI.Controls.Communication
         #region Events
 
         /// <summary>
-        /// Handles the FileUploaded event of the fuAttachments control.
+        /// Handles the FileUploaded event of the fupEmailAttachments control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
-        protected void fuAttachments_FileUploaded( object sender, EventArgs e )
+        protected void fupEmailAttachments_FileUploaded( object sender, EventArgs e )
         {
             EnsureChildControls();
             var attachmentList = hfAttachments.Value.SplitDelimitedValues().ToList();
-            attachmentList.Add( fuAttachments.BinaryFileId.ToString() );
+            attachmentList.Add( fupEmailAttachments.BinaryFileId.ToString() );
             hfAttachments.Value = attachmentList.AsDelimited( "," );
-            fuAttachments.BinaryFileId = null;
+            fupEmailAttachments.BinaryFileId = null;
         }
 
         #endregion

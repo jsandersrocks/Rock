@@ -14,8 +14,6 @@
 // limitations under the License.
 // </copyright>
 //
-using System.ComponentModel;
-using System.Collections.Generic;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
@@ -35,29 +33,6 @@ namespace Rock.Web.UI.Controls
         {
             var style = new Style();
             this.Style = style.GetStyleAttributes( this );
-        }
-        
-        /// <summary>
-        /// Raises the <see cref="E:System.Web.UI.Control.Init" /> event.
-        /// </summary>
-        /// <param name="e">An <see cref="T:System.EventArgs" /> object that contains the event data.</param>
-        protected override void OnInit( System.EventArgs e )
-        {
-            base.OnInit( e );
-
-            string script = @"
-$(document).ready(function() {
-    $('a.warning').click(function (e) {
-        e.preventDefault();
-        $(this).siblings('div.alert-warning').slideToggle(function(){
-            Rock.controls.modal.updateSize(this);
-        });
-        $(this).siblings('div.alert-info').slideUp();
-    });
-});
-";
-            ScriptManager.RegisterStartupScript( this, this.GetType(), "warning-block", script, true );
-
         }
 
         /// <summary>

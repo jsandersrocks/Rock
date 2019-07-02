@@ -35,19 +35,22 @@ namespace Rock.Client
         public int Id { get; set; }
 
         /// <summary />
-        public bool? AddUserAccountsDuringSync { get; set; }
+        public bool? AllowGuests { get; set; }
 
         /// <summary />
-        public bool? AllowGuests { get; set; }
+        public int? ArchivedByPersonAliasId { get; set; }
+
+        /// <summary />
+        public DateTime? ArchivedDateTime { get; set; }
+
+        /// <summary />
+        public Rock.Client.Enums.AttendanceRecordRequiredForCheckIn AttendanceRecordRequiredForCheckIn { get; set; }
 
         /// <summary />
         public int? CampusId { get; set; }
 
         /// <summary />
         public string Description { get; set; }
-
-        /// <summary />
-        public int? ExitSystemEmailId { get; set; }
 
         /// <summary />
         public Guid? ForeignGuid { get; set; }
@@ -62,10 +65,16 @@ namespace Rock.Client
         public int GroupTypeId { get; set; }
 
         /// <summary />
-        public bool IsActive { get; set; }
+        public DateTime? InactiveDateTime { get; set; }
 
         /// <summary />
-        public bool IsPublic { get; set; }
+        public bool IsActive { get; set; } = true;
+
+        /// <summary />
+        public bool IsArchived { get; set; }
+
+        /// <summary />
+        public bool IsPublic { get; set; } = true;
 
         /// <summary />
         public bool IsSecurityRole { get; set; }
@@ -77,6 +86,11 @@ namespace Rock.Client
         /// If the ModifiedByPersonAliasId is being set manually and should not be overwritten with current user when saved, set this value to true
         /// </summary>
         public bool ModifiedAuditValuesAlreadyUpdated { get; set; }
+
+        /// <summary />
+        // Made Obsolete in Rock "1.7"
+        [Obsolete( "This no longer is functional. Please use GroupRequirement.MustMeetRequirementToAddMember instead.", true )]
+        public bool? MustMeetRequirementsToAddMember { get; set; }
 
         /// <summary />
         public string Name { get; set; }
@@ -91,13 +105,16 @@ namespace Rock.Client
         public int? RequiredSignatureDocumentTemplateId { get; set; }
 
         /// <summary />
+        public int? ScheduleCancellationPersonAliasId { get; set; }
+
+        /// <summary />
         public int? ScheduleId { get; set; }
 
         /// <summary />
-        public int? SyncDataViewId { get; set; }
+        public bool SchedulingMustMeetRequirements { get; set; }
 
         /// <summary />
-        public int? WelcomeSystemEmailId { get; set; }
+        public int? StatusValueId { get; set; }
 
         /// <summary>
         /// Leave this as NULL to let Rock set this
@@ -132,16 +149,19 @@ namespace Rock.Client
         public void CopyPropertiesFrom( Group source )
         {
             this.Id = source.Id;
-            this.AddUserAccountsDuringSync = source.AddUserAccountsDuringSync;
             this.AllowGuests = source.AllowGuests;
+            this.ArchivedByPersonAliasId = source.ArchivedByPersonAliasId;
+            this.ArchivedDateTime = source.ArchivedDateTime;
+            this.AttendanceRecordRequiredForCheckIn = source.AttendanceRecordRequiredForCheckIn;
             this.CampusId = source.CampusId;
             this.Description = source.Description;
-            this.ExitSystemEmailId = source.ExitSystemEmailId;
             this.ForeignGuid = source.ForeignGuid;
             this.ForeignKey = source.ForeignKey;
             this.GroupCapacity = source.GroupCapacity;
             this.GroupTypeId = source.GroupTypeId;
+            this.InactiveDateTime = source.InactiveDateTime;
             this.IsActive = source.IsActive;
+            this.IsArchived = source.IsArchived;
             this.IsPublic = source.IsPublic;
             this.IsSecurityRole = source.IsSecurityRole;
             this.IsSystem = source.IsSystem;
@@ -150,9 +170,10 @@ namespace Rock.Client
             this.Order = source.Order;
             this.ParentGroupId = source.ParentGroupId;
             this.RequiredSignatureDocumentTemplateId = source.RequiredSignatureDocumentTemplateId;
+            this.ScheduleCancellationPersonAliasId = source.ScheduleCancellationPersonAliasId;
             this.ScheduleId = source.ScheduleId;
-            this.SyncDataViewId = source.SyncDataViewId;
-            this.WelcomeSystemEmailId = source.WelcomeSystemEmailId;
+            this.SchedulingMustMeetRequirements = source.SchedulingMustMeetRequirements;
+            this.StatusValueId = source.StatusValueId;
             this.CreatedDateTime = source.CreatedDateTime;
             this.ModifiedDateTime = source.ModifiedDateTime;
             this.CreatedByPersonAliasId = source.CreatedByPersonAliasId;
@@ -169,16 +190,25 @@ namespace Rock.Client
     public partial class Group : GroupEntity
     {
         /// <summary />
+        public PersonAlias ArchivedByPersonAlias { get; set; }
+
+        /// <summary />
         public Campus Campus { get; set; }
 
         /// <summary />
-        public SystemEmail ExitSystemEmail { get; set; }
+        public PersonAlias GroupAdministratorPersonAlias { get; set; }
+
+        /// <summary />
+        public int? GroupAdministratorPersonAliasId { get; set; }
 
         /// <summary />
         public ICollection<GroupLocation> GroupLocations { get; set; }
 
         /// <summary />
         public ICollection<GroupRequirement> GroupRequirements { get; set; }
+
+        /// <summary />
+        public ICollection<GroupSync> GroupSyncs { get; set; }
 
         /// <summary />
         public GroupType GroupType { get; set; }
@@ -193,10 +223,7 @@ namespace Rock.Client
         public Schedule Schedule { get; set; }
 
         /// <summary />
-        public DataView SyncDataView { get; set; }
-
-        /// <summary />
-        public SystemEmail WelcomeSystemEmail { get; set; }
+        public DefinedValue StatusValue { get; set; }
 
         /// <summary>
         /// NOTE: Attributes are only populated when ?loadAttributes is specified. Options for loadAttributes are true, false, 'simple', 'expanded' 

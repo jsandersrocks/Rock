@@ -22,7 +22,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Web;
 using System.Web.UI.WebControls;
-using Rock.Attribute;
+
 using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
@@ -37,7 +37,7 @@ namespace Rock
         #region GenericCollection Extensions
 
         /// <summary>
-        /// Concatonate the items into a Delimited string
+        /// Concatenate the items into a Delimited string
         /// </summary>
         /// <example>
         /// FirstNamesList.AsDelimited(",") would be "Ted,Suzy,Noah"
@@ -54,7 +54,7 @@ namespace Rock
         }
 
         /// <summary>
-        /// Concatonate the items into a Delimited string an optionally htmlencode the strings
+        /// Concatenate the items into a Delimited string an optionally htmlencode the strings
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="items">The items.</param>
@@ -138,7 +138,7 @@ namespace Rock
         /// Joins a dictionary of items.
         /// </summary>
         /// <param name="items">The items.</param>
-        /// <param name="delimter">The delimter.</param>
+        /// <param name="delimter">The delimiter.</param>
         /// <returns></returns>
         public static string Join( this Dictionary<string, string> items, string delimter )
         {
@@ -362,7 +362,7 @@ namespace Rock
             if ( sortProperty.Property.StartsWith( "attribute:" ) )
             {
                 var itemType = typeof( T );
-                var attributeCache = AttributeCache.Read( sortProperty.Property.Substring( 10 ).AsInteger() );
+                var attributeCache = AttributeCache.Get( sortProperty.Property.Substring( 10 ).AsInteger() );
                 if ( attributeCache != null && typeof( IModel ).IsAssignableFrom( typeof( T ) ) )
                 {
                     var entityIds = new List<int>();
@@ -448,7 +448,7 @@ namespace Rock
         ///   </example>
         public static IQueryable<T> WhereAttributeValue<T>( this IQueryable<T> source, RockContext rockContext, string attributeKey, string attributeValue ) where T : Rock.Data.Model<T>, new()
         {
-            int entityTypeId = Rock.Web.Cache.EntityTypeCache.GetId( typeof( T ) ) ?? 0;
+            int entityTypeId = EntityTypeCache.GetId( typeof( T ) ) ?? 0;
 
             var avs = new AttributeValueService( rockContext ).Queryable()
                 .Where( a => a.Attribute.Key == attributeKey )
@@ -477,7 +477,7 @@ namespace Rock
                 .WhereAttributeValue( rockContext, a => a.Attribute.Key == "IsAwesome" && a.ValueAsBoolean == true );
             */
 
-            int entityTypeId = Rock.Web.Cache.EntityTypeCache.GetId( typeof( T ) ) ?? 0;
+            int entityTypeId = EntityTypeCache.GetId( typeof( T ) ) ?? 0;
 
             var avs = new AttributeValueService( rockContext ).Queryable()
                 .Where( a => a.Attribute.EntityTypeId == entityTypeId )
@@ -505,185 +505,5 @@ namespace Rock
         }
 
         #endregion IQueryable extensions
-
-        #region Dictionary<TKey, TValue> extension methods
-
-        /// <summary>
-        /// Adds or replaces an item in a Dictionary.
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <param name="value">The value.</param>
-        public static void AddOrReplace<TKey, TValue>( this Dictionary<TKey, TValue> dictionary, TKey key, TValue value )
-        {
-            if ( !dictionary.ContainsKey( key ) )
-            {
-                dictionary.Add( key, value );
-            }
-            else
-            {
-                dictionary[key] = value;
-            }
-        }
-
-        /// <summary>
-        /// Adds an item to a Dictionary if it doesn't already exist in Dictionary.
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <param name="value">The value.</param>
-        public static void AddOrIgnore<TKey, TValue>( this IDictionary<TKey, TValue> dictionary, TKey key, TValue value )
-        {
-            if ( !dictionary.ContainsKey( key ) )
-            {
-                dictionary.Add( key, value );
-            }
-        }
-
-        /// <summary>
-        /// Adds if not empty.
-        /// </summary>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <param name="value">The value.</param>
-        /// <param name="replace">if set to <c>true</c> [replace].</param>
-        public static void AddIfNotBlank( this IDictionary<string, string> dictionary, string key, string value, bool replace = true ) 
-        {
-            if ( value.IsNotNullOrWhitespace() )
-            {
-                if ( !dictionary.ContainsKey( key ) )
-                {
-                    dictionary.Add( key, value );
-                }
-                else
-                {
-                    if ( replace )
-                    {
-                        dictionary[key] = value;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets value for the specified key, or null if the dictionary doesn't contain the key
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <returns></returns>
-        public static TValue GetValueOrNull<TKey, TValue>( this IDictionary<TKey, TValue> dictionary, TKey key )
-        {
-            if ( dictionary.ContainsKey( key ) )
-            {
-                return dictionary[key];
-            }
-            else
-            {
-                return default( TValue );
-            }
-        }
-
-        /// <summary>
-        /// Gets the value or null.
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <returns></returns>
-        public static int? GetValueOrNull<TKey>( this IDictionary<TKey, int> dictionary, TKey key )
-        {
-            if ( dictionary.ContainsKey( key ) )
-            {
-                return dictionary[key];
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Gets the value or null.
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <returns></returns>
-        public static decimal? GetValueOrNull<TKey>( this IDictionary<TKey, decimal> dictionary, TKey key )
-        {
-            if ( dictionary.ContainsKey( key ) )
-            {
-                return dictionary[key];
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Gets the value or null.
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <returns></returns>
-        public static double? GetValueOrNull<TKey>( this IDictionary<TKey, double> dictionary, TKey key )
-        {
-            if ( dictionary.ContainsKey( key ) )
-            {
-                return dictionary[key];
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Gets the value or null.
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <returns></returns>
-        public static Guid? GetValueOrNull<TKey>( this IDictionary<TKey, Guid> dictionary, TKey key )
-        {
-            if ( dictionary.ContainsKey( key ) )
-            {
-                return dictionary[key];
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Gets ConfigurationValue's Value for the specified key, or null if the dictionary doesn't contain the key or the ConfigurationValue is null
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="key">The key.</param>
-        /// <returns></returns>
-        public static string GetValueOrNull<TKey>( this IDictionary<TKey, Rock.Field.ConfigurationValue> dictionary, TKey key )
-        {
-            if ( dictionary.ContainsKey( key ) && dictionary[key] != null )
-            {
-                return dictionary[key].Value;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        #endregion Dictionary<TKey, TValue> extension methods
     }
 }

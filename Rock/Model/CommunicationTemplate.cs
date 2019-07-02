@@ -25,8 +25,9 @@ using System.Runtime.Serialization;
 
 using Newtonsoft.Json;
 
-using Rock.Data;
 using Rock.Communication;
+using Rock.Data;
+using Rock.Security;
 
 namespace Rock.Model
 {
@@ -88,6 +89,15 @@ namespace Rock.Model
         private bool _isActive = true;
 
         /// <summary>
+        /// Gets or sets a value indicating whether [CSS inlining enabled].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [CSS inlining enabled]; otherwise, <c>false</c>.
+        /// </value>
+        [DataMember]
+        public bool CssInliningEnabled { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the PersonId of the <see cref="Rock.Model.Person"/> who is the sender of the Communication
         /// </summary>
         /// <value>
@@ -97,7 +107,7 @@ namespace Rock.Model
         public int? SenderPersonAliasId { get; set; }
 
         /// <summary>
-        /// Gets or sets the image file identifier.
+        /// Gets or sets the image file identifier for the Template Preview Image
         /// </summary>
         /// <value>
         /// The image file identifier.
@@ -106,12 +116,31 @@ namespace Rock.Model
         public int? ImageFileId { get; set; }
 
         /// <summary>
+        /// Gets or sets the logo binary file identifier that email messages using this template can use for the logo in the message content
+        /// </summary>
+        /// <value>
+        /// The logo binary file identifier.
+        /// </value>
+        [DataMember]
+        public int? LogoBinaryFileId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the category identifier.
+        /// </summary>
+        /// <value>
+        /// The category identifier.
+        /// </value>
+        [DataMember]
+        public int? CategoryId { get; set; }
+
+        /// <summary>
         /// Gets or sets a Json formatted string containing the Medium specific data.
         /// </summary>
         /// <value>
         /// A Json formatted <see cref="System.String"/> that contains any Medium specific data.
         /// </value>
-        [Obsolete( "MediumDataJson is no longer used." )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "MediumDataJson is no longer used.", true )]
         public string MediumDataJson { get; set; }
 
         #region Email Fields
@@ -123,7 +152,7 @@ namespace Rock.Model
         /// A <see cref="System.String"/> that represents the name of the communication.
         /// </value>
         [DataMember]
-        [MaxLength( 100 )]
+        [MaxLength( 1000 )]
         public string Subject { get; set; }
 
         /// <summary>
@@ -192,6 +221,26 @@ namespace Rock.Model
         [DataMember]
         public string MessageMetaData { get; set; }
 
+        /// <summary>
+        /// The internal storage for <see cref="CommunicationTemplate.LavaFields"/>
+        /// </summary>
+        /// <value>
+        /// The lava fields json
+        /// </value>
+        [DataMember]
+        public string LavaFieldsJson
+        {
+            get
+            {
+                return LavaFields.ToJson( Formatting.None );
+            }
+
+            set
+            {
+                LavaFields = value.FromJsonOrNull<Dictionary<string, string>>() ?? new Dictionary<string, string>();
+            }
+        }
+
         #endregion
 
         #region SMS Properties
@@ -254,6 +303,16 @@ namespace Rock.Model
         #region Virtual Properties
 
         /// <summary>
+        /// A Dictionary of Key,DefaultValue for Lava MergeFields that can be used when processing Lava in the CommunicationTemplate
+        /// By convention, a Key with a 'Color' suffix will indicate that the Value is selected using a ColorPicker. Otherwise,it is just text
+        /// </summary>
+        /// <value>
+        /// The merge fields.
+        /// </value>
+        [DataMember]
+        public virtual Dictionary<string, string> LavaFields { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
         /// Gets or sets the attachments.
         /// NOTE: In most cases, you should use GetAttachments( CommunicationType ) instead.
         /// </summary>
@@ -276,6 +335,33 @@ namespace Rock.Model
         /// </value>
         [DataMember]
         public virtual PersonAlias SenderPersonAlias { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is personal (has a SenderPersonAliasId value) or not
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is personal; otherwise, <c>false</c>.
+        /// </value>
+        [DataMember]
+        public virtual bool IsPersonal => SenderPersonAliasId.HasValue;
+
+        /// <summary>
+        /// Gets or sets the logo binary file that email messages using this template can use for the logo in the message content
+        /// </summary>
+        /// <value>
+        /// The logo binary file.
+        /// </value>
+        [DataMember]
+        public virtual BinaryFile LogoBinaryFile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the category.
+        /// </summary>
+        /// <value>
+        /// The category.
+        /// </value>
+        [DataMember]
+        public virtual Category Category { get; set; }
 
         /// <summary>
         /// Gets the <see cref="Rock.Communication.MediumComponent"/> for the communication medium that is being used.
@@ -311,7 +397,8 @@ namespace Rock.Model
         /// </value>
         [DataMember]
         [NotMapped]
-        [Obsolete( "MediumData is no longer used. Communication Template now has specific properties for medium data." )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "MediumData is no longer used. Communication Template now has specific properties for medium data.", true )]
         public virtual Dictionary<string, string> MediumData
         {
             get
@@ -324,7 +411,7 @@ namespace Rock.Model
                     mediumData.AddIfNotBlank( "Subject", Subject );
                     mediumData.AddIfNotBlank( "Message", SMSMessage );
                 }
-                else if ( PushMessage.IsNotNullOrWhitespace() )
+                else if ( PushMessage.IsNotNullOrWhiteSpace() )
                 {
                     mediumData.AddIfNotBlank( "Title", PushTitle );
                     mediumData.AddIfNotBlank( "Message", PushMessage );
@@ -364,7 +451,8 @@ namespace Rock.Model
         /// The attachment binary file ids
         /// </value>
         [NotMapped]
-        [Obsolete( "Use EmailAttachmentBinaryFileIds or SMSAttachmentBinaryFileIds" )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "Use EmailAttachmentBinaryFileIds or SMSAttachmentBinaryFileIds", true )]
         public virtual IEnumerable<int> AttachmentBinaryFileIds
         {
             get
@@ -399,7 +487,7 @@ namespace Rock.Model
         {
             get
             {
-                return this.Attachments.Where(a => a.CommunicationType == CommunicationType.SMS).Select( a => a.BinaryFileId ).ToList();
+                return this.Attachments.Where( a => a.CommunicationType == CommunicationType.SMS ).Select( a => a.BinaryFileId ).ToList();
             }
         }
 
@@ -435,7 +523,8 @@ namespace Rock.Model
         /// </summary>
         /// <param name="key">A <see cref="System.String"/> containing the key associated with the value to retrieve. </param>
         /// <returns>A <see cref="System.String"/> representing the value that is linked with the specified key.</returns>
-        [Obsolete( "MediumData is no longer used" )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "MediumData is no longer used", true )]
         public string GetMediumDataValue( string key )
         {
             if ( MediumData.ContainsKey( key ) )
@@ -453,7 +542,8 @@ namespace Rock.Model
         /// </summary>
         /// <param name="key">A <see cref="System.String"/> representing the key.</param>
         /// <param name="value">A <see cref="System.String"/> representing the value.</param>
-        [Obsolete( "MediumData is no longer used" )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "MediumData is no longer used", true )]
         public void SetMediumDataValue( string key, string value )
         {
             if ( MediumData.ContainsKey( key ) )
@@ -474,7 +564,7 @@ namespace Rock.Model
         /// </returns>
         public override string ToString()
         {
-            return this.Subject ?? base.ToString();
+            return this.Name ?? this.Subject ?? base.ToString();
         }
 
         /// <summary>
@@ -488,6 +578,8 @@ namespace Rock.Model
             {
                 return false;
             }
+
+            templateHtml = templateHtml.ResolveMergeFields( Rock.Lava.LavaHelper.GetCommonMergeFields( null ) );
 
             HtmlAgilityPack.HtmlDocument templateDoc = new HtmlAgilityPack.HtmlDocument();
             templateDoc.LoadHtml( templateHtml );
@@ -509,6 +601,11 @@ namespace Rock.Model
             return !string.IsNullOrWhiteSpace( this.SMSMessage );
         }
 
+        /// <summary>
+        /// When checking for security, if a template does not have specific rules, first check the category it belongs to, but then check the default entity security for templates.
+        /// </summary>
+        public override ISecured ParentAuthorityPre => this.Category ?? base.ParentAuthority;
+
         #endregion
 
         #region Private Methods
@@ -524,7 +621,7 @@ namespace Rock.Model
     #region Entity Configuration
 
     /// <summary>
-    /// Communication Configuration class.
+    /// Communication Template Configuration class.
     /// </summary>
     public partial class CommunicationTemplateConfiguration : EntityTypeConfiguration<CommunicationTemplate>
     {
@@ -533,13 +630,12 @@ namespace Rock.Model
         /// </summary>
         public CommunicationTemplateConfiguration()
         {
+            this.HasOptional( c => c.Category ).WithMany().HasForeignKey( c => c.CategoryId ).WillCascadeOnDelete( false );
+            this.HasOptional( c => c.LogoBinaryFile ).WithMany().HasForeignKey( c => c.LogoBinaryFileId ).WillCascadeOnDelete( false );
             this.HasOptional( c => c.SenderPersonAlias ).WithMany().HasForeignKey( c => c.SenderPersonAliasId ).WillCascadeOnDelete( false );
             this.HasOptional( c => c.SMSFromDefinedValue ).WithMany().HasForeignKey( c => c.SMSFromDefinedValueId ).WillCascadeOnDelete( false );
         }
     }
 
     #endregion
-
-
 }
-

@@ -39,7 +39,7 @@ namespace Rock.Workflow.Action
     [WorkflowTextOrAttribute("Recipient", "Attribute Value", "An attribute that contains the person should be sent to. <span class='tip tip-lava'></span>", true, "", "", 1, "To",
         new string[] { "Rock.Field.Types.PersonFieldType", "Rock.Field.Types.GroupFieldType", "Rock.Field.Types.SecurityRoleFieldType" })]
     [WorkflowTextOrAttribute("Title", "Attribute Value", "The title or an attribute that contains the title that should be sent.", false, "", "", 2, "Title", new string[] { "Rock.Field.Types.TextFieldType" })]
-    [WorkflowAttribute("Sound", "The choice of sound or an attribute that contains the the choice of sound that should be sent.", false, "True", "", 2, "Sound", new string[] { "Rock.Field.Types.BooleanFieldType" })]
+    [WorkflowAttribute("Sound", "The choice of sound or an attribute that contains the choice of sound that should be sent.", false, "True", "", 2, "Sound", new string[] { "Rock.Field.Types.BooleanFieldType" })]
     [WorkflowTextOrAttribute("Message", "Attribute Value", "The message or an attribute that contains the message that should be sent. <span class='tip tip-lava'></span>", true, "", "", 3, "Message",
         new string[] { "Rock.Field.Types.TextFieldType" })]
     public class SendPushNotification : ActionComponent
@@ -57,13 +57,13 @@ namespace Rock.Workflow.Action
             errorMessages = new List<string>();
 
             var mergeFields = GetMergeFields( action );
-            var recipients = new List<RecipientData>();
+            var recipients = new List<RockPushMessageRecipient>();
 
             string toValue = GetAttributeValue( action, "To" );
             Guid guid = toValue.AsGuid();
             if ( !guid.IsEmpty() )
             {
-                var attribute = AttributeCache.Read( guid, rockContext );
+                var attribute = AttributeCache.Get( guid, rockContext );
                 if ( attribute != null )
                 {
                     string toAttributeValue = action.GetWorklowAttributeValue( guid );
@@ -91,10 +91,9 @@ namespace Rock.Workflow.Action
                                         else
                                         {
 
-                                            var recipient = new RecipientData( deviceIds );
-                                            recipients.Add( recipient );
-
                                             var person = new PersonAliasService( rockContext ).GetPerson( personAliasGuid );
+                                            var recipient = new RockPushMessageRecipient( person, deviceIds, mergeFields );
+                                            recipients.Add( recipient );
                                             if ( person != null )
                                             {
                                                 recipient.MergeFields.Add( "Person", person );
@@ -142,7 +141,7 @@ namespace Rock.Workflow.Action
                                                
                                             if ( deviceIds.AsBoolean() )
                                             {
-                                                var recipient = new RecipientData( deviceIds );
+                                                var recipient = new RockPushMessageRecipient( person, deviceIds, mergeFields );
                                                 recipients.Add( recipient );
                                                 recipient.MergeFields.Add( "Person", person );
                                             }
@@ -158,7 +157,7 @@ namespace Rock.Workflow.Action
             {
                 if ( !string.IsNullOrWhiteSpace( toValue ) )
                 {
-                    recipients.Add( new RecipientData( toValue.ResolveMergeFields( mergeFields ) ) );
+                    recipients.Add( RockPushMessageRecipient.CreateAnonymous ( toValue.ResolveMergeFields( mergeFields ), mergeFields ) );
                 }
             }
 
@@ -166,7 +165,7 @@ namespace Rock.Workflow.Action
             Guid messageGuid = message.AsGuid();
             if ( !messageGuid.IsEmpty() )
             {
-                var attribute = AttributeCache.Read( messageGuid, rockContext );
+                var attribute = AttributeCache.Get( messageGuid, rockContext );
                 if ( attribute != null )
                 {
                     string messageAttributeValue = action.GetWorklowAttributeValue( messageGuid );
@@ -184,7 +183,7 @@ namespace Rock.Workflow.Action
             Guid titleGuid = title.AsGuid();
             if ( !titleGuid.IsEmpty() )
             {
-                var attribute = AttributeCache.Read( titleGuid, rockContext );
+                var attribute = AttributeCache.Get( titleGuid, rockContext );
                 if ( attribute != null )
                 {
                     string titleAttributeValue = action.GetWorklowAttributeValue( titleGuid );
@@ -202,7 +201,7 @@ namespace Rock.Workflow.Action
             Guid soundGuid = sound.AsGuid();
             if ( !soundGuid.IsEmpty() )
             {
-                var attribute = AttributeCache.Read( soundGuid, rockContext );
+                var attribute = AttributeCache.Get( soundGuid, rockContext );
                 if ( attribute != null )
                 {
                     string soundAttributeValue = action.GetWorklowAttributeValue( soundGuid );

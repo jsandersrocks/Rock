@@ -18,6 +18,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
+
 using Rock.Data;
 
 namespace Rock.Model
@@ -114,6 +115,20 @@ namespace Rock.Model
         /// </value>
         [DataMember]
         public decimal ControlAmount { get; set; }
+
+        #endregion
+
+        #region Entity Properties specific to Analytics
+
+        /// <summary>
+        /// Gets or sets the count.
+        /// NOTE: this always has a hardcoded value of 1. It is stored in the table because it is supposed to help do certain types of things in analytics
+        /// </summary>
+        /// <value>
+        /// The count.
+        /// </value>
+        [DataMember]
+        public int Count { get; set; }
 
         #endregion
     }

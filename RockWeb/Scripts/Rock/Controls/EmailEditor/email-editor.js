@@ -12,7 +12,7 @@
         if (!options.id) {
           throw 'id is required';
         }
-        
+
         var self = this;
         self.editorToolbarContent = $('#'+ options.id).find('.js-editor-toolbar-content')[0];
         self.editorToolbarStructure = $('#' + options.id).find('.js-editor-toolbar-structure')[0];
@@ -109,7 +109,7 @@
       initializeEventHandlers: function ()
       {
         var self = this;
-        // wire up the clicking on components to call the 
+        // wire up the clicking on components to call the
         // parent window to handle the properties editing
         $(document).on('click', '.component', function (e)
         {
@@ -133,28 +133,44 @@
           $('.js-editor-content-toolbar').hide();
           $('.js-editor-structure-toolbar').show();
         });
-        
+
 
         // add autoscroll capabilities during dragging
-        $(window).mousemove(function (e)
-        {
-          if (self.contentDrake.dragging) {
-            var $iframeEl = $(window.frameElement);
-            var $parentWindow = $(this.parent.window);
-            var clientY = e.clientY + $iframeEl.offset().top;
-            var parentWindowHeight = $parentWindow.height();
-            var scrollLevel = $parentWindow.scrollTop();
-            var mousePositionProportion = (clientY - scrollLevel) / parentWindowHeight;
+        $(window).mousemove(function (e) {
+            if (self.contentDrake.dragging) {
+                // editor scrollbar
+                // automatically scroll the editor (inner scrollbar) if the mouse gets within 10% of the top or 10% of the bottom while dragger
+                var $editorScrollWindow = $(window);
+                var editorScrollHeight = window.innerHeight;
+                var editorScrollLevel = $editorScrollWindow.scrollTop()
+                var editorMouseY = e.clientY;
+                var editorMousePositionProportion = editorMouseY / editorScrollHeight;
+                if (editorMousePositionProportion > .90) {
+                    editorScrollLevel += 20;
+                    $editorScrollWindow.scrollTop(editorScrollLevel);
+                }
+                else if (editorMousePositionProportion < .10 && editorScrollLevel != 0) {
+                    editorScrollLevel -= 20;
+                    $editorScrollWindow.scrollTop(editorScrollLevel);
+                }
 
-            if (mousePositionProportion > .90) {
-              scrollLevel += 20;
-              $parentWindow.scrollTop(scrollLevel);
+                // browser scrollbar
+                // automatically scroll the browser if the mouse gets within 10% of the top or 10% of the bottom while dragger
+                var $browserScrollWindow = $(window.parent);
+                var browserScrollLevel = $browserScrollWindow.scrollTop();
+                var browserScrollHeight = window.parent.innerHeight;
+                var browserMouseY = e.screenY - $(window.parent.document).scrollTop();
+                var browserMousePositionProportion = browserMouseY / browserScrollHeight;
+                if (browserMousePositionProportion > .90) {
+                    browserScrollLevel += 20;
+                    $browserScrollWindow.scrollTop(browserScrollLevel);
+                }
+                else if (browserMousePositionProportion < .10 && browserScrollLevel != 0) {
+                    browserScrollLevel -= 20;
+                    $browserScrollWindow.scrollTop(browserScrollLevel);
+                }
+
             }
-            else if (mousePositionProportion < .10 && scrollLevel != 0) {
-              scrollLevel -= 20;
-              $parentWindow.scrollTop(scrollLevel);
-            }
-          }
         });
       },
       handleComponentClick: function (el, e)

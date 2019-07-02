@@ -90,15 +90,25 @@ namespace Rock.Model
             target.Id = source.Id;
             target.Caption = source.Caption;
             target.CategoryId = source.CategoryId;
+            target.ChangeType = source.ChangeType;
             target.EntityId = source.EntityId;
             target.EntityTypeId = source.EntityTypeId;
             target.ForeignGuid = source.ForeignGuid;
             target.ForeignKey = source.ForeignKey;
+            target.IsSensitive = source.IsSensitive;
             target.IsSystem = source.IsSystem;
+            target.NewRawValue = source.NewRawValue;
+            target.NewValue = source.NewValue;
+            target.OldRawValue = source.OldRawValue;
+            target.OldValue = source.OldValue;
             target.RelatedData = source.RelatedData;
             target.RelatedEntityId = source.RelatedEntityId;
             target.RelatedEntityTypeId = source.RelatedEntityTypeId;
+            target.SourceOfChange = source.SourceOfChange;
+            #pragma warning disable 612, 618
             target.Summary = source.Summary;
+            #pragma warning restore 612, 618
+            target.ValueName = source.ValueName;
             target.Verb = source.Verb;
             target.CreatedDateTime = source.CreatedDateTime;
             target.ModifiedDateTime = source.ModifiedDateTime;

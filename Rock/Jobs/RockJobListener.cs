@@ -17,7 +17,9 @@
 using System;
 using System.Linq;
 using System.Text;
+
 using DotLiquid;
+
 using Quartz;
 
 using Rock.Communication;
@@ -93,6 +95,27 @@ namespace Rock.Jobs
         }
 
         /// <summary>
+        /// Adds the service job history.
+        /// </summary>
+        /// <param name="job">The job.</param>
+        /// <param name="rockContext">The rock context.</param>
+        private void AddServiceJobHistory( ServiceJob job, RockContext rockContext )
+        {
+            var jobHistoryService = new ServiceJobHistoryService( rockContext );
+            var jobHistory = new ServiceJobHistory()
+            {
+                ServiceJobId = job.Id,
+                StartDateTime = job.LastRunDateTime?.AddSeconds( 0.0d - ( double ) job.LastRunDurationSeconds ),
+                StopDateTime = job.LastRunDateTime,
+                Status = job.LastStatus,
+                StatusMessage = job.LastStatusMessage,
+                ServiceWorker = Environment.MachineName.ToLower()
+            };
+            jobHistoryService.Add( jobHistory );
+            rockContext.SaveChanges();
+        }
+
+        /// <summary>
         /// Called by the <see cref="IScheduler"/> after a <see cref="IJobDetail"/>
         /// has been executed, and before the associated <see cref="Quartz.Spi.IOperableTrigger"/>'s
         /// <see cref="Quartz.Spi.IOperableTrigger.Triggered"/> method has been called.
@@ -132,7 +155,7 @@ namespace Rock.Jobs
             // set the scheduler name
             job.LastRunSchedulerName = context.Scheduler.SchedulerName;
 
-            // determine if an error occured
+            // determine if an error occurred
             if ( jobException == null )
             {
                 job.LastSuccessfulRunDateTime = job.LastRunDateTime;
@@ -140,6 +163,10 @@ namespace Rock.Jobs
                 if ( context.Result is string )
                 {
                     job.LastStatusMessage = context.Result as string;
+                }
+                else
+                {
+                    job.LastStatusMessage = string.Empty;
                 }
 
                 // determine if message should be sent
@@ -193,6 +220,9 @@ namespace Rock.Jobs
 
             rockContext.SaveChanges();
 
+            // Add job history
+            AddServiceJobHistory( job, rockContext );
+
             // send notification
             if ( sendMessage )
             {
@@ -218,7 +248,7 @@ namespace Rock.Jobs
                 // NOTE: the EmailTemplate may also have TO: defined, so even if there are no notificationEmailAddress defined for this specific job, we still should send the mail
                 foreach ( var notificationEmailAddress in notificationEmailAddresses )
                 {
-                    emailMessage.AddRecipient( new RecipientData( notificationEmailAddress ) );
+                    emailMessage.AddRecipient( RockEmailMessageRecipient.CreateAnonymous( notificationEmailAddress, null ) );
                 }
 
                 emailMessage.Send();

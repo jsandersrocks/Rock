@@ -79,10 +79,23 @@ achieve our mission.  We are so grateful for your commitment.
         CodeEditorMode.Html, CodeEditorTheme.Rock, 200, true, @"
 ", "Text Options", 12 )]
 
+    [WorkflowTypeField(
+        name: "Workflow Trigger",
+        description: "Workflow types to trigger when an edit is submitted for a schedule.",
+        allowMultiple: true,
+        required: false,
+        order: 13,
+        key: AttributeKeys.WorkflowType )]
+
     #endregion
 
     public partial class ScheduledTransactionEdit : RockBlock
     {
+        private class AttributeKeys
+        {
+            public const string WorkflowType = "WorkflowType";
+        }
+
         #region Fields
 
         protected bool FluidLayout { get; set; }
@@ -244,6 +257,8 @@ achieve our mission.  We are so grateful for your commitment.
                     if ( page != null )
                     {
                         page.PageNavigate += page_PageNavigate;
+                        page.AddScriptLink( "~/Scripts/moment.min.js" );
+                        page.AddScriptLink( "~/Scripts/moment-with-locales.min.js" );
                     }
 
                     FluidLayout = GetAttributeValue( "LayoutStyle" ) == "Fluid";
@@ -292,18 +307,14 @@ achieve our mission.  We are so grateful for your commitment.
                     // Save amounts from controls to the viewstate list
                     foreach ( RepeaterItem item in rptAccountList.Items )
                     {
-                        var accountAmount = item.FindControl( "txtAccountAmount" ) as RockTextBox;
-                        if ( accountAmount != null )
+                        var hfAccountId = item.FindControl( "hfAccountId" ) as HiddenField;
+                        var txtAccountAmount = item.FindControl( "txtAccountAmount" ) as RockTextBox;
+                        if ( hfAccountId != null && txtAccountAmount != null )
                         {
-                            if ( SelectedAccounts.Count > item.ItemIndex )
+                            var selectedAccount = SelectedAccounts.FirstOrDefault( a => a.Id == hfAccountId.ValueAsInt() );
+                            if ( selectedAccount != null )
                             {
-                                decimal amount = decimal.MinValue;
-                                if ( !decimal.TryParse( accountAmount.Text, out amount ) )
-                                {
-                                    amount = 0.0M;
-                                }
-
-                                SelectedAccounts[item.ItemIndex].Amount = amount;
+                                selectedAccount.Amount = txtAccountAmount.Text.AsDecimal();
                             }
                         }
                     }
@@ -317,6 +328,11 @@ achieve our mission.  We are so grateful for your commitment.
                     divNonePaymentInfo.RemoveCssClass( "active" );
                     divCCPaymentInfo.RemoveCssClass( "active" );
                     divACHPaymentInfo.RemoveCssClass( "active" );
+
+                    if ( !Gateway.IsUpdatingSchedulePaymentMethodSupported )
+                    {
+                        divPaymentMethodModification.Visible = false;
+                    }
 
                     switch ( hfPaymentTab.Value )
                     {
@@ -661,7 +677,7 @@ achieve our mission.  We are so grateful for your commitment.
             if ( scheduledTransaction != null && Gateway != null )
             {
                 if ( scheduledTransaction.FinancialPaymentDetail != null &&
-                    scheduledTransaction.FinancialPaymentDetail.CurrencyTypeValueId == DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ).Id )
+                    scheduledTransaction.FinancialPaymentDetail.CurrencyTypeValueId == DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ).Id )
                 {
                     ccEnabled = true;
                     txtCardFirstName.Visible = Gateway.SplitNameOnCard;
@@ -673,7 +689,7 @@ achieve our mission.  We are so grateful for your commitment.
                     txtCardName.Text = authorizedPerson.FullName;
 
                     var groupLocation = new PersonService( new RockContext() ).GetFirstLocation(
-                        authorizedPerson.Id, DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME.AsGuid() ).Id );
+                        authorizedPerson.Id, DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME.AsGuid() ).Id );
                     if ( groupLocation != null )
                     {
                         acBillingAddress.SetValues( groupLocation.Location );
@@ -687,14 +703,14 @@ achieve our mission.  We are so grateful for your commitment.
                 }
 
                 if ( scheduledTransaction.FinancialPaymentDetail != null &&
-                    scheduledTransaction.FinancialPaymentDetail.CurrencyTypeValueId == DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH ).Id )
+                    scheduledTransaction.FinancialPaymentDetail.CurrencyTypeValueId == DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH ).Id )
                 {
                     achEnabled = true;
                 }
 
                 if ( Gateway.SupportedPaymentSchedules.Any() )
                 {
-                    var oneTimeFrequency = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME );
+                    var oneTimeFrequency = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME );
                     divRepeatingPayments.Visible = true;
 
                     btnFrequency.DataSource = Gateway.SupportedPaymentSchedules;
@@ -737,7 +753,7 @@ achieve our mission.  We are so grateful for your commitment.
 
                 if ( Gateway != null && Gateway.SupportsSavedAccount( true ) )
                 {
-                    var ccCurrencyType = DefinedValueCache.Read( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) );
+                    var ccCurrencyType = DefinedValueCache.Get( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) );
                     if ( Gateway.SupportsSavedAccount( ccCurrencyType ) )
                     {
                         rblSavedCC.DataSource = savedAccounts
@@ -758,7 +774,7 @@ achieve our mission.  We are so grateful for your commitment.
                         }
                     }
 
-                    var achCurrencyType = DefinedValueCache.Read( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH ) );
+                    var achCurrencyType = DefinedValueCache.Get( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH ) );
                     if ( Gateway.SupportsSavedAccount( achCurrencyType ) )
                     {
                         rblSavedAch.DataSource = savedAccounts
@@ -834,17 +850,12 @@ achieve our mission.  We are so grateful for your commitment.
                 errorMessages.Add( "Make sure the amount you've entered for each account is a positive amount" );
             }
 
-            string howOften = DefinedValueCache.Read( btnFrequency.SelectedValueAsId().Value ).Value;
-            DateTime when = DateTime.MinValue;
+            string howOften = DefinedValueCache.Get( btnFrequency.SelectedValueAsId().Value ).Value;
 
             // Make sure a repeating payment starts in the future
-            if ( dtpStartDate.SelectedDate.HasValue && dtpStartDate.SelectedDate > RockDateTime.Today )
+            if ( !dtpStartDate.SelectedDate.HasValue || dtpStartDate.SelectedDate <= RockDateTime.Today )
             {
-                when = dtpStartDate.SelectedDate.Value;
-            }
-            else
-            {
-                errorMessages.Add( "Make sure the Next  Gift date is in the future (after today)" );
+                errorMessages.Add( "Make sure the Next Gift date is in the future (after today)" );
             }
 
             if ( hfPaymentTab.Value == "ACH" )
@@ -961,15 +972,13 @@ achieve our mission.  We are so grateful for your commitment.
                     tdAccountNumber.Visible = true;
                     tdAccountNumber.Description = paymentInfo.MaskedNumber;
                 }
-
-                tdWhen.Description = string.Format( "{0} starting on {1}", howOften, when.ToShortDateString() );
             }
 
             rptAccountListConfirmation.DataSource = SelectedAccounts.Where( a => a.Amount != 0 );
             rptAccountListConfirmation.DataBind();
 
             string nextDate = dtpStartDate.SelectedDate.HasValue ? dtpStartDate.SelectedDate.Value.ToShortDateString() : "?";
-            string frequency = DefinedValueCache.Read( btnFrequency.SelectedValueAsInt() ?? 0 ).Description;
+            string frequency = DefinedValueCache.Get( btnFrequency.SelectedValueAsInt() ?? 0 ).Description;
             tdWhen.Description = frequency + " starting on " + nextDate;
 
             return true;
@@ -1028,32 +1037,18 @@ achieve our mission.  We are so grateful for your commitment.
                     return false;
                 }
 
-                var changeSummary = new StringBuilder();
-
                 // Get the payment schedule
                 scheduledTransaction.TransactionFrequencyValueId = btnFrequency.SelectedValueAsId().Value;
-                changeSummary.Append( DefinedValueCache.Read( scheduledTransaction.TransactionFrequencyValueId, rockContext ) );
 
-                if ( dtpStartDate.SelectedDate.HasValue && dtpStartDate.SelectedDate > RockDateTime.Today )
-                {
-                    scheduledTransaction.StartDate = dtpStartDate.SelectedDate.Value;
-                    changeSummary.AppendFormat( " starting {0}", scheduledTransaction.StartDate.ToShortDateString() );
-                }
-                else
-                {
-                    scheduledTransaction.StartDate = DateTime.MinValue;
-                }
-
-                changeSummary.AppendLine();
+                // ProcessPaymentInfo ensures that dtpStartDate.SelectedDate has a value and is after today
+                scheduledTransaction.StartDate = dtpStartDate.SelectedDate.Value;
+                scheduledTransaction.NextPaymentDate = Gateway.CalculateNextPaymentDate( scheduledTransaction, null );
 
                 PaymentInfo paymentInfo = GetPaymentInfo( personService, scheduledTransaction );
                 if ( paymentInfo == null )
                 {
                     errorMessage = "There was a problem creating the payment information";
                     return false;
-                }
-                else
-                {
                 }
 
                 // If transaction is not active, attempt to re-activate it first
@@ -1098,25 +1093,8 @@ achieve our mission.  We are so grateful for your commitment.
                         }
 
                         detail.Amount = account.Amount;
-
-                        changeSummary.AppendFormat( "{0}: {1}", account.Name, account.Amount.FormatAsCurrency() );
-                        changeSummary.AppendLine();
                     }
 
-                    rockContext.SaveChanges();
-
-                    // Add a note about the change
-                    var noteType = NoteTypeCache.Read( Rock.SystemGuid.NoteType.SCHEDULED_TRANSACTION_NOTE.AsGuid() );
-                    if ( noteType != null )
-                    {
-                        var noteService = new NoteService( rockContext );
-                        var note = new Note();
-                        note.NoteTypeId = noteType.Id;
-                        note.EntityId = scheduledTransaction.Id;
-                        note.Caption = "Updated Transaction";
-                        note.Text = changeSummary.ToString();
-                        noteService.Add( note );
-                    }
                     rockContext.SaveChanges();
 
                     ScheduleId = scheduledTransaction.GatewayScheduleId;
@@ -1137,6 +1115,8 @@ achieve our mission.  We are so grateful for your commitment.
 
                 tdScheduleId.Description = ScheduleId;
                 tdScheduleId.Visible = !string.IsNullOrWhiteSpace( ScheduleId );
+
+                TriggerWorkflows( scheduledTransaction );
 
                 return true;
             }
@@ -1196,7 +1176,7 @@ achieve our mission.  We are so grateful for your commitment.
                 bool displayPhone = GetAttributeValue( "DisplayPhone" ).AsBoolean();
                 if ( displayPhone )
                 {
-                    var phoneNumber = personService.GetPhoneNumber( authorizedPerson, DefinedValueCache.Read( new Guid( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_HOME ) ) );
+                    var phoneNumber = personService.GetPhoneNumber( authorizedPerson, DefinedValueCache.Get( new Guid( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_HOME ) ) );
                     paymentInfo.Phone = phoneNumber != null ? phoneNumber.ToString() : string.Empty;
                 }
 
@@ -1206,7 +1186,7 @@ achieve our mission.  We are so grateful for your commitment.
                     addressTypeGuid = new Guid( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME );
                 }
 
-                var groupLocation = personService.GetFirstLocation( authorizedPerson.Id, DefinedValueCache.Read( addressTypeGuid ).Id );
+                var groupLocation = personService.GetFirstLocation( authorizedPerson.Id, DefinedValueCache.Get( addressTypeGuid ).Id );
                 if ( groupLocation != null && groupLocation.Location != null )
                 {
                     paymentInfo.Street1 = groupLocation.Location.Street1;
@@ -1275,7 +1255,7 @@ achieve our mission.  We are so grateful for your commitment.
         /// </summary>
         private void BindAccounts()
         {
-            rptAccountList.DataSource = SelectedAccounts.OrderBy( a => a.Order ).ToList();
+            rptAccountList.DataSource = SelectedAccounts;
             rptAccountList.DataBind();
 
             btnAddAccount.Visible = AvailableAccounts.Any();
@@ -1338,9 +1318,9 @@ achieve our mission.  We are so grateful for your commitment.
         /// </summary>
         private void RegisterScript()
         {
-            RockPage.AddScriptLink( ResolveUrl( "~/Scripts/jquery.creditCardTypeDetector.js" ) );
+            RockPage.AddScriptLink( "~/Scripts/jquery.creditCardTypeDetector.js" );
 
-            int oneTimeFrequencyId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME ).Id;
+            int oneTimeFrequencyId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME ).Id;
 
             string scriptFormat = @"
     Sys.Application.add_load(function () {{
@@ -1379,15 +1359,15 @@ achieve our mission.  We are so grateful for your commitment.
 
                 // Set date to tomorrow if it is equal or less than today's date
                 var $dateInput = $when.find('input');
-                var dt = new Date(Date.parse($dateInput.val()));
-                var curr = new Date();
+                var locale = window.navigator.userLanguage || window.navigator.language;
+                moment.locale(locale);
+                var dt = moment($dateInput.val(), 'l');
+                var curr = moment();
                 if ( (dt-curr) <= 0 ) {{
-                    curr.setDate(curr.getDate() + 1);
-                    var dd = curr.getDate();
-                    var mm = curr.getMonth()+1;
-                    var yy = curr.getFullYear();
-                    $dateInput.val(mm+'/'+dd+'/'+yy);
-                    $dateInput.data('datePicker').value(mm+'/'+dd+'/'+yy);
+                    curr = curr.add(1, 'day');
+
+                    $dateInput.val(curr.format('l'));
+                    //$dateInput.data('datePicker').value(curr.format('l'));
                 }}
             }};
         }});
@@ -1445,6 +1425,35 @@ achieve our mission.  We are so grateful for your commitment.
                 GlobalAttributesCache.Value( "CurrencySymbol") // {4}
                 );
             ScriptManager.RegisterStartupScript( upPayment, this.GetType(), "giving-profile", script, true );
+        }
+
+        /// <summary>
+        /// Trigger an instance of each active workflow type selected in the block attributes
+        /// </summary>
+        private void TriggerWorkflows( FinancialScheduledTransaction schedule )
+        {
+            if ( schedule == null )
+            {
+                return;
+            }
+
+            var workflowTypeGuids = GetAttributeValues( AttributeKeys.WorkflowType ).AsGuidList();
+
+            if ( workflowTypeGuids.Any() )
+            {
+                // Make sure the workflow types are active and then trigger an instance of each
+                var rockContext = new RockContext();
+                var service = new WorkflowTypeService( rockContext );
+                var workflowTypes = service.Queryable()
+                    .AsNoTracking()
+                    .Where( wt => wt.IsActive == true && workflowTypeGuids.Contains( wt.Guid ) )
+                    .ToList();
+
+                foreach ( var workflowType in workflowTypes )
+                {
+                    schedule.LaunchWorkflow( workflowType.Guid );
+                }
+            }
         }
 
         #endregion

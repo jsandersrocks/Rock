@@ -14,7 +14,6 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -64,6 +63,16 @@ namespace Rock.Web.UI.Controls
                 return ( t == null ) ? ExcelExportBehavior.IncludeIfVisible : (ExcelExportBehavior)t;
             }
             set { ViewState["ExcelExportBehavior"] = value; }
+        }
+
+        /// <summary>
+        /// Formats the data value.
+        /// </summary>
+        /// <param name="dataValue">The data value.</param>
+        /// <returns></returns>
+        public string FormatDataValue( object dataValue )
+        {
+            return this.FormatDataValue( dataValue, false );
         }
 
         /// <summary>

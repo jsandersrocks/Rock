@@ -22,12 +22,15 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.OData;
+
 using Rock;
+using Rock.BulkExport;
 using Rock.Data;
 using Rock.Financial;
 using Rock.Model;
 using Rock.Rest.Filters;
 using Rock.Security;
+using Rock.Web.Cache;
 
 namespace Rock.Rest.Controllers
 {
@@ -57,6 +60,96 @@ namespace Rock.Rest.Controllers
 
             financialTransaction.CheckMicrParts = Encryption.EncryptString( financialTransactionScannedCheck.ScannedCheckMicrParts );
             return this.Post( financialTransaction );
+        }
+
+        /// <summary>
+        /// Process and charge a payment.
+        /// </summary>
+        /// <param name="automatedPaymentArgs"></param>
+        /// <param name="enableDuplicateChecking">If false, the payment will be charged even if there is a similar transaction for the same person within a short time period.</param>
+        /// <param name="enableScheduleAdherenceProtection">If false and a schedule is indicated in the args, the payment will be charged even if the schedule has already been processed accoring to it's frequency.</param>
+        /// <returns>The ID of the new transaction</returns>
+        [Authenticate, Secured]
+        [HttpPost]
+        [System.Web.Http.Route( "api/FinancialTransactions/Process" )]
+        public virtual HttpResponseMessage ProcessPayment( [FromBody]AutomatedPaymentArgs automatedPaymentArgs, [FromUri]bool enableDuplicateChecking = true, [FromUri]bool enableScheduleAdherenceProtection = true )
+        {
+            var errorMessage = string.Empty;
+            
+            var rockContext = Service.Context as RockContext;
+            var automatedPaymentProcessor = new AutomatedPaymentProcessor( GetPersonAliasId( rockContext ), automatedPaymentArgs, rockContext, enableDuplicateChecking, enableScheduleAdherenceProtection );
+
+            if ( !automatedPaymentProcessor.AreArgsValid( out errorMessage ) )
+            {
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.BadRequest, errorMessage );
+                throw new HttpResponseException( errorResponse );
+            }
+
+            if ( automatedPaymentProcessor.IsRepeatCharge( out errorMessage ) ||
+                !automatedPaymentProcessor.IsAccordingToSchedule( out errorMessage ) )
+            {
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.Conflict, errorMessage );
+                throw new HttpResponseException( errorResponse );
+            }
+
+            var transaction = automatedPaymentProcessor.ProcessCharge( out errorMessage );
+            var gatewayException = automatedPaymentProcessor.GetMostRecentException();
+
+            if ( !string.IsNullOrEmpty( errorMessage ) )
+            {
+                if ( gatewayException != null )
+                {
+                    throw gatewayException;
+                }
+
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.InternalServerError, errorMessage );
+                throw new HttpResponseException( errorResponse );
+            }
+
+            if ( transaction == null )
+            {
+                if ( gatewayException != null )
+                {
+                    throw gatewayException;
+                }
+
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.InternalServerError, "No transaction was created" );
+                throw new HttpResponseException( errorResponse );
+            }
+
+            var response = ControllerContext.Request.CreateResponse( HttpStatusCode.Created, transaction.Id );
+            return response;
+        }
+
+        /// <summary>
+        /// Process the Refund.
+        /// </summary>
+        /// <param name="transactionId">The transaction identifier.</param>
+        /// <returns></returns>
+        /// <exception cref="HttpResponseException"></exception>
+        [Authenticate, Secured]
+        [HttpPost]
+        [System.Web.Http.Route( "api/FinancialTransactions/Refund/{transactionId}" )]
+        public System.Net.Http.HttpResponseMessage Refund( int transactionId )
+        {
+            SetProxyCreation( true );
+
+            var transaction = this.Get( transactionId );
+            string errorMessage = string.Empty;
+
+            var transactionService = Service as FinancialTransactionService;
+
+            var refundTransaction = transactionService.ProcessRefund( transaction, out errorMessage );
+            if ( refundTransaction != null )
+            {
+                Service.Context.SaveChanges();
+                return ControllerContext.Request.CreateResponse( HttpStatusCode.Created, refundTransaction.Id );
+            }
+            else
+            {
+                var response = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.BadRequest, errorMessage );
+                throw new HttpResponseException( response );
+            }
         }
 
         /// <summary>
@@ -220,7 +313,7 @@ namespace Rock.Rest.Controllers
                 qry = qry.Where( a => a.TransactionDateTime < options.EndDate.Value );
             }
 
-            var transactionTypeContribution = Rock.Web.Cache.DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() );
+            var transactionTypeContribution = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() );
             if ( transactionTypeContribution != null )
             {
                 int transactionTypeContributionId = transactionTypeContribution.Id;
@@ -317,38 +410,6 @@ namespace Rock.Rest.Controllers
             return dataSet;
         }
 
-        //[HttpGet]
-        //[System.Web.Http.Route( "api/FinancialTransactions/ChargeStep3/{GatewayId}/{TokenId}" )]
-        //public FinancialTransaction ChargeStep3( int gatewayId, string tokenId )
-        //{
-        //    SetProxyCreation( true );
-        //    var rockContext = (RockContext)Service.Context;
-        //    var financialGateway = new FinancialGatewayService( rockContext ).Get( gatewayId );
-        //    if ( financialGateway == null )
-        //    {
-        //        throw new HttpResponseException( Request.CreateErrorResponse( HttpStatusCode.NotFound, "Gateway does not exist!" ) );
-        //    }
-
-        //    var gateway = financialGateway.GetGatewayComponent();
-        //    if ( gateway == null )
-        //    {
-        //        throw new HttpResponseException( Request.CreateErrorResponse( HttpStatusCode.NotFound, "Gateway component could not be loaded!" ) );
-        //    }
-
-        //    var paymentInfo = new PaymentInfo();
-        //    paymentInfo.AdditionalParameters.Add( "token-id", tokenId );
-
-        //    string errorMessage = string.Empty;
-
-        //    var transaction = gateway.ChargeStep3( financialGateway, paymentInfo, out errorMessage );
-        //    if ( transaction == null || !string.IsNullOrWhiteSpace( errorMessage ) )
-        //    {
-        //        throw new HttpResponseException( Request.CreateErrorResponse( HttpStatusCode.BadRequest, errorMessage ) );
-        //    }
-
-        //    return transaction;
-        //}
-
         /// <summary>
         /// Gets transactions by people with the supplied givingId.
         /// </summary>
@@ -369,11 +430,64 @@ namespace Rock.Rest.Controllers
             }
 
             // fetch all the possible PersonAliasIds that have this GivingID to help optimize the SQL
-            var personAliasIds = new PersonAliasService( (RockContext)this.Service.Context ).Queryable().Where( a => a.Person.GivingId == givingId ).Select( a => a.Id ).ToList();
+            var personAliasIds = new PersonAliasService( ( RockContext ) this.Service.Context ).Queryable().Where( a => a.Person.GivingId == givingId ).Select( a => a.Id ).ToList();
 
             // get the transactions for the person or all the members in the person's giving group (Family)
             return Get().Where( t => t.AuthorizedPersonAliasId.HasValue && personAliasIds.Contains( t.AuthorizedPersonAliasId.Value ) );
         }
+
+        /// <summary>
+        /// Exports Financial Transaction Records
+        /// </summary>
+        /// <param name="page">The page being requested (where first page is 1).</param>
+        /// <param name="pageSize">The number of records to provide per page. NOTE: This is limited to the 'API Max Items Per Page' global attribute.</param>
+        /// <param name="sortBy">Optional field to sort by. This must be a mapped property on the Person model.</param>
+        /// <param name="sortDirection">The sort direction (1 = Ascending, 0 = Descending). Default is 1 (Ascending).</param>
+        /// <param name="dataViewId">The optional data view to use for filtering.</param>
+        /// <param name="modifiedSince">The optional date/time to filter to only get newly updated items.</param>
+        /// <param name="startDateTime">Optional filter to limit to transactions with a transaction date/time greater than or equal to startDateTime</param>
+        /// <param name="endDateTime">Optional filter to limit to transactions with a transaction date/time less than endDateTime</param>
+        /// <param name="attributeKeys">Optional comma-delimited list of attribute keys for the attribute values that should be included with each exported record, or specify 'all' to include all attributes.</param>
+        /// <param name="attributeReturnType">Raw/Formatted (default is Raw)</param>
+        /// <returns></returns>
+        [Authenticate, Secured]
+        [HttpGet]
+        [System.Web.Http.Route( "api/FinancialTransactions/Export" )]
+        public FinancialTransactionsExport Export(
+            int page = 1,
+            int pageSize = 1000,
+            string sortBy = null,
+            System.Web.UI.WebControls.SortDirection sortDirection = System.Web.UI.WebControls.SortDirection.Ascending,
+            int? dataViewId = null,
+            DateTime? modifiedSince = null,
+            DateTime? startDateTime = null,
+            DateTime? endDateTime = null,
+            string attributeKeys = null,
+            AttributeReturnType attributeReturnType = AttributeReturnType.Raw
+            )
+        {
+            // limit to 'API Max Items Per Page' global attribute
+            int maxPageSize = GlobalAttributesCache.Get().GetValue( "core_ExportAPIsMaxItemsPerPage" ).AsIntegerOrNull() ?? 1000;
+            var actualPageSize = Math.Min( pageSize, maxPageSize );
+
+            FinancialTransactionExportOptions exportOptions = new FinancialTransactionExportOptions
+            {
+                SortBy = sortBy,
+                SortDirection = sortDirection,
+                DataViewId = dataViewId,
+                ModifiedSince = modifiedSince,
+                AttributeList = AttributesExport.GetAttributesFromAttributeKeys<FinancialTransaction>( attributeKeys ),
+                AttributeReturnType = attributeReturnType,
+                StartDateTime = startDateTime,
+                EndDateTime = endDateTime
+            };
+
+            var rockContext = new RockContext();
+            var financialTransactionService = new FinancialTransactionService( rockContext );
+            return financialTransactionService.GetFinancialTransactionExport( page, actualPageSize, exportOptions );
+        }
+
+        #region helper classes
 
         /// <summary>
         ///
@@ -436,5 +550,7 @@ namespace Rock.Rest.Controllers
             /// </value>
             public bool OrderByPostalCode { get; set; }
         }
+
+        #endregion
     }
 }

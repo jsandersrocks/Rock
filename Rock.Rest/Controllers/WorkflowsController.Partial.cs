@@ -15,17 +15,12 @@
 // </copyright>
 //
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
-using System.Linq;
-using System.Web;
-using System.Web.Http;
-using System.Net.Http;
-using Rock.Model;
-using Rock.Rest.Filters;
-using Rock.Web.UI.Controls;
 using System.Net;
-using System;
+using System.Net.Http;
+using System.Web.Http;
+
+using Rock.Rest.Filters;
+using Rock.Web.Cache;
 
 namespace Rock.Rest.Controllers
 {
@@ -45,7 +40,7 @@ namespace Rock.Rest.Controllers
         public Rock.Model.Workflow WorkflowEntry( int workflowTypeId )
         {
             var rockContext = new Rock.Data.RockContext();
-            var workflowType = Web.Cache.WorkflowTypeCache.Read( workflowTypeId );
+            var workflowType = WorkflowTypeCache.Get( workflowTypeId );
 
             if ( workflowType != null && ( workflowType.IsActive ?? true ) )
             {

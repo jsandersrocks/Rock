@@ -42,7 +42,8 @@ namespace RockWeb.Blocks.Reporting
     [CategoryField( "Schedule Category", "The schedule category to use for list of service times.", false, "Rock.Model.Schedule", "", "", true, "", "", 0 )]
     [IntegerField( "Weeks Back", "The number of weeks back to display in the 'Week of' selection.", false, 8, "", 1 )]
     [IntegerField( "Weeks Ahead", "The number of weeks ahead to display in the 'Week of' selection.", false, 0, "", 2 )]
-    [MetricCategoriesField( "Metric Categories", "Select the metric categories to display (note: only metrics in those categories with a campus and scheudle partition will displayed).", true, "", "", 3 )]
+    [MetricCategoriesField( "Metric Categories", "Select the metric categories to display (note: only metrics in those categories with a campus and schedule partition will displayed).", true, "", "", 3 )]
+    [CampusesField( "Campuses", "Select the campuses you want to limit this block to.", false, "", "", 4 )]
     public partial class ServiceMetricsEntry : Rock.Web.UI.RockBlock
     {
         #region Fields
@@ -128,10 +129,18 @@ namespace RockWeb.Blocks.Reporting
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void Block_BlockUpdated( object sender, EventArgs e )
         {
-            BindMetrics();
+            if ( CheckSelection() )
+            {
+                LoadDropDowns();
+                BindMetrics();
+            }
         }
 
-
+        /// <summary>
+        /// Handles the ItemCommand event of the rptrSelection control.
+        /// </summary>
+        /// <param name="source">The source of the event.</param>
+        /// <param name="e">The <see cref="RepeaterCommandEventArgs"/> instance containing the event data.</param>
         protected void rptrSelection_ItemCommand( object source, RepeaterCommandEventArgs e )
         {
             switch( e.CommandName )
@@ -178,8 +187,8 @@ namespace RockWeb.Blocks.Reporting
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void btnSave_Click( object sender, EventArgs e )
         {
-            int campusEntityTypeId = EntityTypeCache.Read( typeof( Rock.Model.Campus ) ).Id;
-            int scheduleEntityTypeId = EntityTypeCache.Read( typeof( Rock.Model.Schedule ) ).Id;
+            int campusEntityTypeId = EntityTypeCache.Get( typeof( Rock.Model.Campus ) ).Id;
+            int scheduleEntityTypeId = EntityTypeCache.Get( typeof( Rock.Model.Schedule ) ).Id;
 
             int? campusId = bddlCampus.SelectedValueAsInt();
             int? scheduleId = bddlService.SelectedValueAsInt();
@@ -250,7 +259,6 @@ namespace RockWeb.Blocks.Reporting
                 nbMetricsSaved.Visible = true;
 
                 BindMetrics();
-
             }
         }
 
@@ -374,9 +382,11 @@ namespace RockWeb.Blocks.Reporting
         private List<CampusCache> GetCampuses()
         {
             var campuses = new List<CampusCache>();
+            var allowedCampuses = GetAttributeValue( "Campuses" ).SplitDelimitedValues().AsGuidList();
 
             foreach ( var campus in CampusCache.All()
                 .Where( c => c.IsActive.HasValue && c.IsActive.Value )
+                .Where( c => !allowedCampuses.Any() || allowedCampuses.Contains( c.Guid ) )
                 .OrderBy( c => c.Name ) )
             {
                 campuses.Add( campus );
@@ -416,7 +426,7 @@ namespace RockWeb.Blocks.Reporting
         {
             var services = new List<Schedule>();
 
-            var scheduleCategory = CategoryCache.Read( GetAttributeValue( "ScheduleCategory" ).AsGuid() );
+            var scheduleCategory = CategoryCache.Get( GetAttributeValue( "ScheduleCategory" ).AsGuid() );
             if ( scheduleCategory != null )
             {
                 using ( var rockContext = new RockContext() )
@@ -424,6 +434,7 @@ namespace RockWeb.Blocks.Reporting
                     foreach ( var schedule in new ScheduleService( rockContext )
                         .Queryable().AsNoTracking()
                         .Where( s =>
+                            s.IsActive &&
                             s.CategoryId.HasValue &&
                             s.CategoryId.Value == scheduleCategory.Id )
                         .OrderBy( s => s.Name ) )
@@ -443,8 +454,8 @@ namespace RockWeb.Blocks.Reporting
         {
             var serviceMetricValues = new List<ServiceMetric>();
 
-            int campusEntityTypeId = EntityTypeCache.Read( typeof( Rock.Model.Campus ) ).Id;
-            int scheduleEntityTypeId = EntityTypeCache.Read( typeof( Rock.Model.Schedule ) ).Id;
+            int campusEntityTypeId = EntityTypeCache.Get( typeof( Rock.Model.Campus ) ).Id;
+            int scheduleEntityTypeId = EntityTypeCache.Get( typeof( Rock.Model.Schedule ) ).Id;
 
             int? campusId = bddlCampus.SelectedValueAsInt();
             int? scheduleId = bddlService.SelectedValueAsInt();

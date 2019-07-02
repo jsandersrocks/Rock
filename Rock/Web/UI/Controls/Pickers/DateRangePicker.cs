@@ -148,15 +148,14 @@ namespace Rock.Web.UI.Controls
         {
             get
             {
-                return RequiredFieldValidator != null ? RequiredFieldValidator.ErrorMessage : string.Empty;
+                EnsureChildControls();
+                return CustomValidator.ErrorMessage;
             }
 
             set
             {
-                if ( RequiredFieldValidator != null )
-                {
-                    RequiredFieldValidator.ErrorMessage = value;
-                }
+                EnsureChildControls();
+                CustomValidator.ErrorMessage = value;
             }
         }
 
@@ -170,7 +169,7 @@ namespace Rock.Web.UI.Controls
         {
             get
             {
-                return !Required || RequiredFieldValidator == null || RequiredFieldValidator.IsValid;
+                return !Required || CustomValidator.IsValid;
             }
         }
 
@@ -206,7 +205,7 @@ namespace Rock.Web.UI.Controls
         public DateRangePicker()
             : base()
         {
-            RequiredFieldValidator = new HiddenFieldValidator();
+            CustomValidator = new CustomValidator();
             HelpBlock = new HelpBlock();
             WarningBlock = new WarningBlock();
         }
@@ -222,6 +221,14 @@ namespace Rock.Web.UI.Controls
         /// The upper value
         /// </summary>
         private DatePicker _tbUpperValue;
+
+        /// <summary>
+        /// Gets or sets the custom validator.
+        /// </summary>
+        /// <value>
+        /// The custom validator.
+        /// </value>
+        public CustomValidator CustomValidator { get; set; }
 
         /// <summary>
         /// Gets or sets the class that should be applied to the div that wraps the two date pickers
@@ -256,35 +263,37 @@ namespace Rock.Web.UI.Controls
             dateFormat = dateFormat.Replace( "d", "dd" ).Replace( "dddd", "dd" );
 
             // a little javascript to make the daterange picker behave similar to the bootstrap-datepicker demo site's date range picker
-            var scriptFormat = @"
-$('#{0}').datepicker({{ format: '{2}', todayHighlight: true }}).on('changeDate', function (ev) {{
-    if (event && event.type == 'click') {{
-        // close the start date picker and set focus to the end date
-        $('#{0}').data('datepicker').hide();
-        $('#{1}')[0].focus();
-    }}
-}});
-
-$('#{1}').datepicker({{ format: '{2}', todayHighlight: true }}).on('changeDate', function (ev) {{
-    // close the enddate picker immediately after selecting an end date
-    $('#{1}').data('datepicker').hide();
+            var script = $@"
+$(function() {{
+    $('#{this.ClientID}').datepicker({{
+        format: '{dateFormat}',
+        todayHighlight: true,
+        autoclose: true,
+        inputs: $('#{this.ClientID} .form-control')
+    }});
 }});
 
 // if the guest clicks the addon select all the text in the input
-$('#{3}').find('.input-group-lower .input-group-addon').on('click', function () {{
+$('#{this.ClientID}').find('.input-group-lower .input-group-addon').on('click', function () {{
     $(this).siblings('.form-control').select();
+}});
+
+$('#{_tbLowerValue.ClientID}').on('changeDate', function (ev) {{
+    // set focus to the end date
+    $('#{_tbUpperValue.ClientID}')[0].focus();
 }});
 
 // if the guest clicks the addon select all the text in the input
-$('#{3}').find('.input-group-upper .input-group-addon').on('click', function () {{
+$('#{this.ClientID}').find('.input-group-upper .input-group-addon').on('click', function () {{
     $(this).siblings('.form-control').select();
 }});
 
+// if value changes then re-validate the custom validator.
+$('#{_tbLowerValue.ClientID},#{_tbUpperValue.ClientID}').on('change', function (ev) {{
+    ValidatorValidate({CustomValidator.ClientID});
+}});
 ";
-            string lowerSelector = string.Format( "{0} .input-group-lower.date", this.ClientID );
-            string upperSelector = string.Format( "{0} .input-group-upper.date", this.ClientID );
 
-            var script = string.Format( scriptFormat, lowerSelector, upperSelector, dateFormat, this.ClientID );
             ScriptManager.RegisterStartupScript( this, this.GetType(), "daterange_picker-" + this.ClientID, script, true );
         }
 
@@ -299,14 +308,26 @@ $('#{3}').find('.input-group-upper .input-group-addon').on('click', function () 
             RockControlHelper.CreateChildControls( this, Controls );
 
             _tbLowerValue = new DatePicker();
+            _tbLowerValue.EnableJavascript = false;
             _tbLowerValue.ID = this.ID + "_lower";
-            _tbLowerValue.CssClass = "input-width-md date input-group-lower";
+            _tbLowerValue.CssClass = "input-group-lower js-lower";
             Controls.Add( _tbLowerValue );
 
             _tbUpperValue = new DatePicker();
+            _tbUpperValue.EnableJavascript = false;
             _tbUpperValue.ID = this.ID + "_upper";
-            _tbUpperValue.CssClass = "input-width-md date input-group-upper";
+            _tbUpperValue.CssClass = "input-group-upper js-upper";
             Controls.Add( _tbUpperValue );
+
+            // add custom validator
+            CustomValidator.ID = this.ID + "_cfv";
+            CustomValidator.ClientValidationFunction = "Rock.controls.dateRangePicker.clientValidate";
+            CustomValidator.ErrorMessage = ( this.Label != string.Empty ? this.Label : string.Empty ) + " is required.";
+            CustomValidator.CssClass = "validation-error help-inline";
+            CustomValidator.Enabled = true;
+            CustomValidator.Display = ValidatorDisplay.Dynamic;
+            CustomValidator.ValidationGroup = ValidationGroup;
+            Controls.Add( CustomValidator );
         }
 
         /// <summary>
@@ -322,7 +343,7 @@ $('#{3}').find('.input-group-upper .input-group-addon').on('click', function () 
         }
 
         /// <summary>
-        /// This is where you implment the simple aspects of rendering your control.  The rest
+        /// This is where you implement the simple aspects of rendering your control.  The rest
         /// will be handled by calling RenderControlHelper's RenderControl() method.
         /// </summary>
         /// <param name="writer">The writer.</param>
@@ -331,6 +352,8 @@ $('#{3}').find('.input-group-upper .input-group-addon').on('click', function () 
             RegisterJavaScript();
 
             writer.AddAttribute( "id", this.ClientID );
+            writer.AddAttribute( "data-required", this.Required.ToTrueFalse().ToLower() );
+            writer.AddAttribute( "data-itemlabel", this.Label );
             foreach ( var styleKey in this.Style.Keys )
             {
                 string styleName = ( string ) styleKey;
@@ -339,11 +362,11 @@ $('#{3}').find('.input-group-upper .input-group-addon').on('click', function () 
 
             if ( !string.IsNullOrEmpty( this.CssClass ) )
             {
-                writer.AddAttribute( "class", "picker-daterange " + this.CssClass );
+                writer.AddAttribute( "class", "js-daterangepicker picker-daterange " + this.CssClass );
             }
             else
             {
-                writer.AddAttribute( "class", "picker-daterange" );
+                writer.AddAttribute( "class", "js-daterangepicker picker-daterange" );
             }
 
             writer.RenderBeginTag( HtmlTextWriterTag.Div );
@@ -356,6 +379,9 @@ $('#{3}').find('.input-group-upper .input-group-addon').on('click', function () 
             _tbUpperValue.RenderControl( writer );
 
             writer.RenderEndTag(); // form-control-group
+
+            CustomValidator.RenderControl( writer );
+
             writer.RenderEndTag(); // id
         }
 
@@ -453,15 +479,17 @@ $('#{3}').find('.input-group-upper .input-group-addon').on('click', function () 
         {
             get
             {
-                EnsureChildControls();
-                return _tbLowerValue.ValidationGroup;
+                return ViewState["ValidationGroup"] as string;
             }
 
             set
             {
-                EnsureChildControls();
-                _tbLowerValue.ValidationGroup = value;
-                _tbUpperValue.ValidationGroup = value;
+                ViewState["ValidationGroup"] = value;
+
+                if ( CustomValidator != null )
+                {
+                    CustomValidator.ValidationGroup = value;
+                }
             }
         }
 
@@ -482,11 +510,13 @@ $('#{3}').find('.input-group-upper .input-group-addon').on('click', function () 
                 else
                 {
                     // serialize the date using ISO 8601 standard
-                    return string.Format( "{0},{1}",
+                    return string.Format(
+                        "{0},{1}",
                         this.LowerValue.HasValue ? this.LowerValue.Value.ToString( "o" ) : null,
                         this.UpperValue.HasValue ? this.UpperValue.Value.ToString( "o" ) : null );
                 }
             }
+
             set
             {
                 if ( value != null )

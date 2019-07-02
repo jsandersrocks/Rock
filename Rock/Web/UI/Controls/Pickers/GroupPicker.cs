@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock.Data;
 using Rock.Model;
 
@@ -67,6 +68,22 @@ namespace Rock.Web.UI.Controls
             set
             {
                 ViewState["RootGroupId"] = value;
+                SetExtraRestParams();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether [limit to scheduling enabled groups].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [limit to scheduling enabled groups]; otherwise, <c>false</c>.
+        /// </value>
+        public bool LimitToSchedulingEnabledGroups
+        {
+            get => ViewState["LimitToSchedulingEnabledGroups"] as bool? ?? false;
+            set
+            {
+                ViewState["LimitToSchedulingEnabledGroups"] = value;
                 SetExtraRestParams();
             }
         }
@@ -200,13 +217,16 @@ namespace Rock.Web.UI.Controls
                     {
                         ids.Add( group.Id.ToString() );
                         names.Add( group.Name );
-                        var parentGroup = group.ParentGroup;
-                        var groupParentIds = GetGroupAncestorsIdList( parentGroup );
-                        foreach ( var groupParentId in groupParentIds )
+                        if ( group.ParentGroup != null && !parentIds.Contains( group.ParentGroup.Id ) )
                         {
-                            if ( !parentIds.Contains( groupParentId ) )
+                            var parentGroup = group.ParentGroup;
+                            var groupParentIds = GetGroupAncestorsIdList( parentGroup );
+                            foreach ( var groupParentId in groupParentIds )
                             {
-                                parentIds.Add( groupParentId );
+                                if ( !parentIds.Contains( groupParentId ) )
+                                {
+                                    parentIds.Add( groupParentId );
+                                }
                             }
                         }
                     }
@@ -238,8 +258,46 @@ namespace Rock.Web.UI.Controls
         /// </summary>
         protected override void SetValuesOnSelect()
         {
-            var groups = new GroupService( new RockContext() ).Queryable().Where( g => ItemIds.Contains( g.Id.ToString() ) );
-            this.SetValues( groups );
+            var groupIds = ItemIds.Where( i => i != "0" ).AsIntegerList();
+            if ( groupIds.Any() )
+            {
+                var groups = new GroupService( new RockContext() )
+                    .Queryable()
+                    .Where( g => groupIds.Contains( g.Id ) )
+                    .ToList();
+                this.SetValues( groups );
+            }
+            else
+            {
+                this.SetValues( null );
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the selected group id.
+        /// </summary>
+        /// <value>
+        /// The group id.
+        /// </value>
+        public int? GroupId
+        {
+            get
+            {
+                int selectedId = this.SelectedValue.AsInteger();
+                if ( selectedId > 0 )
+                {
+                    return selectedId;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                SetValue( value );
+            }
         }
 
         /// <summary>
@@ -280,9 +338,15 @@ namespace Rock.Web.UI.Controls
             {
                 extraParams.Append( $"&rootGroupId={RootGroupId.Value}" );
             }
+
             if ( IncludedGroupTypeIds != null && IncludedGroupTypeIds.Any() )
             {
                 extraParams.Append( $"&includedGroupTypeIds={IncludedGroupTypeIds.AsDelimited(",")}" );
+            }
+
+            if ( LimitToSchedulingEnabledGroups )
+            {
+                extraParams.Append( $"&limitToSchedulingEnabled={LimitToSchedulingEnabledGroups.ToTrueFalse()}" );
             }
 
             ItemRestUrlExtraParams = extraParams.ToString();

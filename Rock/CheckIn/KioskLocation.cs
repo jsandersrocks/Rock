@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+
 using Rock.Model;
 
 namespace Rock.CheckIn
@@ -107,7 +108,7 @@ namespace Rock.CheckIn
                     if ( Location.IsActive )
                     {
                         if ( Location.FirmRoomThreshold.HasValue &&
-                            Location.FirmRoomThreshold.Value <= KioskLocationAttendance.Read( Location.Id ).CurrentCount )
+                            Location.FirmRoomThreshold.Value <= KioskLocationAttendance.Get( Location.Id ).CurrentCount )
                         {
                             return false;
                         }
@@ -149,7 +150,7 @@ namespace Rock.CheckIn
         /// </returns>
         public override string ToString()
         {
-            return Location.ToString();
+            return Location.Name;
         }
     }
 }

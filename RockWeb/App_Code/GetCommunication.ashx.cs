@@ -1,5 +1,5 @@
 ﻿// <copyright>
-// Copyright 2013 by the Spark Development Network
+// Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,7 +69,15 @@ namespace RockWeb
                     string encodedKey = context.Request.QueryString["p"];
                     if ( !string.IsNullOrWhiteSpace( encodedKey ) )
                     {
-                        person = new PersonService( rockContext ).GetByImpersonationToken( encodedKey, true, null );
+                        // first try and see if we can use the new GetByPersonActionIdentifier() otherwise
+                        // fall-back to the old GetByImpersonationToken method.
+                        var personService = new PersonService( rockContext );
+                        person = personService.GetByPersonActionIdentifier( encodedKey, "Unsubscribe" );
+                        if ( person == null )
+                        {
+                            // TODO: Support for trying via impersonation token should be removed once we get to Rock v11
+                            person = personService.GetByImpersonationToken( encodedKey, true, null );
+                        }
                     }
 
                     if ( person == null )

@@ -7,7 +7,10 @@
         <asp:HiddenField ID="hfConnectionRequestId" runat="server" />
         <asp:HiddenField ID="hfActiveDialog" runat="server" />
 
-        <div class="panel panel-block">
+        <Rock:NotificationBox ID="nbNoParameterMessage" runat="server" NotificationBoxType="Warning" Heading="Missing Parameter(s)"
+            Text="This block requires a valid connection request id and/or a connection opportunity id as query string parameters." />
+
+        <asp:Panel ID="pnlContents" runat="server" CssClass="panel panel-block">
 
             <div class="panel-heading">
                 <h1 class="panel-title">
@@ -21,7 +24,6 @@
                     <Rock:HighlightLabel ID="hlState" runat="server" Visible="false" />
                 </div>
             </div>
-
             <asp:Panel ID="pnlReadDetails" runat="server">
 
                 <Rock:PanelDrawer ID="pdAuditDetails" runat="server"></Rock:PanelDrawer>
@@ -60,6 +62,12 @@
                     <div class="row">
                         <div class="col-md-12">
                             <Rock:RockLiteral ID="lComments" runat="server" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <Rock:AttributeValuesContainer ID="avcAttributesReadOnly" runat="server" />
                         </div>
                     </div>
 
@@ -116,11 +124,11 @@
                             <Rock:PersonPicker runat="server" ID="ppRequestor" Label="Requestor" Required="true" OnSelectPerson="ppRequestor_SelectPerson" />
                         </div>
                         <div class="col-md-3">
-                            <Rock:RockDropDownList ID="ddlConnectorEdit" runat="server" Label="Connector" />
+                            <Rock:RockDropDownList ID="ddlConnectorEdit" runat="server" Label="Connector" EnhanceForLongLists="true" />
                         </div>
                         <div class="col-md-4 col-md-offset-2">
                             <Rock:RockRadioButtonList ID="rblState" runat="server" Label="State" RepeatDirection="Horizontal" OnSelectedIndexChanged="rblState_SelectedIndexChanged" AutoPostBack="true" />
-                            <Rock:DatePicker ID="dpFollowUp" runat="server" Label="Follow-up Date" Visible="false" />
+                            <Rock:DatePicker ID="dpFollowUp" runat="server" Label="Follow-up Date" AllowPastDateSelection="false" Visible="false" />
                         </div>
                     </div>
 
@@ -130,12 +138,18 @@
 
                     <div class="row">
                         <div class="col-md-6">
-                            <Rock:RockDropDownList ID="ddlPlacementGroup" runat="server" Label="Placement Group" AutoPostBack="true" OnSelectedIndexChanged="ddlPlacementGroup_SelectedIndexChanged" />
+                            <Rock:RockDropDownList ID="ddlPlacementGroup" runat="server" Label="Placement Group" AutoPostBack="true" OnSelectedIndexChanged="ddlPlacementGroup_SelectedIndexChanged" EnhanceForLongLists="true" />
                             <Rock:RockDropDownList ID="ddlPlacementGroupRole" runat="server" Label="Group Member Role" Visible="false" AutoPostBack="true" OnSelectedIndexChanged="ddlPlacementGroupRole_SelectedIndexChanged" />
                             <Rock:RockDropDownList ID="ddlPlacementGroupStatus" runat="server" Label="Group Member Status" Visible="false" />
                         </div>
                         <div class="col-md-6">
                             <Rock:RockDropDownList ID="ddlCampus" runat="server" Label="Campus" AutoPostBack="true" OnSelectedIndexChanged="ddlCampus_SelectedIndexChanged" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <Rock:AttributeValuesContainer ID="avcAttributes" runat="server" />
                         </div>
                     </div>
 
@@ -159,22 +173,40 @@
 
                     <div class="row">
                         <div class="col-md-6">
-                            <asp:Label ID="asdasd" runat="server" Text="New Opportunity" Font-Bold="true" />
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <Rock:RockDropDownList ID="ddlTransferOpportunity" runat="server" />
+
+                            <Rock:RockControlWrapper ID="rcwTransferOpportunity" runat="server" Label="New Opportunity">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <Rock:RockDropDownList ID="ddlTransferOpportunity" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlTransferOpportunity_SelectedIndexChanged" EnhanceForLongLists="true" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <Rock:BootstrapButton ID="btnSearch" runat="server" CssClass="btn btn-primary" Text="Search" OnClick="btnSearch_Click" />
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <Rock:BootstrapButton ID="btnSearch" runat="server" CssClass="btn btn-primary" Text="Search" OnClick="btnSearch_Click" />
+                            </Rock:RockControlWrapper>
+
+                            <Rock:RockControlWrapper ID="rcwConnector" runat="server" Label="Connector">
+                                <div>
+                                    <Rock:RockRadioButton ID="rbTransferDefaultConnector" runat="server" CssClass="js-transfer-connector" Text="Default Connector" GroupName="TransferOpportunityConnector" />
                                 </div>
-                            </div>
+                                <div>
+                                    <Rock:RockRadioButton ID="rbTransferCurrentConnector" runat="server" CssClass="js-transfer-connector" Text="Current Connector" GroupName="TransferOpportunityConnector" />
+                                </div>
+                                <div>
+                                    <Rock:RockRadioButton ID="rbTransferSelectConnector" runat="server" CssClass="js-transfer-connector" Text="Select Connector" GroupName="TransferOpportunityConnector" />
+                                    <Rock:RockDropDownList ID="ddlTransferOpportunityConnector" CssClass="margin-l-lg" runat="server" Style="display: none" />
+                                </div>
+                                <div>
+                                    <Rock:RockRadioButton ID="rbTransferNoConnector" runat="server" CssClass="js-transfer-connector" Text="No Connector" GroupName="TransferOpportunityConnector" />
+                                </div>
+                            </Rock:RockControlWrapper>
+
+
                         </div>
                         <div class="col-md-6">
                             <Rock:RockDropDownList ID="ddlTransferStatus" runat="server" Label="Status" />
                         </div>
                     </div>
-
-                    <Rock:RockCheckBox ID="cbClearConnector" Checked="true" runat="server" Text=" Clear Connector" />
 
                     <Rock:RockTextBox ID="tbTransferNote" runat="server" Label="Note" TextMode="MultiLine" Rows="4" />
 
@@ -187,7 +219,7 @@
 
             </asp:Panel>
 
-        </div>
+        </asp:Panel>
 
         <Rock:PanelWidget ID="wpConnectionRequestWorkflow" runat="server" Title="Workflows" CssClass="clickable">
             <div class="grid">
@@ -221,7 +253,7 @@
 
         <Rock:ModalDialog ID="dlgConnectionRequestActivities" runat="server" SaveButtonText="Add" OnSaveClick="btnAddConnectionRequestActivity_Click" Title="Add Activity" ValidationGroup="Activity" >
             <Content>
-                <asp:ValidationSummary ID="valConnectorGroup" runat="server" HeaderText="Please Correct the Following" CssClass="alert alert-danger" ValidationGroup="Activity" />
+                <asp:ValidationSummary ID="valConnectorGroup" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" ValidationGroup="Activity" />
                 <asp:HiddenField ID="hfAddConnectionRequestActivityGuid" runat="server" />
                 <div class="row">
                     <div class="col-md-6">
@@ -266,6 +298,15 @@
                 </div>
             </Content>
         </Rock:ModalDialog>
+        <script>
+            Sys.Application.add_load(function () {
+                $(".js-transfer-connector").on("click", function (a) {
+                    $("#<%=ddlTransferOpportunityConnector.ClientID%>").toggle($(this).is('#<%=rbTransferSelectConnector.ClientID%>'));
+                });
+                
+                $("#<%=ddlTransferOpportunityConnector.ClientID%>").toggle($('#<%=rbTransferSelectConnector.ClientID%>').is(":checked"));
+            })
+        </script>
 
     </ContentTemplate>
 </asp:UpdatePanel>

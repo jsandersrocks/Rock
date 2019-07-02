@@ -175,11 +175,11 @@ namespace Rock.Model
             {
                 if ( WorkflowTypeId > 0 )
                 {
-                    return WorkflowTypeCache.Read( WorkflowTypeId );
+                    return WorkflowTypeCache.Get( WorkflowTypeId );
                 }
                 else if ( WorkflowType != null )
                 {
-                    return WorkflowTypeCache.Read( WorkflowType.Id );
+                    return WorkflowTypeCache.Get( WorkflowType.Id );
                 }
                 return null;
             }
@@ -536,7 +536,7 @@ namespace Rock.Model
         /// </summary>
         /// <param name="dbContext">The database context.</param>
         /// <param name="state">The state.</param>
-        public override void PreSaveChanges( Rock.Data.DbContext dbContext, System.Data.Entity.EntityState state )
+        public override void PreSaveChanges( Rock.Data.DbContext dbContext, EntityState state )
         {
             if ( _logEntries != null )
             {
@@ -556,7 +556,7 @@ namespace Rock.Model
             }
 
             // Set the workflow number
-            if ( state == System.Data.Entity.EntityState.Added )
+            if ( state == EntityState.Added )
             {
                 int maxNumber = new WorkflowService( dbContext as RockContext )
                     .Queryable().AsNoTracking()
@@ -617,7 +617,8 @@ namespace Rock.Model
         /// <param name="workflowType">The <see cref="Rock.Model.WorkflowType"/>  being activated.</param>
         /// <param name="name">A <see cref="System.String"/> representing the name of the <see cref="Rock.Model.Workflow"/> instance.</param>
         /// <returns>The <see cref="Rock.Model.Workflow"/> instance.</returns>
-        [Obsolete( "For improved performance, use the Activate method that takes a WorkflowTypeCache parameter instead. IMPORTANT NOTE: When using the new method, the Workflow object that is returned by that method will not have the WorkflowType property set. If you are referencing the WorkflowType property on a Workflow returned by that method, you will get a Null Reference Exception! You should use the new WorkflowTypeCache property on the workflow instead." )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "For improved performance, use the Activate method that takes a WorkflowTypeCache parameter instead. IMPORTANT NOTE: When using the new method, the Workflow object that is returned by that method will not have the WorkflowType property set. If you are referencing the WorkflowType property on a Workflow returned by that method, you will get a Null Reference Exception! You should use the new WorkflowTypeCache property on the workflow instead.", true )]
         public static Workflow Activate( WorkflowType workflowType, string name )
         {
             using ( var rockContext = new RockContext() )
@@ -635,12 +636,13 @@ namespace Rock.Model
         /// <returns>
         /// The <see cref="Rock.Model.Workflow" /> instance.
         /// </returns>
-        [Obsolete( "For improved performance, use the Activate method that takes a WorkflowTypeCache parameter instead. IMPORTANT NOTE: When using the new method, the Workflow object that is returned by that method will not have the WorkflowType property set. If you are referencing the WorkflowType property on a Workflow returned by that method, you will get a Null Reference Exception! You should use the new WorkflowTypeCache property on the workflow instead." )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "For improved performance, use the Activate method that takes a WorkflowTypeCache parameter instead. IMPORTANT NOTE: When using the new method, the Workflow object that is returned by that method will not have the WorkflowType property set. If you are referencing the WorkflowType property on a Workflow returned by that method, you will get a Null Reference Exception! You should use the new WorkflowTypeCache property on the workflow instead.", true )]
         public static Workflow Activate( WorkflowType workflowType, string name, RockContext rockContext )
         {
             if ( workflowType != null )
             {
-                var workflowTypeCache = WorkflowTypeCache.Read( workflowType.Id );
+                var workflowTypeCache = WorkflowTypeCache.Get( workflowType.Id );
                 var workflow = Activate( workflowTypeCache, name, rockContext );
                 if ( workflow != null )
                 {

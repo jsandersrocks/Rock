@@ -19,6 +19,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Runtime.Serialization;
+
 using Rock.Data;
 
 namespace Rock.Model
@@ -109,7 +110,7 @@ namespace Rock.Model
         /// <summary>
         /// This is the GroupId of the family of the Authorized Person that did this transaction
         /// Note that this is the current family that the person is in. 
-        /// To see what GivingGroup they were part of when the Transaction occured, see GivingUnitId
+        /// To see what GivingGroup they were part of when the Transaction occurred, see GivingUnitId
         /// </summary>
         /// <value>
         /// The authorized family identifier.
@@ -160,13 +161,13 @@ namespace Rock.Model
 
         /// <summary>
         /// Gets or sets the count.
-        /// NOTE: this always has hardcode value of 1. It is stored in the table because it is supposed to help do certain types of things in analytics
+        /// NOTE: this always has a hardcoded value of 1. It is stored in the table because it is supposed to help do certain types of things in analytics
         /// </summary>
         /// <value>
         /// The count.
         /// </value>
         [DataMember]
-        public int Count { get; set; }
+        public int Count { get; set; } = 1;
 
         #endregion
 

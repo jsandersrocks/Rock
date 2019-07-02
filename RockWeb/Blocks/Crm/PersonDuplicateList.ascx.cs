@@ -41,7 +41,7 @@ namespace RockWeb.Blocks.Crm
     [BooleanField( "Include Inactive", "Set to true to also include potential matches when both records are inactive.", false, order: 2 )]
     [BooleanField( "Include Businesses", "Set to true to also include potential matches when either record is a Business.", false, order: 3 )]
     [LinkedPage( "Detail Page", order: 4 )]
-    public partial class PersonDuplicateList : RockBlock
+    public partial class PersonDuplicateList : RockBlock, ICustomGridColumns
     {
         /// <summary>
         /// Gets the Confidence Score HTML include bootstrap label
@@ -139,8 +139,8 @@ namespace RockWeb.Blocks.Crm
         {
             RockContext rockContext = new RockContext();
             var personDuplicateService = new PersonDuplicateService( rockContext );
-            int recordStatusInactiveId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_INACTIVE.AsGuid() ).Id;
-            int recordTypeBusinessId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id;
+            int recordStatusInactiveId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_INACTIVE.AsGuid() ).Id;
+            int recordTypeBusinessId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id;
 
             // list duplicates that:
             // - aren't confirmed as NotDuplicate and aren't IgnoreUntilScoreChanges,
@@ -184,6 +184,8 @@ namespace RockWeb.Blocks.Crm
                 new
                 {
                     PersonId = person.Id,
+                    person.SuffixValueId,
+                    person.SuffixValue,
                     person.LastName,
                     person.FirstName,
                     PersonModifiedDateTime = person.ModifiedDateTime,
@@ -202,7 +204,13 @@ namespace RockWeb.Blocks.Crm
                 qry = qry.OrderByDescending( a => a.MaxConfidenceScore ).ThenBy( a => a.LastName ).ThenBy( a => a.FirstName );
             }
 
-            gList.SetLinqDataSource( qry );
+            // NOTE: Because the .Count() in the SetLinqDataSource() sometimes creates SQL that takes *significantly* 
+            // longer (> 26 minutes) to execute than the actual query (< 1s), we're changing this to a 
+            // simple .DataSource = ToList() for now until we have more time to consider an alternative solution.  
+            // Examples of the SQL generated to select the data vs to get the count are documented in our private
+            // Asana card here: https://app.asana.com/0/21779865363458/553205615179451   
+            //gList.SetLinqDataSource( qry );
+            gList.DataSource = qry.ToList();
             gList.DataBind();
         }
 

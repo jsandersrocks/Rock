@@ -1,28 +1,11 @@
 //
-// Pagelist - used to list child pages; 
+// Pagelist - used to list child pages;
 // currently used in admin screens
 // --------------------------------------------------
 
-/*.my-connection-opportunities .block-status a {
-  position: relative;
-}
-
-
-
-.my-connection-opportunities .block-status a::before {
-  
-}
-
-
-.my-connection-opportunities .block-status a:hover::before {
-  border-bottom: 45px solid @listasblocks-rollover-bg;
-  --border-right: 20px solid @listasblocks-bg;
-}*/
-
-
 
 .block-title {
-  margin: 0;
+  margin: 0 0 (@line-height-computed / 3);
 }
 
 .list-as-blocks {
@@ -77,6 +60,10 @@
           }
         }
 
+        &:focus {
+          text-decoration: none;
+        }
+
         div.notification {
           position: absolute;
           top: -10px;
@@ -114,13 +101,13 @@
       position: relative;
     }
 
-    a:before {
-      border-bottom: 45px solid transparent;
-      border-right: 45px solid @listasblocks-border-color;
-      content: "";
+    a::before {
       position: absolute;
-      right: 0;
       top: 0;
+      right: 0;
+      content: "";
+      border-right: 45px solid @listasblocks-border-color;
+      border-bottom: 45px solid transparent;
       -webkit-transition: border-right-color 200ms linear;
       -moz-transition: border-right-color 200ms linear;
       -ms-transition: border-right-color 200ms linear;
@@ -132,10 +119,10 @@
       position: absolute;
       top: 5px;
       right: 1px;
-      color: #fff;
-      width: 25px;
       display: block;
+      width: 25px;
       font-size: 12px;
+      color: #fff;
     }
   }
 
@@ -172,8 +159,28 @@
   }
 }
 
-@media @md {
-  // tablet portrait and larger
+@media @md-only {
+  // desktop and larger
+  .list-as-blocks {
+    ul {
+      li {
+        width: 23.5%;
+        margin: 0 1% @spacing-md-px;
+
+        &:nth-child(4n) {
+          margin-right: 0;
+        }
+
+        &:nth-child(4n+1) {
+          margin-left: 0;
+        }
+      }
+    }
+  }
+}
+
+@media @lg {
+  // desktop and larger
   .list-as-blocks {
     ul {
       li {

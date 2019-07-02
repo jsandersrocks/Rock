@@ -20,13 +20,15 @@ using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Dynamic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Security;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+
 using RestSharp;
+
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
@@ -90,8 +92,9 @@ namespace Rock.Security.ExternalAuthentication
         {
             string returnUrl = request.QueryString["returnurl"];
             string redirectUri = GetRedirectUrl( request );
+            string scopeUserFriends = ( GetAttributeValue( "SyncFriends" ).AsBoolean( false ) ) ? ",user_friends" : string.Empty;
 
-            return new Uri( string.Format( "https://www.facebook.com/dialog/oauth?client_id={0}&redirect_uri={1}&state={2}&scope=public_profile,email,user_friends",
+            return new Uri( string.Format( "https://www.facebook.com/dialog/oauth?client_id={0}&redirect_uri={1}&state={2}&scope=public_profile,email" + scopeUserFriends,
                 GetAttributeValue( "AppID" ),
                 HttpUtility.UrlEncode( redirectUri ),
                 HttpUtility.UrlEncode( returnUrl ?? FormsAuthentication.DefaultUrl ) ) );
@@ -336,6 +339,12 @@ namespace Rock.Security.ExternalAuthentication
         /// <returns></returns>
         public static string GetFacebookUserName( FacebookUser facebookUser, bool syncFriends = false, string accessToken = "" )
         {
+            // accessToken is required
+            if ( accessToken.IsNullOrWhiteSpace() )
+            {
+                return null;
+            }
+
             string username = string.Empty;
             string facebookId = facebookUser.id;
             string facebookLink = facebookUser.link;
@@ -366,15 +375,11 @@ namespace Rock.Security.ExternalAuthentication
                     if ( !string.IsNullOrWhiteSpace( email ) )
                     {
                         var personService = new PersonService( rockContext );
-                        var people = personService.GetByMatch( firstName, lastName, email );
-                        if ( people.Count() == 1)
-                        {
-                            person = people.First();
-                        }
+                        person = personService.FindPerson( firstName, lastName, email, true );
                     }
 
-                    var personRecordTypeId = DefinedValueCache.Read( SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
-                    var personStatusPending = DefinedValueCache.Read( SystemGuid.DefinedValue.PERSON_RECORD_STATUS_PENDING.AsGuid() ).Id;
+                    var personRecordTypeId = DefinedValueCache.Get( SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+                    var personStatusPending = DefinedValueCache.Get( SystemGuid.DefinedValue.PERSON_RECORD_STATUS_PENDING.AsGuid() ).Id;
 
                     rockContext.WrapTransaction( () =>
                     {
@@ -414,7 +419,7 @@ namespace Rock.Security.ExternalAuthentication
 
                         if ( person != null )
                         {
-                            int typeId = EntityTypeCache.Read( typeof( Facebook ) ).Id;
+                            int typeId = EntityTypeCache.Get( typeof( Facebook ) ).Id;
                             user = UserLoginService.Create( rockContext, person, AuthenticationServiceType.External, typeId, userName, "fb", true );
                         }
 
@@ -480,15 +485,6 @@ namespace Rock.Security.ExternalAuthentication
                                         }
                                     }
                                 }
-                            }
-
-                            // Save the facebook social media link
-                            var facebookAttribute = AttributeCache.Read( Rock.SystemGuid.Attribute.PERSON_FACEBOOK.AsGuid() );
-                            if ( facebookAttribute != null )
-                            {
-                                person.LoadAttributes( rockContext );
-                                person.SetAttributeValue( facebookAttribute.Key, facebookLink );
-                                person.SaveAttributeValues( rockContext );
                             }
 
                             if ( syncFriends && !string.IsNullOrWhiteSpace( accessToken ) )

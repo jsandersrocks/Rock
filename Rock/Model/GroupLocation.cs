@@ -14,15 +14,18 @@
 // limitations under the License.
 // </copyright>
 //
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 using System.Data.Entity.ModelConfiguration;
+using System.Linq;
 using System.Runtime.Serialization;
 
 using Rock.Data;
+using Rock.Web.Cache;
 
 namespace Rock.Model
 {
@@ -42,7 +45,7 @@ namespace Rock.Model
         #region Entity Properties
 
         /// <summary>
-        /// Gets or sets the Id of the <see cref="Rock.Model.Group"/> that that is associated with this GroupLocation. This property is required.
+        /// Gets or sets the Id of the <see cref="Rock.Model.Group"/> that is associated with this GroupLocation. This property is required.
         /// </summary>
         /// <value>
         /// An <see cref="System.Int32"/> representing the Id of the <see cref="Rock.Model.Group"/> that this GroupLocation is associated with.
@@ -161,16 +164,114 @@ namespace Rock.Model
         /// A collection of <see cref="Rock.Model.Schedule"/> that are associated with this GroupLocation.
         /// </value>
         [DataMember]
-        public virtual ICollection<Schedule> Schedules
-        {
-            get { return _schedules ?? ( _schedules = new Collection<Schedule>() ); }
-            set { _schedules = value; }
-        }
-        private ICollection<Schedule> _schedules;
+        public virtual ICollection<Schedule> Schedules { get; set; } = new Collection<Schedule>();
+
+        /// <summary>
+        /// Gets or sets properties that are specific to Group+Location+Schedule 
+        /// </summary>
+        /// <value>
+        /// The group location schedule configs.
+        /// </value>
+        [DataMember]
+        public virtual ICollection<GroupLocationScheduleConfig> GroupLocationScheduleConfigs { get; set; } = new Collection<GroupLocationScheduleConfig>();
+
+        /// <summary>
+        /// Gets or sets the history changes.
+        /// </summary>
+        /// <value>
+        /// The history changes.
+        /// </value>
+        [NotMapped]
+        private History.HistoryChangeList GroupHistoryChanges { get; set; }
 
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Method that will be called on an entity immediately before the item is saved by context
+        /// </summary>
+        /// <param name="dbContext"></param>
+        /// <param name="entry"></param>
+        public override void PreSaveChanges( Data.DbContext dbContext, DbEntityEntry entry )
+        {
+            var rockContext = (RockContext)dbContext;
+
+            GroupHistoryChanges = new History.HistoryChangeList();
+
+            switch ( entry.State )
+            {
+                case EntityState.Added:
+                    {
+                        string locationType = History.GetDefinedValueValue( null, GroupLocationTypeValueId );
+                        locationType = locationType.IsNotNullOrWhiteSpace() ? locationType : "Unknown";
+                        History.EvaluateChange( GroupHistoryChanges, $"{locationType} Location", (int?)null, Location, LocationId, rockContext );
+                        History.EvaluateChange( GroupHistoryChanges, $"{locationType} Is Mailing", false, IsMailingLocation );
+                        History.EvaluateChange( GroupHistoryChanges, $"{locationType} Is Map Location", false, IsMappedLocation );
+
+                        break;
+                    }
+
+                case EntityState.Modified:
+                    {
+                        string locationTypeName = DefinedValueCache.GetName( GroupLocationTypeValueId ) ?? "Unknown";
+                        int? oldLocationTypeId = entry.OriginalValues["GroupLocationTypeValueId"].ToStringSafe().AsIntegerOrNull();
+                        if ( ( oldLocationTypeId ?? 0 ) == ( GroupLocationTypeValueId ?? 0 ) )
+                        {
+                            History.EvaluateChange( GroupHistoryChanges, $"{locationTypeName} Location", entry.OriginalValues["LocationId"].ToStringSafe().AsIntegerOrNull(), Location, LocationId, rockContext );
+                        }
+                        else
+                        {
+                            Location newLocation = null;
+                            History.EvaluateChange( GroupHistoryChanges, $"{DefinedValueCache.GetName( oldLocationTypeId ) ?? "Unknown"} Location", entry.OriginalValues["LocationId"].ToStringSafe().AsIntegerOrNull(), newLocation, (int?)null, rockContext );
+                            History.EvaluateChange( GroupHistoryChanges, $"{locationTypeName} Location", (int?)null, Location, LocationId, rockContext );
+                        }
+
+                        History.EvaluateChange( GroupHistoryChanges, $"{locationTypeName} Is Mailing", entry.OriginalValues["IsMailingLocation"].ToStringSafe().AsBoolean(), IsMailingLocation );
+                        History.EvaluateChange( GroupHistoryChanges, $"{locationTypeName} Is Map Location", entry.OriginalValues["IsMappedLocation"].ToStringSafe().AsBoolean(), IsMappedLocation );
+
+                        break;
+                    }
+
+                case EntityState.Deleted:
+                    {
+                        string locationType = History.GetDefinedValueValue( null, entry.OriginalValues["GroupLocationTypeValueId"].ToStringSafe().AsIntegerOrNull() );
+                        locationType = locationType.IsNotNullOrWhiteSpace() ? locationType : "Unknown";
+                        Location loc = null;
+                        History.EvaluateChange( GroupHistoryChanges, $"{locationType} Location", entry.OriginalValues["LocationId"].ToStringSafe().AsIntegerOrNull(), loc, (int?)null, rockContext );
+                        break;
+                    }
+            }
+
+            base.PreSaveChanges( dbContext, entry );
+        }
+
+        /// <summary>
+        /// Posts the save changes.
+        /// </summary>
+        /// <param name="dbContext">The database context.</param>
+        public override void PostSaveChanges( Data.DbContext dbContext )
+        {
+            var rockContext = dbContext as RockContext;
+            if ( GroupHistoryChanges != null && GroupHistoryChanges.Any() )
+            {
+                HistoryService.SaveChanges( rockContext, typeof( Group ), Rock.SystemGuid.Category.HISTORY_GROUP_CHANGES.AsGuid(), GroupId, GroupHistoryChanges, true, this.ModifiedByPersonAliasId );
+            }
+
+            // If this is a Group of type Family, update the ModifiedDateTime on the Persons that are members of this family (since one of their Addresses changed)
+            int groupTypeIdFamily = GroupTypeCache.GetFamilyGroupType().Id;
+            var groupService = new GroupService( rockContext );
+
+            int groupTypeId = groupService.GetSelect( this.GroupId, s => s.GroupTypeId );
+            if ( groupTypeId == groupTypeIdFamily )
+            {
+                var currentDateTime = RockDateTime.Now;
+                var qryPersonsToUpdate = new GroupMemberService( rockContext ).Queryable().Where( a => a.GroupId == this.GroupId ).Select( a => a.Person );
+                rockContext.BulkUpdate( qryPersonsToUpdate, p => new Person { ModifiedDateTime = currentDateTime, ModifiedByPersonAliasId = this.ModifiedByPersonAliasId } );
+            }
+
+            base.PostSaveChanges( dbContext );
+        }
 
         /// <summary>
         /// Returns a <see cref="System.String" />  that represents this instance.

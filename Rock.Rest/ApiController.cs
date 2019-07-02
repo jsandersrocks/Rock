@@ -16,17 +16,14 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Reflection;
-using System.ServiceModel.Channels;
 using System.Web.Http;
 using System.Web.Http.OData;
 
-using Rock;
+using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
 using Rock.Rest.Filters;
@@ -489,7 +486,7 @@ namespace Rock.Rest
 
             CheckCanEdit( model );
 
-            Rock.Attribute.IHasAttributes modelWithAttributes = model as Rock.Attribute.IHasAttributes;
+            IHasAttributes modelWithAttributes = model as IHasAttributes;
             if ( modelWithAttributes != null )
             {
                 using ( var rockContext = new RockContext() )

@@ -41,7 +41,7 @@ namespace RockWeb.Blocks.Crm
     [DecimalField( "Confidence Score Low", "The maximum confidence score required to be considered an unlikely match. Values lower than this will not be shown in the grid.", true, 40.00, order: 1 )]
     [BooleanField( "Include Inactive", "Set to true to also include potential matches when both records are inactive.", false, order: 2 )]
     [BooleanField( "Include Businesses", "Set to true to also include potential matches when either record is a Business.", false, order: 3 )]
-    public partial class PersonDuplicateDetail : RockBlock
+    public partial class PersonDuplicateDetail : RockBlock, ICustomGridColumns
     {
         #region Base Control Methods
 
@@ -174,8 +174,8 @@ namespace RockWeb.Blocks.Crm
             var personDuplicateService = new PersonDuplicateService( rockContext );
             var personService = new PersonService( rockContext );
             int personId = this.PageParameter( "PersonId" ).AsInteger();
-            int recordStatusInactiveId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_INACTIVE.AsGuid() ).Id;
-            int recordTypeBusinessId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id;
+            int recordStatusInactiveId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_INACTIVE.AsGuid() ).Id;
+            int recordTypeBusinessId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id;
 
             //// select person duplicate records
             //// list duplicates that aren't confirmed as NotDuplicate and aren't IgnoreUntilScoreChanges. Also, don't include records where both the Person and Duplicate are inactive

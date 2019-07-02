@@ -21,6 +21,7 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Web.UI;
+
 using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
@@ -61,6 +62,28 @@ namespace Rock.Reporting.DataFilter.Person
             get { return "Additional Filters"; }
         }
 
+        /// <summary>
+        /// Gets the control class name.
+        /// </summary>
+        /// <value>
+        /// The name of the control class.
+        /// </value>
+        internal virtual string ControlClassName
+        {
+            get { return "js-campuses-picker"; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether to include inactive campuses.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [include inactive]; otherwise, <c>false</c>.
+        /// </value>
+        internal virtual bool IncludeInactive
+        {
+            get { return true; }
+        }
+
         #endregion
 
         #region Public Methods
@@ -89,19 +112,18 @@ namespace Rock.Reporting.DataFilter.Person
         /// </value>
         public override string GetClientFormatSelection( Type entityType )
         {
-            return @"
-function() {
+            return $@"
+function() {{
     var result = 'Campuses';
-    var campusesPicker = $('.js-campuses-picker', $content);
-    var checkedCampuses = $('.js-campuses-picker', $content).find(':checked').closest('label');
-    if (checkedCampuses.length) {
-        var campusCommaList = checkedCampuses.map(function() { return $(this).text() }).get().join(',');
+    var campusesPicker = $('.{this.ControlClassName}', $content);
+    var checkedCampuses = $('.{this.ControlClassName}', $content).find(':checked').closest('label');
+    if (checkedCampuses.length) {{
+        var campusCommaList = checkedCampuses.map(function() {{ return $(this).text() }}).get().join(',');
         result = 'Campuses: ' + campusCommaList;
-    }
+    }}
 
     return result;
-}
-";
+}}";
         }
 
         /// <summary>
@@ -121,7 +143,7 @@ function() {
                 List<string> campusNames = new List<string>();
                 foreach ( var campusGuid in campusGuidList )
                 {
-                    var campus = CampusCache.Read( campusGuid );
+                    var campus = CampusCache.Get( campusGuid );
                     if ( campus != null )
                     {
                         campusNames.Add( campus.Name );
@@ -146,8 +168,8 @@ function() {
             CampusesPicker campusesPicker = new CampusesPicker();
             campusesPicker.ID = filterControl.ID + "_0";
             campusesPicker.Label = string.Empty;
-            campusesPicker.CssClass = "js-campuses-picker campuses-picker";
-            campusesPicker.Campuses = CampusCache.All();
+            campusesPicker.CssClass = $"{ControlClassName} campuses-picker";
+            campusesPicker.Campuses = CampusCache.All( IncludeInactive );
 
             filterControl.Controls.Add( campusesPicker );
 
@@ -180,7 +202,7 @@ function() {
                 List<Guid> campusGuids = new List<Guid>();
                 foreach ( var campusId in campusIds )
                 {
-                    var campus = CampusCache.Read( campusId );
+                    var campus = CampusCache.Get( campusId );
                     if ( campus != null )
                     {
                         campusGuids.Add( campus.Guid );
@@ -208,7 +230,7 @@ function() {
                 List<int> campusIds = new List<int>();
                 foreach ( var campusGuid in campusGuidList )
                 {
-                    var campus = CampusCache.Read( campusGuid );
+                    var campus = CampusCache.Get( campusGuid );
                     if ( campus != null )
                     {
                         campusIds.Add( campus.Id );
@@ -239,7 +261,7 @@ function() {
                 List<int> campusIds = new List<int>();
                 foreach ( var campusGuid in campusGuidList )
                 {
-                    var campus = CampusCache.Read( campusGuid );
+                    var campus = CampusCache.Get( campusGuid );
                     if ( campus != null )
                     {
                         campusIds.Add( campus.Id );
@@ -288,7 +310,7 @@ function() {
                 if ( campusIds.Any() )
                 {
 
-                    var selectedCampusGuids = campusIds.Select( a => CampusCache.Read( a ) ).Where( a => a != null ).Select( a => a.Guid ).ToList();
+                    var selectedCampusGuids = campusIds.Select( a => CampusCache.Get( a ) ).Where( a => a != null ).Select( a => a.Guid ).ToList();
 
                     selectionValues[0] = selectedCampusGuids.AsDelimited( "," );
                     return selectionValues.ToList().AsDelimited( "|" );
@@ -299,5 +321,6 @@ function() {
         }
 
         #endregion
+
     }
 }

@@ -17,15 +17,17 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
+using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 using System.Data.Services;
+using System.Linq;
 using System.Runtime.Serialization;
+using System.Text;
 
 using Rock.Attribute;
 using Rock.Model;
 using Rock.Security;
 using Rock.Web.Cache;
-using System.Text;
 
 namespace Rock.Data
 {
@@ -35,7 +37,7 @@ namespace Rock.Data
     [IgnoreProperties( new[] { "ParentAuthority", "SupportedActions", "AuthEntity", "AttributeValues" } )]
     [IgnoreModelErrors( new[] { "ParentAuthority" } )]
     [DataContract]
-    public abstract class Model<T> : Entity<T>, IModel, ISecured, IHasAttributes
+    public abstract class Model<T> : Entity<T>, IModel, ISecured, IHasAttributes, IHasInheritedAttributes
         where T : Model<T>, ISecured, new()
     {
         #region Entity Properties
@@ -47,7 +49,6 @@ namespace Rock.Data
         /// The created date time.
         /// </value>
         [DataMember]
-        [IncludeForReporting]
         [RockClientInclude( "Leave this as NULL to let Rock set this" )]
         public DateTime? CreatedDateTime { get; set; }
 
@@ -58,7 +59,6 @@ namespace Rock.Data
         /// The modified date time.
         /// </value>
         [DataMember]
-        [IncludeForReporting]
         [RockClientInclude( "This does not need to be set or changed. Rock will always set this to the current date/time when saved to the database." )]
         public DateTime? ModifiedDateTime { get; set; }
 
@@ -69,6 +69,7 @@ namespace Rock.Data
         /// The created by person alias identifier.
         /// </value>
         [DataMember]
+        [HideFromReporting]
         [RockClientInclude( "Leave this as NULL to let Rock set this" )]
         public int? CreatedByPersonAliasId { get; set; }
 
@@ -79,6 +80,7 @@ namespace Rock.Data
         /// The modified by person alias identifier.
         /// </value>
         [DataMember]
+        [HideFromReporting]
         [RockClientInclude( "If you need to set this manually, set ModifiedAuditValuesAlreadyUpdated=True to prevent Rock from setting it" )]
         public int? ModifiedByPersonAliasId { get; set; }
 
@@ -109,6 +111,7 @@ namespace Rock.Data
         /// The created by person identifier.
         /// </value>
         [LavaInclude]
+        [HideFromReporting]
         public virtual int? CreatedByPersonId
         {
             get
@@ -128,6 +131,7 @@ namespace Rock.Data
         /// The name of the created by person.
         /// </value>
         [LavaInclude]
+        [HideFromReporting]
         public virtual string CreatedByPersonName
         {
             get
@@ -147,6 +151,7 @@ namespace Rock.Data
         /// The modified by person identifier.
         /// </value>
         [LavaInclude]
+        [HideFromReporting]
         public virtual int? ModifiedByPersonId
         {
             get
@@ -166,6 +171,7 @@ namespace Rock.Data
         /// The name of the modified by person.
         /// </value>
         [LavaInclude]
+        [HideFromReporting]
         public virtual string ModifiedByPersonName
         {
             get
@@ -210,7 +216,7 @@ namespace Rock.Data
         /// </summary>
         /// <param name="dbContext"></param>
         /// <param name="state"></param>
-        public virtual void PreSaveChanges(  Rock.Data.DbContext dbContext, System.Data.Entity.EntityState state )
+        public virtual void PreSaveChanges(  Rock.Data.DbContext dbContext, EntityState state )
         {
         }
 
@@ -219,13 +225,24 @@ namespace Rock.Data
         /// </summary>
         /// <param name="dbContext"></param>
         /// <param name="entry"></param>
-        public virtual void PreSaveChanges( Rock.Data.DbContext dbContext, System.Data.Entity.Infrastructure.DbEntityEntry entry )
+        public virtual void PreSaveChanges( Rock.Data.DbContext dbContext, DbEntityEntry entry )
         {
             PreSaveChanges( dbContext, entry.State );
         }
 
         /// <summary>
-        /// Posts the save changes.
+        /// Method that will be called on an entity immediately before the item is saved by context
+        /// </summary>
+        /// <param name="dbContext">The database context.</param>
+        /// <param name="entry">The entry.</param>
+        /// <param name="state">The state.</param>
+        public virtual void PreSaveChanges( Rock.Data.DbContext dbContext, DbEntityEntry entry, EntityState state )
+        {
+            PreSaveChanges( dbContext, entry );
+        }
+
+        /// <summary>
+        /// Method that will be called on an entity immediately after the item is saved by context
         /// </summary>
         /// <param name="dbContext">The database context.</param>
         public virtual void PostSaveChanges( Rock.Data.DbContext dbContext )
@@ -287,7 +304,7 @@ namespace Rock.Data
         /// then the authorization on the Rock.Security.GlobalDefault entity
         /// </summary>
         [NotMapped]
-        public virtual Security.ISecured ParentAuthority
+        public virtual ISecured ParentAuthority
         {
             get
             {
@@ -306,7 +323,7 @@ namespace Rock.Data
         /// An optional additional parent authority.  (i.e for Groups, the GroupType is main parent
         /// authority, but parent group is an additional parent authority )
         /// </summary>
-        public virtual Security.ISecured ParentAuthorityPre
+        public virtual ISecured ParentAuthorityPre
         {
             get { return null; }
         }
@@ -342,7 +359,7 @@ namespace Rock.Data
         /// </returns>
         public virtual bool IsAuthorized( string action, Rock.Model.Person person )
         {
-            return Security.Authorization.Authorized( this, action, person );
+            return Authorization.Authorized( this, action, person );
         }
 
         /// <summary>
@@ -353,7 +370,9 @@ namespace Rock.Data
         /// <returns></returns>
         public virtual bool IsAllowedByDefault( string action )
         {
-            return action == Authorization.VIEW;
+            // Model is the ultimate base Parent Authority of child classes of Models, so if Authorization wasn't specifically Denied until now, this is what all actions default to.
+            // In the case of VIEW or TAG, we want to default to Allowed.
+            return action == Authorization.VIEW || action == Authorization.TAG;
         }
 
         /// <summary>
@@ -366,7 +385,7 @@ namespace Rock.Data
         /// </returns>
         public virtual bool IsPrivate( string action, Person person )
         {
-            return Security.Authorization.IsPrivate( this, action, person  );
+            return Authorization.IsPrivate( this, action, person  );
         }
 
         /// <summary>
@@ -377,7 +396,7 @@ namespace Rock.Data
         /// <param name="rockContext">The rock context.</param>
         public virtual void MakePrivate( string action, Person person, RockContext rockContext = null )
         {
-            Security.Authorization.MakePrivate( this, action, person, rockContext );
+            Authorization.MakePrivate( this, action, person, rockContext );
         }
 
         /// <summary>
@@ -388,7 +407,7 @@ namespace Rock.Data
         /// <param name="rockContext">The rock context.</param>
         public virtual void MakeUnPrivate( string action, Person person, RockContext rockContext = null )
         {
-            Security.Authorization.MakeUnPrivate( this, action, person, rockContext );
+            Authorization.MakeUnPrivate( this, action, person, rockContext );
         }
 
         /// <summary>
@@ -399,7 +418,7 @@ namespace Rock.Data
         /// <param name="rockContext">The rock context.</param>
         public virtual void AllowPerson( string action, Person person, RockContext rockContext = null )
         {
-            Security.Authorization.AllowPerson( this, action, person, rockContext );
+            Authorization.AllowPerson( this, action, person, rockContext );
         }
 
         /// <summary>
@@ -410,17 +429,17 @@ namespace Rock.Data
         /// <param name="rockContext">The rock context.</param>
         public virtual void AllowSecurityRole( string action, Group group, RockContext rockContext = null )
         {
-            Security.Authorization.AllowSecurityRole( this, action, group, rockContext );
+            Authorization.AllowSecurityRole( this, action, group, rockContext );
         }
 
         /// <summary>
         /// Gets the <see cref="System.Object"/> with the specified key.
         /// </summary>
         /// <remarks>
-        /// This method is only neccessary to support the old way of getting attribute values in 
+        /// This method is only necessary to support the old way of getting attribute values in 
         /// liquid templates (e.g. {{ Person.BaptismData }} ).  Once support for this method is 
         /// deprecated ( in v4.0 ), and only the new method of using the Attribute filter is 
-        /// suported (e.g. {{ Person | Attribute:'BaptismDate' }} ), this method can be removed
+        /// supported (e.g. {{ Person | Attribute:'BaptismDate' }} ), this method can be removed
         /// </remarks>
         /// <value>
         /// The <see cref="System.Object"/>.
@@ -436,7 +455,7 @@ namespace Rock.Data
                 object item = base[key];
                 if ( item == null )
                 {
-                    var lavaSupportLevel = GlobalAttributesCache.Read().LavaSupportLevel; 
+                    var lavaSupportLevel = GlobalAttributesCache.Get().LavaSupportLevel; 
                     
                     if (this.Attributes == null)
                     {
@@ -448,10 +467,10 @@ namespace Rock.Data
                         return AttributeValues.Select( a => a.Value ).ToList();
                     }
 
-                    // The remainder of this method is only neccessary to support the old way of getting attribute 
+                    // The remainder of this method is only necessary to support the old way of getting attribute 
                     // values in liquid templates (e.g. {{ Person.BaptismData }} ).  Once support for this method is 
                     // deprecated ( in v4.0 ), and only the new method of using the Attribute filter is 
-                    // suported (e.g. {{ Person | Attribute:'BaptismDate' }} ), the remainder of this method 
+                    // supported (e.g. {{ Person | Attribute:'BaptismDate' }} ), the remainder of this method 
                     // can be removed
 
                     if ( lavaSupportLevel == Lava.LavaSupportLevel.NoLegacy )
@@ -514,10 +533,10 @@ namespace Rock.Data
         /// Determines whether the specified key contains key.
         /// </summary>
         /// <remarks>
-        /// This method is only neccessary to support the old way of getting attribute values in 
+        /// This method is only necessary to support the old way of getting attribute values in 
         /// liquid templates (e.g. {{ Person.BaptismData }} ).  Once support for this method is 
         /// deprecated ( in v4.0 ), and only the new method of using the Attribute filter is 
-        /// suported (e.g. {{ Person | Attribute:'BaptismDate' }} ), this method can be removed
+        /// supported (e.g. {{ Person | Attribute:'BaptismDate' }} ), this method can be removed
         /// </remarks>
         /// <param name="key">The key.</param>
         /// <returns></returns>
@@ -675,6 +694,28 @@ namespace Rock.Data
             {
                 this.AttributeValues[key].Value = value;
             }
+        }
+
+        #endregion
+
+        #region IHasInheritedAttributes implementation
+
+        /// <summary>
+        /// Get a list of all inherited Attributes that should be applied to this entity.
+        /// </summary>
+        /// <returns>A list of all inherited AttributeCache objects.</returns>
+        public virtual List<AttributeCache> GetInheritedAttributes( Rock.Data.RockContext rockContext )
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// Get any alternate Ids that should be used when loading attribute value for this entity.
+        /// </summary>
+        /// <returns>A list of any alternate entity Ids that should be used when loading attribute values.</returns>
+        public virtual List<int> GetAlternateEntityIds( Rock.Data.RockContext rockContext )
+        {
+            return null;
         }
 
         #endregion

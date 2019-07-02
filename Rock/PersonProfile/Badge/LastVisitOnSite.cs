@@ -14,18 +14,12 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
-using System.IO;
 
 using Rock.Attribute;
 using Rock.Model;
-using Rock.Web.UI.Controls;
-using Rock.Data;
-using System.Collections.Generic;
-using System.Data;
-using System;
-using System.Diagnostics;
 using Rock.Web.Cache;
 
 namespace Rock.PersonProfile.Badge
@@ -51,7 +45,7 @@ namespace Rock.PersonProfile.Badge
             int? siteId = GetAttributeValue( badge, "Site" ).AsIntegerOrNull();
             if ( siteId.HasValue )
             {
-                var site = Rock.Web.Cache.SiteCache.Read( siteId.Value );
+                var site = SiteCache.Get( siteId.Value );
                 if ( site != null )
                 {
                     string siteName = site.Name;
@@ -61,7 +55,7 @@ namespace Rock.PersonProfile.Badge
 
                     if ( !String.IsNullOrEmpty( GetAttributeValue( badge, "PageViewDetails" ) ) )
                     {
-                        int pageId = Rock.Web.Cache.PageCache.Read( Guid.Parse( GetAttributeValue( badge, "PageViewDetails" ) ) ).Id;
+                        int pageId = PageCache.Get( Guid.Parse( GetAttributeValue( badge, "PageViewDetails" ) ) ).Id;
 
                         // NOTE: Since this block shows a history of sites a person visited in Rock, use Person.Guid instead of Person.Id to reduce the risk of somebody manually editing the URL to see somebody else pageview history
                         detailPageUrl = System.Web.VirtualPathUtility.ToAbsolute( $"~/page/{pageId}?PersonGuid={Person.Guid}&SiteId={siteId}" );

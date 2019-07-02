@@ -15,9 +15,9 @@
 // </copyright>
 //
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
 using Rock.Web.Cache;
 
 namespace Rock
@@ -28,6 +28,35 @@ namespace Rock
     public static partial class ExtensionMethods
     {
         #region Object Extensions
+
+        /// <summary>
+        /// Determines whether the specified value is not null.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified value is not null; otherwise, <c>false</c>.
+        /// </returns>
+        /// https://github.com/aljazsim/defensive-programming-framework-for-net
+        public static bool IsNotNull<T>( this T value )
+            where T : class
+        {
+            return !value.IsNull();
+        }
+
+        /// <summary>
+        /// Determines whether the specified value is null.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified value is null; otherwise, <c>false</c>.
+        /// </returns>
+        /// https://github.com/aljazsim/defensive-programming-framework-for-net
+        public static bool IsNull<T>( this T value ) where T : class
+        {
+            return value == null;
+        }
 
         /// <summary>
         /// Gets the property Value of the object's property as specified by propertyPathName.
@@ -115,7 +144,7 @@ namespace Rock
         }
 
         /// <summary>
-        /// Gets the data annotaion attribute from. http://stackoverflow.com/questions/7027613/how-to-retrieve-data-annotations-from-code-programmatically
+        /// Gets the data annotation attribute from. http://stackoverflow.com/questions/7027613/how-to-retrieve-data-annotations-from-code-programmatically
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="instance">The instance.</param>

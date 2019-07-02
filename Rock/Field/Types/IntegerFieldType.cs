@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+
 using Rock.Model;
 using Rock.Reporting;
 using Rock.Web.UI.Controls;
@@ -24,7 +25,7 @@ using Rock.Web.UI.Controls;
 namespace Rock.Field.Types
 {
     /// <summary>
-    /// Field used to save and display a numeric value
+    /// Field used to save and display a 32bit integer value
     /// </summary>
     [Serializable]
     public class IntegerFieldType : FieldType
@@ -42,8 +43,15 @@ namespace Rock.Field.Types
         /// <returns></returns>
         public override string FormatValue( System.Web.UI.Control parentControl, string value, Dictionary<string, ConfigurationValue> configurationValues, bool condensed )
         {
-            int? intValue = (int?)value.AsDecimalOrNull();
-            return base.FormatValue( parentControl, intValue.ToString(), configurationValues, condensed );
+            try
+            {
+                int? intValue = ( int? ) value.AsDecimalOrNull();
+                return base.FormatValue( parentControl, intValue.ToString(), configurationValues, condensed );
+            }
+            catch( System.OverflowException)
+            {
+                return "Not a valid integer";
+            }
         }
 
         /// <summary>
@@ -96,7 +104,7 @@ namespace Rock.Field.Types
         /// </returns>
         public override System.Web.UI.Control EditControl( System.Collections.Generic.Dictionary<string, ConfigurationValue> configurationValues, string id )
         {
-            return new NumberBox { ID = id };
+            return new NumberBox { ID = id, MaximumValue = int.MaxValue.ToString(), MinimumValue = int.MinValue.ToString() };
         }
 
         /// <summary>
@@ -153,6 +161,29 @@ namespace Rock.Field.Types
             }
 
             return base.AttributeFilterExpression( configurationValues, filterValues, parameterExpression );
+        }
+
+        /// <summary>
+        /// Determines whether the filter's comparison type and filter compare value(s) evaluates to true for the specified value
+        /// </summary>
+        /// <param name="filterValues">The filter values.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        ///   <c>true</c> if [is compared to value] [the specified filter values]; otherwise, <c>false</c>.
+        /// </returns>
+        public override bool IsComparedToValue( List<string> filterValues, string value )
+        {
+            if ( filterValues == null || filterValues.Count < 2 )
+            {
+                return false;
+            }
+
+            ComparisonType? filterComparisonType = filterValues[0].ConvertToEnumOrNull<ComparisonType>();
+            ComparisonType? equalToCompareValue = GetEqualToCompareValue().ConvertToEnumOrNull<ComparisonType>();
+            var filterValueAsDecimal = filterValues[1].AsDecimalOrNull();
+            var valueAsDecimal = value.AsDecimalOrNull();
+
+            return ComparisonHelper.CompareNumericValues( filterComparisonType.Value, valueAsDecimal, filterValueAsDecimal, null );
         }
 
         /// <summary>

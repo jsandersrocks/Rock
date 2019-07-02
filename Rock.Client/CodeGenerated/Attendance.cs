@@ -41,12 +41,20 @@ namespace Rock.Client
         public int? CampusId { get; set; }
 
         /// <summary />
+        public int? CheckedInByPersonAliasId { get; set; }
+
+        /// <summary />
+        public int? DeclineReasonValueId { get; set; }
+
+        /// <summary />
         public int? DeviceId { get; set; }
 
         /// <summary />
         public bool? DidAttend { get; set; }
 
         /// <summary />
+        // Made Obsolete in Rock "1.8"
+        [Obsolete( "Use Occurrence.DidNotOccur instead", false )]
         public bool? DidNotOccur { get; set; }
 
         /// <summary />
@@ -59,9 +67,13 @@ namespace Rock.Client
         public string ForeignKey { get; set; }
 
         /// <summary />
+        // Made Obsolete in Rock "1.8"
+        [Obsolete( "Use Occurrence.GroupId instead", false )]
         public int? GroupId { get; set; }
 
         /// <summary />
+        // Made Obsolete in Rock "1.8"
+        [Obsolete( "Use Occurrence.LocationId instead", false )]
         public int? LocationId { get; set; }
 
         /// <summary>
@@ -73,6 +85,9 @@ namespace Rock.Client
         public string Note { get; set; }
 
         /// <summary />
+        public int OccurrenceId { get; set; }
+
+        /// <summary />
         public int? PersonAliasId { get; set; }
 
         /// <summary />
@@ -82,10 +97,30 @@ namespace Rock.Client
         public int? QualifierValueId { get; set; }
 
         /// <summary />
-        public Rock.Client.Enums.RSVP RSVP { get; set; }
+        public bool? RequestedToAttend { get; set; }
 
         /// <summary />
+        public Rock.Client.Enums.RSVP RSVP { get; set; } = Rock.Client.Enums.RSVP.Unknown;
+
+        /// <summary />
+        public DateTime? RSVPDateTime { get; set; }
+
+        /// <summary />
+        public bool? ScheduleConfirmationSent { get; set; }
+
+        /// <summary />
+        public int? ScheduledByPersonAliasId { get; set; }
+
+        /// <summary />
+        public bool? ScheduledToAttend { get; set; }
+
+        /// <summary />
+        // Made Obsolete in Rock "1.8"
+        [Obsolete( "Use Occurrence.ScheduleId instead", false )]
         public int? ScheduleId { get; set; }
+
+        /// <summary />
+        public bool? ScheduleReminderSent { get; set; }
 
         /// <summary />
         public int? SearchResultGroupId { get; set; }
@@ -98,6 +133,11 @@ namespace Rock.Client
 
         /// <summary />
         public DateTime StartDateTime { get; set; }
+
+        /// <summary />
+        // Made Obsolete in Rock "1.8"
+        [Obsolete( "Use Occurrence.SundayDate instead", false )]
+        public DateTime SundayDate { get; set; }
 
         /// <summary>
         /// Leave this as NULL to let Rock set this
@@ -134,25 +174,45 @@ namespace Rock.Client
             this.Id = source.Id;
             this.AttendanceCodeId = source.AttendanceCodeId;
             this.CampusId = source.CampusId;
+            this.CheckedInByPersonAliasId = source.CheckedInByPersonAliasId;
+            this.DeclineReasonValueId = source.DeclineReasonValueId;
             this.DeviceId = source.DeviceId;
             this.DidAttend = source.DidAttend;
+            #pragma warning disable 612, 618
             this.DidNotOccur = source.DidNotOccur;
+            #pragma warning restore 612, 618
             this.EndDateTime = source.EndDateTime;
             this.ForeignGuid = source.ForeignGuid;
             this.ForeignKey = source.ForeignKey;
+            #pragma warning disable 612, 618
             this.GroupId = source.GroupId;
+            #pragma warning restore 612, 618
+            #pragma warning disable 612, 618
             this.LocationId = source.LocationId;
+            #pragma warning restore 612, 618
             this.ModifiedAuditValuesAlreadyUpdated = source.ModifiedAuditValuesAlreadyUpdated;
             this.Note = source.Note;
+            this.OccurrenceId = source.OccurrenceId;
             this.PersonAliasId = source.PersonAliasId;
             this.Processed = source.Processed;
             this.QualifierValueId = source.QualifierValueId;
+            this.RequestedToAttend = source.RequestedToAttend;
             this.RSVP = source.RSVP;
+            this.RSVPDateTime = source.RSVPDateTime;
+            this.ScheduleConfirmationSent = source.ScheduleConfirmationSent;
+            this.ScheduledByPersonAliasId = source.ScheduledByPersonAliasId;
+            this.ScheduledToAttend = source.ScheduledToAttend;
+            #pragma warning disable 612, 618
             this.ScheduleId = source.ScheduleId;
+            #pragma warning restore 612, 618
+            this.ScheduleReminderSent = source.ScheduleReminderSent;
             this.SearchResultGroupId = source.SearchResultGroupId;
             this.SearchTypeValueId = source.SearchTypeValueId;
             this.SearchValue = source.SearchValue;
             this.StartDateTime = source.StartDateTime;
+            #pragma warning disable 612, 618
+            this.SundayDate = source.SundayDate;
+            #pragma warning restore 612, 618
             this.CreatedDateTime = source.CreatedDateTime;
             this.ModifiedDateTime = source.ModifiedDateTime;
             this.CreatedByPersonAliasId = source.CreatedByPersonAliasId;
@@ -172,16 +232,19 @@ namespace Rock.Client
         public AttendanceCode AttendanceCode { get; set; }
 
         /// <summary />
+        public DefinedValue DeclineReasonValue { get; set; }
+
+        /// <summary />
         public Device Device { get; set; }
 
         /// <summary />
         public DefinedValue Qualifier { get; set; }
 
         /// <summary />
-        public DefinedValue SearchTypeValue { get; set; }
+        public PersonAlias ScheduledByPersonAlias { get; set; }
 
         /// <summary />
-        public DateTime SundayDate { get; set; }
+        public DefinedValue SearchTypeValue { get; set; }
 
         /// <summary>
         /// NOTE: Attributes are only populated when ?loadAttributes is specified. Options for loadAttributes are true, false, 'simple', 'expanded' 

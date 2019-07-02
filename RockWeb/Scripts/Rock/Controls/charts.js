@@ -9,7 +9,7 @@
             /// handles putting chartData into a Line/Bar/Points chart
             ///
             plotChartData: function (chartData, chartOptions, plotSelector, yaxisLabelText, getSeriesPartitionNameUrl, combineValues) {
-                
+
                 var chartSeriesLookup = {};
                 var chartSeriesList = [];
 
@@ -46,9 +46,15 @@
                             {
                                 // MetricValuePartitionEntityIds is not blank so get the seriesName from the getSeriesPartitionNameUrl
                                 if (getSeriesPartitionNameUrl) {
+                                    var metricValuePartitionEntityIdDataJSON = JSON.stringify(chartData[i].MetricValuePartitionEntityIds.split(','));
+
                                     $.ajax({
-                                        url: getSeriesPartitionNameUrl + chartData[i].MetricValuePartitionEntityIds,
-                                        async: false
+                                        type: 'POST',
+                                        url: getSeriesPartitionNameUrl,
+                                        data: metricValuePartitionEntityIdDataJSON,
+                                        async: false,
+                                        success: null,
+                                        contentType: 'application/json'
                                     })
                                     .done(function (data) {
                                         seriesName = data;
@@ -186,9 +192,15 @@
                         {
                             // MetricValuePartitionEntityIds is not blank so get the seriesName from the getSeriesPartitionNameUrl
                             if (getSeriesPartitionNameUrl) {
+                                var metricValuePartitionEntityIdDataJSON = JSON.stringify(chartData[i].MetricValuePartitionEntityIds.split(','));
+
                                 $.ajax({
-                                    url: getSeriesPartitionNameUrl + chartData[i].MetricValuePartitionEntityIds,
-                                    async: false
+                                    type: 'POST',
+                                    url: getSeriesPartitionNameUrl,
+                                    data: metricValuePartitionEntityIdDataJSON,
+                                    async: false,
+                                    success: null,
+                                    contentType: 'application/json'
                                 })
                                 .done(function (data) {
                                     seriesNameLookup[chartData[i].MetricValuePartitionEntityIds] = data;
@@ -292,7 +304,7 @@
                         }
 
                         $toolTip.find('.tooltip-inner').html(tooltipText);
-                        
+
                         var tipTop = pos.pageY - $toolTip.height() - 10;
 
                         var windowWidth = $(window).width();

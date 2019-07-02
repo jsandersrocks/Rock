@@ -17,6 +17,7 @@
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Web.UI.WebControls.Adapters;
+
 using Rock.Web.UI.Controls;
 
 namespace Rock.Web.UI.Adapters
@@ -55,27 +56,26 @@ namespace Rock.Web.UI.Adapters
 
                 // always render the label tag for the checkbox, even if the checkbox doesn't have text
                 bool renderCheckboxLabel = true;
+                var textCssClass = "label-text";
                 if ( renderCheckboxLabel )
                 {
                     var containerCssClass = "checkbox";
 
+
                     if ( cb is RockCheckBox )
                     {
+                        if ( ( cb as RockCheckBox ).DisplayInline )
+                        {
+                            containerCssClass = "checkbox-inline";
+                        }
                         containerCssClass += " " + ( cb as RockCheckBox ).ContainerCssClass;
+                        textCssClass += " " + ( cb as RockCheckBox ).TextCssClass;
                     }
 
                     writer.AddAttribute( HtmlTextWriterAttribute.Class, containerCssClass );
                     writer.AddAttribute( HtmlTextWriterAttribute.Style, cb.Style.Value );
 
                     writer.RenderBeginTag( HtmlTextWriterTag.Div );
-
-                    if ( cb is RockCheckBox )
-                    {
-                        if ( ( cb as RockCheckBox ).DisplayInline )
-                        {
-                            writer.AddAttribute( HtmlTextWriterAttribute.Class, "checkbox-inline" );
-                        }
-                    }
 
                     writer.AddAttribute( "title", cb.ToolTip );
                     writer.RenderBeginTag( HtmlTextWriterTag.Label );
@@ -122,6 +122,9 @@ namespace Rock.Web.UI.Adapters
 
                 if ( renderCheckboxLabel )
                 {
+                    writer.AddAttribute( HtmlTextWriterAttribute.Class, textCssClass );
+                    writer.RenderBeginTag( HtmlTextWriterTag.Span );
+
                     if ( cb.Text.Length > 0 )
                     {
                         writer.Write( cb.Text );
@@ -131,6 +134,7 @@ namespace Rock.Web.UI.Adapters
                         writer.Write( "&nbsp;" );
                     }
 
+                    writer.RenderEndTag();      // Span
                     writer.RenderEndTag();      // Label
                 }
 

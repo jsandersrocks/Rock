@@ -40,7 +40,7 @@ namespace Rock
         }
 
         /// <summary>
-        /// Finds the all the types that implement or inherit from the baseType.  The baseType
+        /// Finds the all the types that implement or inherit from the baseType. NOTE: It will only search the Rock.dll and also in assemblies that reference Rock.dll. The baseType
         /// will not be included in the result
         /// </summary>
         /// <param name="baseType">base type.</param>
@@ -50,67 +50,14 @@ namespace Rock
         {
             SortedDictionary<string, Type> types = new SortedDictionary<string, Type>();
 
-            Dictionary<string, Assembly> assemblies = new Dictionary<string, Assembly>();
+            var assemblies = Reflection.GetPluginAssemblies();
 
             Assembly executingAssembly = Assembly.GetExecutingAssembly();
-            assemblies.Add( executingAssembly.FullName.ToLower(), executingAssembly );
+            assemblies.Add( executingAssembly );
 
-            foreach ( Assembly assembly in AppDomain.CurrentDomain.GetAssemblies() )
+            foreach ( var assemblyEntry in assemblies )
             {
-                if ( assembly.GlobalAssemblyCache || assembly.IsDynamic )
-                {
-                    continue;
-                }
-
-                bool searchAssembly = false;
-
-                string fileName = Path.GetFileName( assembly.CodeBase );
-
-                // only search inside dlls that are Rock.dll or reference Rock.dll
-                if ( fileName.Equals( "Rock.dll", StringComparison.OrdinalIgnoreCase ) )
-                {
-                    searchAssembly = true;
-                }
-                else
-                {
-                    List<AssemblyName> referencedAssemblies = assembly.GetReferencedAssemblies().ToList();
-
-                    if ( referencedAssemblies.Any( a => a.Name.Equals( "Rock", StringComparison.OrdinalIgnoreCase ) ) )
-                    {
-                        searchAssembly = true;
-                    }
-                }
-
-                if ( searchAssembly )
-                {
-                    if ( !assemblies.Keys.Contains( assembly.FullName.ToLower() ) )
-                    {
-                        assemblies.Add( assembly.FullName.ToLower(), assembly );
-                    }
-                }
-            }
-
-            // Add any dll's in the Plugins folder
-            var httpContext = System.Web.HttpContext.Current;
-            if ( httpContext != null )
-            {
-                var pluginsDir = new DirectoryInfo( httpContext.Server.MapPath( "~/Plugins" ) );
-                if ( pluginsDir.Exists )
-                {
-                    foreach ( var file in pluginsDir.GetFiles( "*.dll", SearchOption.AllDirectories ) )
-                    {
-                        var assembly = Assembly.LoadFrom( file.FullName );
-                        if ( !assemblies.Keys.Contains( assembly.FullName.ToLower() ) )
-                        {
-                            assemblies.Add( assembly.FullName.ToLower(), assembly );
-                        }
-                    }
-                }
-            }
-
-            foreach ( KeyValuePair<string, Assembly> assemblyEntry in assemblies )
-            {
-                var typeEntries = SearchAssembly( assemblyEntry.Value, baseType );
+                var typeEntries = SearchAssembly( assemblyEntry, baseType );
                 foreach ( KeyValuePair<string, Type> typeEntry in typeEntries )
                 {
                     if ( string.IsNullOrWhiteSpace( typeName ) || typeEntry.Key == typeName )
@@ -119,7 +66,7 @@ namespace Rock
                     }
                 }
             }
-            
+
             return types;
         }
 
@@ -181,11 +128,7 @@ namespace Rock
         /// <returns></returns>
         public static string GetDisplayName( Type type )
         {
-            foreach ( var nameAttribute in type.GetCustomAttributes( typeof( DisplayNameAttribute ), true ) )
-            {
-                return ( (DisplayNameAttribute)nameAttribute ).DisplayName;
-            }
-            return null;
+            return type.GetCustomAttribute<DisplayNameAttribute>( true )?.DisplayName;
         }
 
         /// <summary>
@@ -195,12 +138,9 @@ namespace Rock
         /// <returns></returns>
         public static string GetCategory( Type type )
         {
-            foreach ( var categoryAttribute in type.GetCustomAttributes( typeof( CategoryAttribute ), true ) )
-            {
-                return ( (CategoryAttribute)categoryAttribute ).Category;
-            }
-            return null;
+            return type.GetCustomAttribute<CategoryAttribute>( true )?.Category;
         }
+
         /// <summary>
         /// Returns the Description Attribute value for a given type
         /// </summary>
@@ -208,11 +148,7 @@ namespace Rock
         /// <returns></returns>
         public static string GetDescription( Type type )
         {
-            foreach ( var descriptionAttribute in type.GetCustomAttributes( typeof( DescriptionAttribute ), true ) )
-            {
-                return ( (DescriptionAttribute)descriptionAttribute ).Description;
-            }
-            return null;
+            return type.GetCustomAttribute<DescriptionAttribute>( true )?.Description;
         }
 
         /// <summary>
@@ -238,6 +174,44 @@ namespace Rock
         }
 
         /// <summary>
+        /// Gets the type of the i entity for entity.
+        /// </summary>
+        /// <param name="entityType">Type of the entity.</param>
+        /// <param name="id">The identifier.</param>
+        /// <returns></returns>
+        public static Rock.Data.IEntity GetIEntityForEntityType( Type entityType, int id )
+        {
+            var dbContext = Reflection.GetDbContextForEntityType( entityType );
+            Rock.Data.IService serviceInstance = Reflection.GetServiceForEntityType( entityType, dbContext );
+            if ( serviceInstance != null )
+            {
+                System.Reflection.MethodInfo getMethod = serviceInstance.GetType().GetMethod( "Get", new Type[] { typeof( int ) } );
+                return getMethod.Invoke( serviceInstance, new object[] { id } ) as Rock.Data.IEntity;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the type of the i entity for entity.
+        /// </summary>
+        /// <param name="entityType">Type of the entity.</param>
+        /// <param name="guid">The unique identifier.</param>
+        /// <returns></returns>
+        public static Rock.Data.IEntity GetIEntityForEntityType( Type entityType, Guid guid )
+        {
+            var dbContext = Reflection.GetDbContextForEntityType( entityType );
+            Rock.Data.IService serviceInstance = Reflection.GetServiceForEntityType( entityType, dbContext );
+            if ( serviceInstance != null )
+            {
+                System.Reflection.MethodInfo getMethod = serviceInstance.GetType().GetMethod( "Get", new Type[] { typeof( Guid ) } );
+                return getMethod.Invoke( serviceInstance, new object[] { guid } ) as Rock.Data.IEntity;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Gets the appropriate Rock.Data.IService based on the entity type
         /// </summary>
         /// <param name="entityType">Type of the Entity.</param>
@@ -258,6 +232,127 @@ namespace Rock
             Type service = serviceType.MakeGenericType( new Type[] { entityType } );
             Rock.Data.IService serviceInstance = Activator.CreateInstance( service, dbContext ) as Rock.Data.IService;
             return serviceInstance;
+        }
+
+        /// <summary>
+        /// The Plugin assemblies
+        /// </summary>
+        private static List<Assembly> _pluginAssemblies = null;
+
+
+        /// <summary>
+        /// The RockWeb app_code assembly
+        /// </summary>
+        private static Assembly _appCodeAssembly = null;
+
+        /// <summary>
+        /// Sets the RockWeb.App_Code assembly so that the Reflection methods can search for types in it
+        /// </summary>
+        /// <param name="appCodeAssembly">The application code assembly.</param>
+        public static void SetAppCodeAssembly( Assembly appCodeAssembly )
+        {
+            _appCodeAssembly = appCodeAssembly;
+            if ( _pluginAssemblies != null && _appCodeAssembly != null )
+            {
+                _pluginAssemblies.Add( _appCodeAssembly );
+            }
+        }
+
+        /// <summary>
+        /// Gets a list of Assemblies in the ~/Bin and ~/Plugins folders as well as the RockWeb.App_Code assembly that are assemblies that might have plugins
+        /// </summary>
+        /// <returns></returns>
+        public static List<Assembly> GetPluginAssemblies()
+        {
+            if ( _pluginAssemblies != null )
+            {
+                return _pluginAssemblies.ToList();
+            }
+
+            // Add executing assembly's directory
+            string codeBase = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
+            UriBuilder uri = new UriBuilder( codeBase );
+            string path = Uri.UnescapeDataString( uri.Path );
+            string binDirectory = Path.GetDirectoryName( path );
+
+            // Add all the assemblies in the 'Plugins' subdirectory
+            string pluginsFolder = Path.Combine( AppDomain.CurrentDomain.BaseDirectory, "Plugins" );
+
+            // blacklist of files that would never have Rock MEF components or Rock types
+            string[] ignoredFileStart = { "Lucene.", "Microsoft.", "msvcr100.", "System.", "JavaScriptEngineSwitcher.", "React.", "CacheManager." };
+
+            // get all *.dll in the bin and plugin directories except for blacklisted ones
+            var assemblyFileNames = Directory.EnumerateFiles( binDirectory, "*.dll", SearchOption.AllDirectories ).ToList();
+
+            if ( Directory.Exists( pluginsFolder ) )
+            {
+                assemblyFileNames.AddRange( Directory.EnumerateFiles( pluginsFolder, "*.dll", SearchOption.AllDirectories ) );
+            }
+
+            assemblyFileNames = assemblyFileNames.Where( a => !a.EndsWith( ".resources.dll", StringComparison.OrdinalIgnoreCase )
+                                        && !ignoredFileStart.Any( i => Path.GetFileName( a ).StartsWith( i, StringComparison.OrdinalIgnoreCase ) ) ).ToList();
+
+            // get a lookup of already loaded assemblies so that we don't have to load it unnecessarily
+            var loadedAssembliesDictionary = AppDomain.CurrentDomain.GetAssemblies().Where( a => !a.IsDynamic && !a.GlobalAssemblyCache && !string.IsNullOrWhiteSpace( a.Location ) )
+                .DistinctBy( k => new Uri( k.CodeBase ).LocalPath )
+                .ToDictionary( k => new Uri( k.CodeBase ).LocalPath, v => v, StringComparer.OrdinalIgnoreCase );
+
+            List<Assembly> pluginAssemblies = new List<Assembly>();
+            if ( _appCodeAssembly != null )
+            {
+                pluginAssemblies.Add( _appCodeAssembly );
+            }
+
+            foreach ( var assemblyFileName in assemblyFileNames )
+            {
+                Assembly assembly = loadedAssembliesDictionary.GetValueOrNull( assemblyFileName );
+                if ( assembly == null )
+                {
+                    try
+                    {
+                        // if an assembly is found that isn't loaded yet, load it into the CurrentDomain
+                        AssemblyName assemblyName = AssemblyName.GetAssemblyName( assemblyFileName );
+                        assembly = AppDomain.CurrentDomain.Load( assemblyName );
+                    }
+                    catch ( BadImageFormatException )
+                    {
+                        // BadImageFormatException means the dll isn't a managed dll (not a .NET dll), so we can safely ignore
+                    }
+                    catch ( Exception ex )
+                    {
+                        Rock.Model.ExceptionLogService.LogException( new Exception( $"Unable to load assembly from {assemblyFileName}", ex ) );
+                    }
+                }
+
+                if ( assembly != null )
+                {
+                    bool isRockAssembly = false;
+
+                    // only search inside dlls that are Rock.dll or reference Rock.dll
+                    if ( assemblyFileName.Equals( "Rock.dll", StringComparison.OrdinalIgnoreCase ) )
+                    {
+                        isRockAssembly = true;
+                    }
+                    else
+                    {
+                        List<AssemblyName> referencedAssemblies = assembly.GetReferencedAssemblies().ToList();
+
+                        if ( referencedAssemblies.Any( a => a.Name.Equals( "Rock", StringComparison.OrdinalIgnoreCase ) ) )
+                        {
+                            isRockAssembly = true;
+                        }
+                    }
+
+                    if ( isRockAssembly )
+                    {
+                        pluginAssemblies.Add( assembly );
+                    }
+                }
+            }
+
+            _pluginAssemblies = pluginAssemblies;
+
+            return _pluginAssemblies.ToList();
         }
     }
 }

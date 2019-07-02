@@ -16,15 +16,14 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
 namespace Rock.Web.UI.Controls
 {
     /// <summary>
-    /// The ASP:CheckBoxField doesn't work very well for retrieving changed values, especially when the value is changed from True to False (weird)
-    /// This CheckBoxEditableField works like the ASP:CheckBoxField except it gives the CheckBox's IDs so their changed values will consistantly persist on postbacks
+    /// This field is used in various blocks and controls (such as the Grid) to 'select'
+    /// the item/row and hold and manage the 'selected' state of the item/row.
     /// </summary>
     public class SelectField : TemplateField, INotRowSelectedField
     {
@@ -36,6 +35,7 @@ namespace Rock.Web.UI.Controls
             : base()
         {
             this.ItemStyle.HorizontalAlign = HorizontalAlign.Center;
+            this.HeaderStyle.HorizontalAlign = HorizontalAlign.Center;
             this.ItemStyle.CssClass = "grid-select-field";
         }
 
@@ -210,6 +210,14 @@ namespace Rock.Web.UI.Controls
             }
         }
 
+        /// <summary>
+        /// Gets the header checkbox.
+        /// </summary>
+        /// <value>
+        /// The header checkbox.
+        /// </value>
+        public CheckBox HeaderCheckbox { get; internal set; }
+
         #endregion
 
         #region Base Control Methods
@@ -231,7 +239,7 @@ namespace Rock.Web.UI.Controls
             var grid = control as Grid;
             if ( grid != null )
             {
-                ColumnIndex = grid.Columns.IndexOf( this );
+                ColumnIndex = grid.GetColumnIndex( this );
             }
 
             string script = string.Format( @"
@@ -418,11 +426,13 @@ namespace Rock.Web.UI.Controls
                     if ( selectField.SelectionMode == SelectionMode.Multiple && selectField.ShowHeader && selectField.ShowSelectAll )
                     {
                         string colIndex = selectField.ColumnIndex.ToString();
-                        CheckBox cb = new CheckBox();
+                        var cb = new CheckBox();
                         cb.ID = "cbSelectHead_" + colIndex;
                         cb.AddCssClass( "select-all" );
                         cell.AddCssClass( "grid-select-field" );
                         cell.Controls.Add( cb );
+
+                        selectField.HeaderCheckbox = cb;
                     }
                 }
             }

@@ -21,6 +21,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock.Data;
 using Rock.Model;
 using Rock.Security;
@@ -115,7 +116,7 @@ function() {
             if ( selectionValues.Length >= 1 )
             {
                 int loginTypeId = selectionValues[0].AsInteger();
-                var loginType = EntityTypeCache.Read( loginTypeId );
+                var loginType = EntityTypeCache.Get( loginTypeId );
                 if ( loginType != null )
                 {
                     result = "Login Type: " + loginType.FriendlyName;

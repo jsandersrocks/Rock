@@ -16,6 +16,7 @@
 //
 using System.ComponentModel;
 using System.ComponentModel.Composition;
+
 using Rock.Model;
 
 namespace Rock.Security.Authentication
@@ -158,5 +159,21 @@ namespace Rock.Security.Authentication
         {
             throw new System.NotImplementedException();
         }
+
+        /// <summary>
+        /// Gets a value indicating whether the Rock UI should prompt for the username
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [prompt for user name]; otherwise, <c>false</c>.
+        /// </value>
+        public override bool PromptForUserName => true;
+
+        /// <summary>
+        /// Gets a value indicating whether the Rock UI should prompt for a password
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [prompt for password]; otherwise, <c>false</c>.
+        /// </value>
+        public override bool PromptForPassword => false;
     }
 }

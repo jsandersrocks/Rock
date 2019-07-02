@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+using System.Collections.Generic;
 using Rock.Web.Cache;
 
 namespace Rock.Communication
@@ -34,7 +35,7 @@ namespace Rock.Communication
         {
             get
             {
-                return EntityTypeCache.Read( Rock.SystemGuid.EntityType.COMMUNICATION_MEDIUM_EMAIL.AsGuid() ).Id;
+                return EntityTypeCache.Get( Rock.SystemGuid.EntityType.COMMUNICATION_MEDIUM_PUSH_NOTIFICATION.AsGuid() ).Id;
             }
         }
 
@@ -61,5 +62,15 @@ namespace Rock.Communication
         /// The sound.
         /// </value>
         public string Sound { get; set; }
+
+        /// <summary>
+        /// Sets the recipients.
+        /// </summary>
+        /// <param name="recipients">The recipients.</param>
+        public void SetRecipients( List<RockPushMessageRecipient> recipients )
+        {
+            this.Recipients = new List<RockMessageRecipient>();
+            this.Recipients.AddRange( recipients );
+        }
     }
 }

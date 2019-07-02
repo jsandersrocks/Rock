@@ -39,14 +39,14 @@ namespace RockWeb.Blocks.Cms
     /// Adds an editable HTML fragment to the page.
     /// </summary>
     [DisplayName( "HTML Content" )]
-    [Category( "CMS" )]
+    [Category( "CMS" )] 
     [Description( "Adds an editable HTML fragment to the page." )]
 
     [SecurityAction( Authorization.EDIT, "The roles and/or users that can edit the HTML content.")]
     [SecurityAction( Authorization.APPROVE, "The roles and/or users that have access to approve HTML content." )]
 
     [LavaCommandsField("Enabled Lava Commands", "The Lava commands that should be enabled for this HTML block.", false, order: 0)]
-    [BooleanField( "Use Code Editor", "Use the code editor instead of the WYSIWYG editor", true, "", 1 )]
+    [BooleanField( "Start in Code Editor mode", "Start the editor in code editor mode instead of WYSIWYG editor mode.", defaultValue: true, key:"UseCodeEditor", order:1 )]
     [TextField("Document Root Folder", "The folder to use as the root when browsing or uploading documents.", false, "~/Content", "", 2 )]
     [TextField( "Image Root Folder", "The folder to use as the root when browsing or uploading images.", false, "~/Content", "", 3 )]
     [BooleanField( "User Specific Folders", "Should the root folders be specific to current user?", false, "", 4 )]
@@ -55,14 +55,25 @@ namespace RockWeb.Blocks.Cms
     [TextField( "Context Name", "Name to use to further 'personalize' content.  Blocks with the same name, and referenced with the same context parameter will share html values.", false, "", "", 7 )]
     [BooleanField( "Enable Versioning", "If checked, previous versions of the content will be preserved. Versioning is required if you want to require approval.", false, "", 8, "SupportVersions" )]
     [BooleanField( "Require Approval", "Require that content be approved?", false, "", 9 )]
-    [CustomDropdownListField( "Quick Edit", "Allow quick editing of HTML contents.", "AIREDIT^In Place Editing,DBLCLICK^Double-Click For Edit Dialog", false, "", "", 11, "QuickEdit")]
+    [CustomCheckboxListField("Cache Tags", "Cached tags are used to link cached content so that it can be expired as a group", CACHE_TAG_LIST, false, key: "CacheTags", order: 10)]
+    // Disable QuickEdit for v7
+    //[CustomDropdownListField( "Quick Edit", "Allow quick editing of HTML contents.", "AIREDIT^In Place Editing,DBLCLICK^Double-Click For Edit Dialog", false, "", "", 11, "QuickEdit")]
 
-    [BooleanField( "Is Secondary Block", "Flag indicating whether this block is considered secondary and should be hidden when other secondary blocks are hidden.", false, "", 12 )]
+    [BooleanField( "Is Secondary Block", "Flag indicating whether this block is considered secondary and should be hidden when other secondary blocks are hidden.", false, "", 11 )]
     [ContextAware]
     public partial class HtmlContentDetail : RockBlockCustomSettings, ISecondaryBlock
     {
 
         #region Properties
+
+        /// <summary>
+        /// Supplies the CustomCheckboxListField "CacheTags" with a list of tags.
+        /// </summary>
+        private const string CACHE_TAG_LIST = @"
+            SELECT CAST([DefinedValue].[Value] AS VARCHAR) AS [Value], [DefinedValue].[Value] AS [Text]
+            FROM[DefinedType]
+            JOIN[DefinedValue] ON[DefinedType].[Id] = [DefinedValue].[DefinedTypeId]
+            WHERE[DefinedType].[Guid] = 'BDF73089-9154-40C1-90E4-74518E9937DC'";
 
         /// <summary>
         /// Gets the settings tool tip.
@@ -91,9 +102,10 @@ namespace RockWeb.Blocks.Cms
             base.OnInit( e );
 
             this.BlockUpdated += HtmlContentDetail_BlockUpdated;
-            this.AddConfigurationUpdateTrigger( upnlHtmlContent );
+            this.AddConfigurationUpdateTrigger( upnlHtmlContentEdit );
 
-            RegisterScript();
+            // Disable QuickEdit for v7
+            //RegisterScript();
 
             gVersions.GridRebind += gVersions_GridRebind;
         }
@@ -120,15 +132,16 @@ namespace RockWeb.Blocks.Cms
         /// Raises the <see cref="E:System.Web.UI.Control.PreRender" /> event.
         /// </summary>
         /// <param name="e">An <see cref="T:System.EventArgs" /> object that contains the event data.</param>
-        protected override void OnPreRender( EventArgs e )
-        {
-            if ( GetAttributeValue( "QuickEdit" ) == "AIREDIT" )
-            {
-                hfEntityValue.Value = EntityValue();
-            }
+        // Disable QuickEdit for v7
+        //protected override void OnPreRender( EventArgs e )
+        //{
+        //    if ( GetAttributeValue( "QuickEdit" ) == "AIREDIT" )
+        //    {
+        //        hfEntityValue.Value = EntityValue();
+        //    }
 
-            base.OnPreRender( e );
-        }
+        //    base.OnPreRender( e );
+        //}
 
         #endregion
 
@@ -159,10 +172,11 @@ namespace RockWeb.Blocks.Cms
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void lbQuickEdit_Click( object sender, EventArgs e )
-        {
-            ShowSettings();
-        }
+        // Disable QuickEdit for v7
+        //protected void lbQuickEdit_Click( object sender, EventArgs e )
+        //{
+        //    ShowSettings();
+        //}
 
         /// <summary>
         /// Handles the Click event of the lbSave control.
@@ -373,54 +387,55 @@ namespace RockWeb.Blocks.Cms
 
         #region Methods
 
-        private void RegisterScript()
-        {
-            if ( UserCanEdit )
-            {
-                string script = "";
-                if ( GetAttributeValue( "QuickEdit" ) == "DBLCLICK" )
-                {
-                    script = string.Format( @"
-    Sys.Application.add_load( function () {{
-        $('#{0} > div.html-content-view').dblclick(function (e) {{
-            {1};
-        }});
-    }});
-", upnlHtmlContent.ClientID, this.Page.ClientScript.GetPostBackEventReference( lbQuickEdit, "" ) );
-                }
+// Disable QuickEdit for v7
+//        private void RegisterScript()
+//        {
+//            if ( UserCanEdit )
+//            {
+//                string script = "";
+//                if ( GetAttributeValue( "QuickEdit" ) == "DBLCLICK" )
+//                {
+//                    script = string.Format( @"
+//    Sys.Application.add_load( function () {{
+//        $('#{0} > div.html-content-view').dblclick(function (e) {{
+//            {1};
+//        }});
+//    }});
+//", upnlHtmlContent.ClientID, this.Page.ClientScript.GetPostBackEventReference( lbQuickEdit, "" ) );
+//                }
 
-                if ( GetAttributeValue( "QuickEdit" ) == "AIREDIT" )
-                {
-                    RockPage.AddScriptLink( Page, ResolveUrl( "~/Scripts/summernote/summernote.min.js" ), true );
+//                if ( GetAttributeValue( "QuickEdit" ) == "AIREDIT" )
+//                {
+//                    RockPage.AddScriptLink( Page, "~/Scripts/summernote/summernote.min.js", true );
 
-                    script = string.Format( @"
-    Sys.Application.add_load( function () {{
-        $('#{0} > div.html-content-view').summernote( {{
-            airMode: true,
-            callbacks: {{
-                onChange: function( contents, $editable ) {{
-                    var htmlContents = {{
-                        EntityValue: $('#{2}').val(),
-                        Content: contents
-                    }};
-                    $.post( Rock.settings.get('baseUrl') + 'api/HtmlContents/UpdateContents/{1}', htmlContents, null, 'application/json' );
-                }}
-            }}
-        }});
-    }});
-", upnlHtmlContent.ClientID, this.BlockId, hfEntityValue.ClientID );
-                }
+//                    script = string.Format( @"
+//    Sys.Application.add_load( function () {{
+//        $('#{0} > div.html-content-view').summernote( {{
+//            airMode: true,
+//            callbacks: {{
+//                onChange: function( contents, $editable ) {{
+//                    var htmlContents = {{
+//                        EntityValue: $('#{2}').val(),
+//                        Content: contents
+//                    }};
+//                    $.post( Rock.settings.get('baseUrl') + 'api/HtmlContents/UpdateContents/{1}', htmlContents, null, 'application/json' );
+//                }}
+//            }}
+//        }});
+//    }});
+//", upnlHtmlContent.ClientID, this.BlockId, hfEntityValue.ClientID );
+//                }
 
-                if ( !string.IsNullOrWhiteSpace( script ) )
-                {
-                    ScriptManager.RegisterStartupScript( lbQuickEdit, lbQuickEdit.GetType(), string.Format( "html-content-block-{0}", this.BlockId ), script, true );
-                }
-            }
-        }
+//                if ( !string.IsNullOrWhiteSpace( script ) )
+//                {
+//                    ScriptManager.RegisterStartupScript( lbQuickEdit, lbQuickEdit.GetType(), string.Format( "html-content-block-{0}", this.BlockId ), script, true );
+//                }
+//            }
+//        }
 
-        /// <summary>
-        /// Binds the grid.
-        /// </summary>
+/// <summary>
+/// Binds the grid.
+/// </summary>
         private void BindGrid()
         {
             var htmlContentService = new HtmlContentService( new RockContext() );
@@ -440,7 +455,7 @@ namespace RockWeb.Blocks.Cms
                     v.ExpireDateTime
                 } ).ToList();
 
-            gVersions.EntityTypeId = EntityTypeCache.Read<HtmlContent>().Id;
+            gVersions.EntityTypeId = EntityTypeCache.Get<HtmlContent>().Id;
             gVersions.DataSource = versions;
             
             gVersions.DataBind();
@@ -458,7 +473,7 @@ namespace RockWeb.Blocks.Cms
             pnlEdit.Visible = true;
             pnlVersionGrid.Visible = false;
             pnlEditModel.Visible = true;
-            upnlHtmlContent.Update();
+            upnlHtmlContentEdit.Update();
             mdEdit.Show();
 
             bool useCodeEditor = GetAttributeValue( "UseCodeEditor" ).AsBoolean();
@@ -527,7 +542,7 @@ namespace RockWeb.Blocks.Cms
             lbDeny.Enabled = IsUserAuthorized( "Approve" );
 
             string entityValue = EntityValue();
-            HtmlContent htmlContent = new HtmlContentService( new RockContext() ).GetActiveContent( this.BlockId, entityValue );
+            HtmlContent htmlContent = new HtmlContentService( new RockContext() ).GetLatestVersion( this.BlockId, entityValue );
 
             // set Height of editors
             if ( supportsVersioning && requireApproval )
@@ -631,7 +646,8 @@ namespace RockWeb.Blocks.Cms
         {
             mdEdit.Hide();
             pnlEditModel.Visible = false;
-            upnlHtmlContent.Update();
+            upnlHtmlContentEdit.Update();
+            upnlHtmlContentView.Update();
 
             // prevent htmlEditor from using viewstate when not needed
             pnlEdit.EnableViewState = false;
@@ -642,6 +658,7 @@ namespace RockWeb.Blocks.Cms
             string html = string.Empty;
 
             int cacheDuration = GetAttributeValue( "CacheDuration" ).AsInteger();
+            string cacheTags = GetAttributeValue( "CacheTags" ) ?? string.Empty;
             string cachedContent = null;
 
             // only load from the cache if a cacheDuration was specified
@@ -670,6 +687,8 @@ namespace RockWeb.Blocks.Cms
                                 // TODO: When support for "Person" is not supported anymore (should use "CurrentPerson" instead), remove this line
                                 mergeFields.AddOrIgnore( "Person", CurrentPerson );
                             }
+
+                            mergeFields.Add( "CurrentBrowser", this.RockPage.BrowserClient );
                             
                             mergeFields.Add( "RockVersion", Rock.VersionInfo.VersionInfo.GetRockProductVersionNumber() );
                             mergeFields.Add( "CurrentPersonCanEdit", IsUserAuthorized( Authorization.EDIT ) );
@@ -696,7 +715,7 @@ namespace RockWeb.Blocks.Cms
                 // cache content
                 if ( cacheDuration > 0 )
                 {
-                    HtmlContentService.AddCachedContent( this.BlockId, entityValue, html, cacheDuration );
+                    HtmlContentService.AddCachedContent( this.BlockId, entityValue, html, cacheDuration, cacheTags );
                 }
             }
             else
@@ -744,7 +763,7 @@ namespace RockWeb.Blocks.Cms
                     lHtmlContent.Visible = visible;
 
                     // upnlHtmlContent has UpdateMode=Conditional so tell it to update if Visible changed 
-                    upnlHtmlContent.Update();
+                    upnlHtmlContentView.Update();
                 }
             }
         }

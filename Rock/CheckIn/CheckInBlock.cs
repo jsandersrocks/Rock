@@ -60,6 +60,7 @@ namespace Rock.CheckIn
                 _currentCheckinType = null;
             }
         }
+
         private int? _currentCheckinTypeId;
 
         /// <summary>
@@ -132,6 +133,11 @@ namespace Rock.CheckIn
             /// The name of the cookie that holds whether or not the device was a mobile device.
             /// </summary>
             public static readonly string ISMOBILE = "Checkin.IsMobile";
+
+            /// <summary>
+            /// The phone number used to check in could be in this cookie.
+            /// </summary>
+            public static readonly string PHONENUMBER = "Checkin.PhoneNumber";
         }
 
         /// <summary>
@@ -246,6 +252,12 @@ namespace Rock.CheckIn
         protected override void OnInit( EventArgs e )
         {
             base.OnInit( e );
+
+            // Tell the browsers to not cache any pages that have a block that inherits from CheckinBlock. This will help prevent browser using stale copy of checkin pages which could cause labels to get reprinted, and other expected things.
+            Page.Response.Cache.SetCacheability( System.Web.HttpCacheability.NoCache );
+            Page.Response.Cache.SetExpires( DateTime.UtcNow.AddHours( -1 ) );
+            Page.Response.Cache.SetNoStore();
+
             GetState();
         }
 
@@ -268,7 +280,7 @@ namespace Rock.CheckIn
                 {
                     var workflowService = new WorkflowService( rockContext );
 
-                    var workflowType = WorkflowTypeCache.Read( guid.Value );
+                    var workflowType = WorkflowTypeCache.Get( guid.Value );
                     if ( workflowType != null && ( workflowType.IsActive ?? true ) )
                     {
                         if ( CurrentWorkflow == null )
@@ -434,7 +446,7 @@ namespace Rock.CheckIn
             {
                 if ( doNotProceedCondition() )
                 {
-                    modalAlert.Show( conditionMessage, Rock.Web.UI.Controls.ModalAlertType.Warning );
+                    modalAlert?.Show( conditionMessage, Rock.Web.UI.Controls.ModalAlertType.None );
                     return false;
                 }
                 else
@@ -447,7 +459,7 @@ namespace Rock.CheckIn
             else
             {
                 string errorMsg = "<ul><li>" + errors.AsDelimited( "</li><li>" ) + "</li></ul>";
-                modalAlert.Show( errorMsg.Replace( "'", @"\'" ), Rock.Web.UI.Controls.ModalAlertType.Warning );
+                modalAlert?.Show( errorMsg.Replace( "'", @"\'" ), Rock.Web.UI.Controls.ModalAlertType.Warning );
                 return false;
             }
         }
@@ -602,7 +614,7 @@ namespace Rock.CheckIn
             var pageReference = new PageReference( GetAttributeValue( attributeKey ), queryParams );
             if ( pageReference.PageId > 0 )
             {
-                var page = PageCache.Read( pageReference.PageId );
+                var page = PageCache.Get( pageReference.PageId );
                 if ( page != null && page.PageTitle == "Welcome" )
                 {
                     if ( pageReference.Parameters == null )
@@ -651,7 +663,7 @@ namespace Rock.CheckIn
         /// <summary>
         /// Loads a check-in block to determine if it will require a selection or not. This is used to find the
         /// next page/block that does require a selection so that user can be redirected once to that block, 
-        /// rather than just continuesly redirected to next/prev page blocks and possibly exceeding the maximum
+        /// rather than just continuously redirected to next/prev page blocks and possibly exceeding the maximum
         /// number of redirects.
         /// </summary>
         /// <param name="attributeKey">The attribute key.</param>
@@ -661,7 +673,7 @@ namespace Rock.CheckIn
             var pageReference = new PageReference( GetAttributeValue( attributeKey ) );
             if ( pageReference.PageId > 0 )
             {
-                var page = Rock.Web.Cache.PageCache.Read( pageReference.PageId );
+                var page = PageCache.Get( pageReference.PageId );
                 if ( page != null )
                 {
                     foreach ( var block in page.Blocks.OrderBy( b => b.Order ) )

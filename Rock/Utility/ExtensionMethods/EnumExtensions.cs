@@ -15,7 +15,9 @@
 // </copyright>
 //
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 
 namespace Rock
 {
@@ -80,7 +82,7 @@ namespace Rock
         }
 
         /// <summary>
-        /// Converts a string value to an enum value.
+        /// Converts a string value to an enum value, first using a case-sensitive match, but also trying a case-insensitive match
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="enumValue">The enum value.</param>
@@ -100,7 +102,7 @@ namespace Rock
         }
 
         /// <summary>
-        /// Converts to enum or null.
+        /// Converts a string to an enum value, first using a case-sensitive match, but also trying a case-insensitive match
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="enumValue">The enum value.</param>
@@ -111,6 +113,12 @@ namespace Rock
             T result;
             if ( Enum.TryParse<T>( ( enumValue ?? "" ).Replace( " ", "" ), out result ) && Enum.IsDefined( typeof( T ), result ) )
             {
+                // a regular case-sensitive parse found it, so we got it
+                return result;
+            }
+            else if ( Enum.TryParse<T>( ( enumValue ?? "" ).Replace( " ", "" ), true, out result ) && Enum.IsDefined( typeof( T ), result ) )
+            {
+                // case-sensitive parse didn't work, but parsing again with ignoreCase = true got it for us
                 return result;
             }
             else
@@ -122,6 +130,25 @@ namespace Rock
                 else
                 {
                     return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the individual enum values of a Flags enumeration value.
+        /// </summary>
+        /// <typeparam name="T">The Enum type of enumValue.</typeparam>
+        /// <param name="enumValue">The enum value whose flags should be retrieved.</param>
+        /// <returns>An enumerable collection of the individual flag values.</returns>
+        public static IEnumerable<T> GetFlags<T>( this Enum enumValue )
+        {
+            foreach ( var value in Enum.GetValues( enumValue.GetType() ).Cast<T>() )
+            {
+                Enum flag = ( Enum ) Enum.Parse( typeof( T ), value.ToString() );
+
+                if ( enumValue.HasFlag( flag ) )
+                {
+                    yield return value;
                 }
             }
         }

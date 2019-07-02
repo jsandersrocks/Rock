@@ -19,6 +19,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+
 using Rock.Data;
 
 namespace Rock.Model
@@ -93,7 +94,7 @@ namespace Rock.Model
 
         #region Public Methods
         /// <summary>
-        /// Determineds the ClientType (Mobile, Desktop, Tablet, etc) from a UserAgent string
+        /// Determines the ClientType (Mobile, Desktop, Tablet, etc) from a UserAgent string
         /// </summary>
         /// <param name="userAgent">The user agent.</param>
         /// <returns></returns>
@@ -108,7 +109,7 @@ namespace Rock.Model
             else
             {
                 // determine client type
-                // note this regex should be updated from http://detectmobilebrowsers.com/ occassionally
+                // note this regex should be updated from http://detectmobilebrowsers.com/ occasionally
                 // last update 11/11/2015 - JME
                 bool clientDetected = false;
 
@@ -139,6 +140,17 @@ namespace Rock.Model
                     if ( t.IsMatch( u ) )
                     {
                         clientType = "Crawler";
+                        clientDetected = true;
+                    }
+                }
+
+                // check to see if this is outlook calling for a calendar feed
+                if ( !clientDetected )
+                {
+                    Regex t = new Regex( @"microsoft office" );
+                    if ( t.IsMatch( u ) )
+                    {
+                        clientType = "Outlook";
                         clientDetected = true;
                     }
                 }

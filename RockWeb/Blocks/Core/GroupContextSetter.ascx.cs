@@ -38,7 +38,7 @@ namespace RockWeb.Blocks.Core
     [GroupTypeGroupField( "Group Filter", "Select group type and root group to filter groups by root group. Leave root group blank to filter by group type.", "Root Group", order: 0 )]
     [CustomRadioListField( "Context Scope", "The scope of context to set", "Site,Page", true, "Site", order: 1 )]
     [TextField( "No Group Text", "The text to show when there is no group in the context.", true, "Select Group", order: 2 )]
-    [TextField( "Clear Selection Text", "The text displayed when a group can be unselected. This will not display when the text is empty.", true, "", order: 3 )]
+    [TextField( "Clear Selection Text", "The text displayed when a group can be unselected. This will not display when the text is empty.", false, "", order: 3 )]
     [BooleanField( "Display Query Strings", "Select to always display query strings. Default behavior will only display the query string when it's passed to the page.", false, "", order: 4 )]
     [BooleanField( "Include GroupType Children", "Include all children of the grouptype selected", false, "", order: 5 )]
     [BooleanField( "Respect Campus Context", "Filter groups by the Campus Context block if it exists", false, "", order: 6 )]
@@ -85,7 +85,7 @@ namespace RockWeb.Blocks.Core
         /// </summary>
         private void LoadDropDowns()
         {
-            var groupEntityType = EntityTypeCache.Read( typeof( Group ) );
+            var groupEntityType = EntityTypeCache.Get( typeof( Group ) );
             var currentGroup = RockPage.GetCurrentContext( groupEntityType ) as Group;
 
             var groupIdString = Request.QueryString["groupId"];
@@ -93,10 +93,9 @@ namespace RockWeb.Blocks.Core
             {
                 var groupId = groupIdString.AsInteger();
 
-                if ( currentGroup == null || currentGroup.Id != groupId )
-                {
-                    currentGroup = SetGroupContext( groupId, false );
-                }
+                // if there is a query parameter, ensure that the Group Context cookie is set (and has an updated expiration)
+                // note, the Group Context might already match due to the query parameter, but has a different cookie context, so we still need to ensure the cookie context is updated
+                currentGroup = SetGroupContext( groupId, false );
             }
 
             var parts = ( GetAttributeValue( "GroupFilter" ) ?? string.Empty ).Split( '|' );
@@ -123,7 +122,7 @@ namespace RockWeb.Blocks.Core
                 var rootGroup = groupService.Get( rootGroupGuid.Value );
                 if ( rootGroup != null )
                 {
-                    qryGroups = groupService.GetAllDescendents( rootGroup.Id ).AsQueryable();
+                    qryGroups = groupService.GetAllDescendentGroups( rootGroup.Id, false ).AsQueryable();
                 }
             }
             else if ( groupTypeGuid.HasValue )
@@ -145,7 +144,7 @@ namespace RockWeb.Blocks.Core
 
             if ( GetAttributeValue( "RespectCampusContext" ).AsBoolean() )
             {
-                var campusContext = RockPage.GetCurrentContext( EntityTypeCache.Read( typeof( Campus ) ) );
+                var campusContext = RockPage.GetCurrentContext( EntityTypeCache.Get( typeof( Campus ) ) );
 
                 if ( campusContext != null )
                 {

@@ -41,7 +41,7 @@ namespace RockWeb.Blocks.Cms
     [Description( "Lists themes in the Theme folder." )]
 
     [LinkedPage("Theme Styler Page", "Page to use for the theme styler page.")]
-    public partial class ThemeList : Rock.Web.UI.RockBlock
+    public partial class ThemeList : Rock.Web.UI.RockBlock, ICustomGridColumns
     {
         #region Fields
 
@@ -188,7 +188,7 @@ namespace RockWeb.Blocks.Cms
             else
             {
                 nbMessages.NotificationBoxType = NotificationBoxType.Danger;
-                nbMessages.Text = string.Format( "An error occurred while compiling the {0} theme. Message: {1}", theme.Name, messages );
+                nbMessages.Text = string.Format( "An error occurred while compiling the {0} theme.\nMessage: <pre>{1}</pre>", theme.Name, messages );
             }
         }
 

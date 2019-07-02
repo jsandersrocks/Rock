@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock.Reporting;
 using Rock.Web.UI.Controls;
 
@@ -189,9 +190,13 @@ namespace Rock.Field.Types
                 {
                     return dtp.SelectedDateTime.Value.ToString( "o" );
                 }
+                else
+                {
+                    return string.Empty;
+                }
             }
 
-            return string.Empty;
+            return null;
         }
 
         /// <summary>
@@ -220,6 +225,7 @@ namespace Rock.Field.Types
                 }
                 else
                 {
+                    // NullReferenceException will *NOT* be thrown if value is null because the AsDateTime() extension method is null safe.
                     dtp.SelectedDateTime = value.AsDateTime();
                 }
             }

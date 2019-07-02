@@ -39,7 +39,7 @@ namespace RockWeb.Blocks.Core
     [Description( "Shows a list of all attribute matrix templates" )]
 
     [LinkedPage( "Detail Page" )]
-    public partial class AttributeMatrixTemplateList : RockBlock
+    public partial class AttributeMatrixTemplateList : RockBlock, ICustomGridColumns
     {
         #region Base Control Methods
 
@@ -162,7 +162,7 @@ namespace RockWeb.Blocks.Core
             AttributeMatrixTemplateService attributeMatrixTemplateService = new AttributeMatrixTemplateService( rockContext );
             AttributeMatrixService attributeMatrixService = new AttributeMatrixService( rockContext );
 
-            var matrixFieldTypeId = FieldTypeCache.Read<MatrixFieldType>().Id;
+            var matrixFieldTypeId = FieldTypeCache.Get<MatrixFieldType>().Id;
 
             var qry = attributeMatrixTemplateService.Queryable()
                 .Select( a => new

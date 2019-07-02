@@ -15,14 +15,13 @@
 // </copyright>
 //
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock.Data;
 using Rock.Model;
-using Rock.Web.Cache;
 
 namespace Rock.Web.UI.Controls
 {
@@ -386,7 +385,7 @@ $('.workflow-activity > .panel-body').on('validation-error', function() {
             Controls.Add( _lbDeleteActivityType );
             _lbDeleteActivityType.CausesValidation = false;
             _lbDeleteActivityType.ID = this.ID + "_lbDeleteActivityType";
-            _lbDeleteActivityType.CssClass = "btn btn-xs btn-danger js-activity-delete";
+            _lbDeleteActivityType.CssClass = "btn btn-xs btn-square btn-danger js-activity-delete";
             _lbDeleteActivityType.Click += lbDeleteActivityType_Click;
             _lbDeleteActivityType.Controls.Add( new LiteralControl { Text = "<i class='fa fa-times'></i>" } );
 

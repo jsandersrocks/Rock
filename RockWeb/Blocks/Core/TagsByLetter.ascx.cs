@@ -41,7 +41,7 @@ namespace RockWeb.Blocks.Core
     [Description( "Lists tags grouped by the first letter of the name with counts for people to select." )]
 
     [LinkedPage("Detail Page")]
-    [BooleanField("User-Selectable Entity Type", "Should user be able to select the entity type to show tags for?", false, "", 0, "ShowEntityType" )]
+    [BooleanField("User-Selectable Entity Type", "Should user be able to select the entity type to show tags for?", true, "", 0, "ShowEntityType" )]
     [EntityTypeField("Entity Type", false, "The entity type to display tags for. If entity type is user-selectable, this will be the default entity type", false, "", DefaultValue = Rock.SystemGuid.EntityType.PERSON )]
     public partial class TagsByLetter : Rock.Web.UI.RockBlock
     {
@@ -88,7 +88,7 @@ namespace RockWeb.Blocks.Core
 
             if ( !EntityTypeId.HasValue )
             {
-                var entityType = EntityTypeCache.Read( GetAttributeValue( "EntityType" ).AsGuid() );
+                var entityType = EntityTypeCache.Get( GetAttributeValue( "EntityType" ).AsGuid() );
                 EntityTypeId = entityType != null ? entityType.Id : (int?)null;
             }
         }
@@ -290,7 +290,7 @@ namespace RockWeb.Blocks.Core
             if ( tags.Count() == 0 )
             {
                 tagOutput.Clear();
-                tagOutput.Append("<div class='alert alert-info'><h4>Note</h4>No personal tags exist.</div>");
+                tagOutput.Append( string.Format(@"<div class='alert alert-info'><h4>Note</h4>No {0} tags exist.</div>", TagCloudTab ) );
             }
 
             lTagList.Text = tagOutput.ToString();

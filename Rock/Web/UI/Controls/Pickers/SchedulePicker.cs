@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+
 using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
@@ -80,7 +81,7 @@ namespace Rock.Web.UI.Controls
                 ItemId = schedule.Id.ToString();
 
                 string parentCategoryIds = string.Empty;
-                var parentCategory = schedule.Category;
+                var parentCategory = schedule.CategoryId.HasValue ? CategoryCache.Get( schedule.CategoryId.Value ) : null;
                 while ( parentCategory != null )
                 {
                     parentCategoryIds = parentCategory.Id + "," + parentCategoryIds;
@@ -162,10 +163,7 @@ namespace Rock.Web.UI.Controls
         /// <value>
         /// The item rest URL.
         /// </value>
-        public override string ItemRestUrl
-        {
-            get { return "~/api/Categories/GetChildren/"; }
-        }
+        public override string ItemRestUrl => "~/api/Categories/GetChildren/";
 
         /// <summary>
         /// Render any additional picker actions
@@ -184,7 +182,7 @@ namespace Rock.Web.UI.Controls
         private void SetExtraRestParams( bool includeInactiveSchedules = false )
         {
             ItemRestUrlExtraParams = "?getCategorizedItems=true&showUnnamedEntityItems=false&showCategoriesThatHaveNoChildren=false";
-            ItemRestUrlExtraParams += "&entityTypeId=" + EntityTypeCache.Read( Rock.SystemGuid.EntityType.SCHEDULE.AsGuid() ).Id;
+            ItemRestUrlExtraParams += "&entityTypeId=" + EntityTypeCache.Get( Rock.SystemGuid.EntityType.SCHEDULE.AsGuid() ).Id;
             ItemRestUrlExtraParams += "&includeInactiveItems=" + includeInactiveSchedules.ToTrueFalse();
         }
 

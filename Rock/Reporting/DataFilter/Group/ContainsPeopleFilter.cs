@@ -21,6 +21,7 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Web.UI;
+
 using Rock.Data;
 using Rock.Model;
 using Rock.Utility;
@@ -165,7 +166,7 @@ namespace Rock.Reporting.DataFilter.Group
         {
             return @"
 function ()
-{    
+{
     var dataViewName = $('.rock-drop-down-list,select:first', $content).find(':selected').text();
     var comparisonName = $('.js-filter-compare', $content).find(':selected').text();
     var comparisonCount = $('.js-member-count', $content).val();
@@ -174,7 +175,7 @@ function ()
     result += ' ""' + dataViewName + '""';
     result += ' ' + comparisonName;
     result += ' ' + comparisonCount;
-    return result; 
+    return result;
 }
 ";
         }
@@ -211,10 +212,10 @@ function ()
             return result;
         }
 
-        private const string _CtlDataView = "ddlDataView";
+        private const string _CtlDataView = "dvpDataView";
         private const string _CtlComparison = "ddlComparison";
         private const string _CtlMemberCount = "nbMemberCount";
-        
+
         private const ComparisonType CountComparisonTypesSpecifier =
             ComparisonType.EqualTo |
             ComparisonType.NotEqualTo |
@@ -234,11 +235,11 @@ function ()
         public override Control[] CreateChildControls( Type entityType, FilterField filterControl )
         {
             // Define Control: Person Data View Picker
-            var ddlDataView = new DataViewPicker();
-            ddlDataView.ID = filterControl.GetChildControlInstanceName( _CtlDataView );
-            ddlDataView.Label = "Contains People from this Data View";
-            ddlDataView.Help = "A Person Data View that provides the set of possible Group Members.";
-            filterControl.Controls.Add( ddlDataView );
+            var dvpDataView = new DataViewItemPicker();
+            dvpDataView.ID = filterControl.GetChildControlInstanceName( _CtlDataView );
+            dvpDataView.Label = "Contains People from this Data View";
+            dvpDataView.Help = "A Person Data View that provides the set of possible Group Members.";
+            filterControl.Controls.Add( dvpDataView );
 
             var ddlCompare = ComparisonHelper.ComparisonControl( CountComparisonTypesSpecifier );
             ddlCompare.Label = "where the number of matching Group Members is";
@@ -254,9 +255,9 @@ function ()
             filterControl.Controls.Add( nbCount );
 
             // Populate the Data View Picker
-            ddlDataView.EntityTypeId = EntityTypeCache.Read( typeof(Model.Person) ).Id;
+            dvpDataView.EntityTypeId = EntityTypeCache.Get( typeof(Model.Person) ).Id;
 
-            return new Control[] {ddlDataView, ddlCompare, nbCount};
+            return new Control[] {dvpDataView, ddlCompare, nbCount};
         }
 
         /// <summary>
@@ -268,14 +269,14 @@ function ()
         /// <param name="controls">The model representation of the child controls for this component.</param>
         public override void RenderControls( Type entityType, FilterField filterControl, HtmlTextWriter writer, Control[] controls )
         {
-            var ddlDataView = controls.GetByName<DataViewPicker>( _CtlDataView );
+            var dvpDataView = controls.GetByName<DataViewItemPicker>( _CtlDataView );
             var ddlCompare = controls.GetByName<RockDropDownList>( _CtlComparison );
             var nbValue = controls.GetByName<NumberBox>( _CtlMemberCount );
 
-            ddlDataView.RenderControl( writer );
+            dvpDataView.RenderControl( writer );
 
             // Comparison Row
-            writer.AddAttribute( "class", "row field-criteria" );
+            writer.AddAttribute( "class", "row form-row field-criteria" );
             writer.RenderBeginTag( HtmlTextWriterTag.Div );
 
             // Comparison Type
@@ -285,7 +286,7 @@ function ()
             writer.RenderEndTag();
 
             // Comparison Value
-            writer.AddAttribute( "class", "col-md-8" );
+            writer.AddAttribute( "class", "col-md-8 vertical-align-bottom" );
             writer.RenderBeginTag( HtmlTextWriterTag.Div );
             nbValue.RenderControl( writer );
             writer.RenderEndTag();
@@ -305,13 +306,13 @@ function ()
         /// </returns>
         public override string GetSelection( Type entityType, Control[] controls )
         {
-            var ddlDataView = controls.GetByName<DataViewPicker>( _CtlDataView );
+            var dvpDataView = controls.GetByName<DataViewItemPicker>( _CtlDataView );
             var ddlCompare = controls.GetByName<RockDropDownList>( _CtlComparison );
             var nbValue = controls.GetByName<NumberBox>( _CtlMemberCount );
 
             var settings = new FilterSettings();
 
-            settings.PersonDataViewGuid = DataComponentSettingsHelper.GetDataViewGuid( ddlDataView.SelectedValue );
+            settings.PersonDataViewGuid = DataComponentSettingsHelper.GetDataViewGuid( dvpDataView.SelectedValue );
             settings.PersonCountComparison = ddlCompare.SelectedValueAsEnum<ComparisonType>( ComparisonType.GreaterThan );
             settings.PersonCount = nbValue.Text.AsInteger();
 
@@ -326,7 +327,7 @@ function ()
         /// <param name="selection">A formatted string representing the filter settings.</param>
         public override void SetSelection( Type entityType, Control[] controls, string selection )
         {
-            var ddlDataView = controls.GetByName<DataViewPicker>( _CtlDataView );
+            var dvpDataView = controls.GetByName<DataViewItemPicker>( _CtlDataView );
             var ddlCompare = controls.GetByName<RockDropDownList>( _CtlComparison );
             var nbValue = controls.GetByName<NumberBox>( _CtlMemberCount );
 
@@ -337,7 +338,7 @@ function ()
                 return;
             }
 
-            ddlDataView.SelectedValue = DataComponentSettingsHelper.GetDataViewId( settings.PersonDataViewGuid ).ToStringSafe();
+            dvpDataView.SetValue( DataComponentSettingsHelper.GetDataViewId( settings.PersonDataViewGuid ) );
             ddlCompare.SelectedValue = settings.PersonCountComparison.ConvertToInt().ToString();
             nbValue.Text = settings.PersonCount.ToString();
         }
@@ -378,7 +379,7 @@ function ()
 
             //
             // Construct the Query to return the list of Groups matching the filter conditions.
-            //            
+            //
             var comparisonType = settings.PersonCountComparison;
             int memberCountValue = settings.PersonCount;
 

@@ -14,8 +14,11 @@
 // limitations under the License.
 // </copyright>
 //
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -180,18 +183,27 @@ namespace Rock.Model
             private set { }
         }
 
+        /// <summary>
+        /// Gets or sets the history changes.
+        /// </summary>
+        /// <value>
+        /// The history changes.
+        /// </value>
+        [NotMapped]
+        private Dictionary<int, History.HistoryChangeList> PersonHistoryChanges { get; set; }
+
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Updates the formatted number prior to update.
+        /// Method that will be called on an entity immediately before the item is saved by context
         /// </summary>
-        /// <param name="dbContext">The database context.</param>
-        /// <param name="state">The state.</param>
-        public override void PreSaveChanges( DbContext dbContext, System.Data.Entity.EntityState state )
+        /// <param name="dbContext"></param>
+        /// <param name="entry"></param>
+        public override void PreSaveChanges( Data.DbContext dbContext, DbEntityEntry entry )
         {
-            if ( state == System.Data.Entity.EntityState.Added || state == System.Data.Entity.EntityState.Modified )
+            if ( entry.State == EntityState.Added || entry.State == EntityState.Modified )
             {
                 if ( string.IsNullOrEmpty( CountryCode ) )
                 {
@@ -202,7 +214,108 @@ namespace Rock.Model
                 Number = PhoneNumber.CleanNumber( NumberFormatted );
             }
 
-            base.PreSaveChanges( dbContext, state );
+			// Check for duplicate
+			if ( entry.State == EntityState.Added || entry.State == EntityState.Modified )
+			{
+				var rockContext = ( RockContext ) dbContext;
+				var phoneNumberService = new PhoneNumberService( rockContext );
+				var duplicates = phoneNumberService.Queryable().Where( pn => pn.PersonId == PersonId && pn.Number == Number && pn.CountryCode == CountryCode );
+
+                // Make sure this number isn't considered a duplicate
+                if ( entry.State == EntityState.Modified )
+                {
+                    duplicates = duplicates.Where( d => d.Id != Id );
+                }
+
+                if ( duplicates.Any() )
+				{
+					var highestOrderedDuplicate = duplicates.Where( p => p.NumberTypeValue != null ).OrderBy(p => p.NumberTypeValue.Order).FirstOrDefault();
+					if ( NumberTypeValueId.HasValue && highestOrderedDuplicate != null && highestOrderedDuplicate.NumberTypeValue != null )
+					{
+                        // Ensure that we preserve the PhoneNumber with the highest preference phone type
+						var numberType = DefinedValueCache.Get( NumberTypeValueId.Value, rockContext );
+						if ( highestOrderedDuplicate.NumberTypeValue.Order < numberType.Order )
+						{
+							entry.State = entry.State == EntityState.Added ? EntityState.Detached : EntityState.Deleted;
+						}
+						else
+						{
+							phoneNumberService.DeleteRange( duplicates);
+						}
+					}
+				}
+			}
+
+			int personId = PersonId;
+            PersonHistoryChanges = new Dictionary<int, History.HistoryChangeList> { { personId, new History.HistoryChangeList() } };
+
+            switch ( entry.State )
+            {
+                case EntityState.Added:
+                    {
+
+                        History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone", DefinedValueCache.GetName( NumberTypeValueId ) ), string.Empty, NumberFormatted );
+                        History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone Unlisted", DefinedValueCache.GetName( NumberTypeValueId ) ), (bool?)null, IsUnlisted );
+                        History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone Messaging Enabled", DefinedValueCache.GetName( NumberTypeValueId ) ), (bool?)null, IsMessagingEnabled );
+                        break;
+                    }
+
+                case EntityState.Modified:
+                    {
+                        string numberTypeName = DefinedValueCache.GetName( NumberTypeValueId );
+                        int? oldPhoneNumberTypeId = entry.OriginalValues["NumberTypeValueId"].ToStringSafe().AsIntegerOrNull();
+                        if ( ( oldPhoneNumberTypeId ?? 0 ) == ( NumberTypeValueId ?? 0 ) )
+                        {
+                            History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone", numberTypeName ), entry.OriginalValues["NumberFormatted"].ToStringSafe(), NumberFormatted );
+                        }
+                        else
+                        {
+                            History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone", DefinedValueCache.GetName( oldPhoneNumberTypeId ) ), entry.OriginalValues["NumberFormatted"].ToStringSafe(), string.Empty );
+                            History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone", numberTypeName ), string.Empty, NumberFormatted );
+                        }
+
+                        History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone Unlisted", numberTypeName ), entry.OriginalValues["IsUnlisted"].ToStringSafe().AsBooleanOrNull(), IsUnlisted );
+                        History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone Messaging Enabled", numberTypeName ), entry.OriginalValues["IsMessagingEnabled"].ToStringSafe().AsBooleanOrNull(), IsMessagingEnabled );
+
+                        break;
+                    }
+
+                case EntityState.Deleted:
+                    {
+                        personId = entry.OriginalValues["PersonId"].ToStringSafe().AsInteger();
+                        PersonHistoryChanges.AddOrIgnore( personId, new History.HistoryChangeList() );
+                        int? oldPhoneNumberTypeId = entry.OriginalValues["NumberTypeValueId"].ToStringSafe().AsIntegerOrNull();
+                        History.EvaluateChange( PersonHistoryChanges[personId], string.Format( "{0} Phone", DefinedValueCache.GetName( oldPhoneNumberTypeId ) ), entry.OriginalValues["NumberFormatted"].ToStringSafe(), string.Empty );
+
+                        return;
+                    }
+            }
+
+            base.PreSaveChanges( dbContext, entry );
+        }
+
+        /// <summary>
+        /// Posts the save changes.
+        /// </summary>
+        /// <param name="dbContext">The database context.</param>
+        public override void PostSaveChanges( Data.DbContext dbContext )
+        {
+            var rockContext = dbContext as RockContext;
+            if ( PersonHistoryChanges != null )
+            {
+                foreach ( var keyVal in PersonHistoryChanges )
+                {
+                    int personId = keyVal.Key > 0 ? keyVal.Key : PersonId;
+                    HistoryService.SaveChanges( rockContext, typeof( Person ), Rock.SystemGuid.Category.HISTORY_PERSON_DEMOGRAPHIC_CHANGES.AsGuid(), personId, keyVal.Value, true, this.ModifiedByPersonAliasId );
+                }
+            }
+
+            // update the ModifiedDateTime on the Person that this phone number is associated with
+            var currentDateTime = RockDateTime.Now;
+            var qryPersonsToUpdate = new PersonService( rockContext ).Queryable(true, true).Where( a => a.Id == this.PersonId );
+            rockContext.BulkUpdate( qryPersonsToUpdate, p => new Person { ModifiedDateTime = currentDateTime, ModifiedByPersonAliasId = this.ModifiedByPersonAliasId } );
+
+            base.PostSaveChanges( dbContext );
         }
 
         /// <summary>
@@ -229,7 +342,7 @@ namespace Rock.Model
         /// <returns></returns>
         public static string DefaultCountryCode()
         {
-            var definedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.COMMUNICATION_PHONE_COUNTRY_CODE.AsGuid() );
+            var definedType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.COMMUNICATION_PHONE_COUNTRY_CODE.AsGuid() );
             if ( definedType != null )
             {
                 string countryCode = definedType.DefinedValues.OrderBy( v => v.Order ).Select( v => v.Value ).FirstOrDefault();
@@ -260,7 +373,7 @@ namespace Rock.Model
 
             number = CleanNumber( number );
 
-            var definedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.COMMUNICATION_PHONE_COUNTRY_CODE.AsGuid() );
+            var definedType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.COMMUNICATION_PHONE_COUNTRY_CODE.AsGuid() );
             if ( definedType != null )
             {
                 var definedValues = definedType.DefinedValues.OrderBy( v => v.Order );

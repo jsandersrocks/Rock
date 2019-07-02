@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
 using System.Web;
+
 using Humanizer;
 using Rock.Data;
 using Rock.Model;
@@ -42,22 +43,29 @@ namespace Rock.Communication
         public static void ProcessBounce( string email, BounceType bounceType, string message, DateTime bouncedDateTime )
         {
             // currently only processing hard bounces
-            if ( bounceType == BounceType.HardBounce )
+            if ( bounceType != BounceType.HardBounce )
             {
-                // get people who have those emails
+                return;
+            }
 
+            string bounceMessage = message.IsNotNullOrWhiteSpace() ? $" ({message})" : "";
+
+            // get people who have those emails
+            PersonService personService = new PersonService( new RockContext() );
+            var peopleWithEmail = personService.GetByEmail( email ).Select( p => p.Id ).ToList();
+
+            foreach ( int personId in peopleWithEmail )
+            {
                 RockContext rockContext = new RockContext();
-                PersonService personService = new PersonService( rockContext );
+                personService = new PersonService( rockContext );
+                Person person = personService.Get( personId );
 
-                var peopleWithEmail = personService.GetByEmail( email );
-
-                foreach ( var person in peopleWithEmail )
+                if ( person.IsEmailActive == true )
                 {
                     person.IsEmailActive = false;
-
-                    person.EmailNote = String.Format( "Email experienced a {0} on {1} ({2}).", bounceType.Humanize(), bouncedDateTime.ToShortDateString(), message );
                 }
 
+                person.EmailNote = $"Email experienced a {bounceType.Humanize()} on {bouncedDateTime.ToShortDateString()}{bounceMessage}.";
                 rockContext.SaveChanges();
             }
         }
@@ -75,23 +83,25 @@ namespace Rock.Communication
         {
             try
             {
-                List<string> recipients = null;
+                List<Person> personList = null;
 
                 Guid adminGroup = Rock.SystemGuid.Group.GROUP_ADMINISTRATORS.AsGuid();
 
                 using ( var rockContext = new RockContext() )
                 {
-                    recipients = new GroupMemberService( rockContext ).Queryable()
+                    personList = new GroupMemberService( rockContext ).Queryable()
                         .Where( m =>
                             m.Group.Guid.Equals( adminGroup ) &&
                             m.GroupMemberStatus == GroupMemberStatus.Active &&
                             m.Person.Email != null &&
                             m.Person.Email != "" )
-                        .Select( m => m.Person.Email )
+                        .Select( m => m.Person )
                         .ToList();
                 }
 
                 var errorMessages = new List<string>();
+
+                var recipients = personList.Select( a => new RockEmailMessageRecipient( a, null ) ).ToList();
 
                 var emailMessage = new RockEmailMessage();
                 emailMessage.FromEmail = GlobalAttributesCache.Value( "OrganizationEmail" );
@@ -122,7 +132,8 @@ namespace Rock.Communication
         /// <exception cref="System.Exception">
         /// Error sending System Email: Could not read Email Medium Entity Type
         /// </exception>
-        [Obsolete( "Use the RockEmailMessage object and its Send() method to send emails." )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "Use the RockEmailMessage object and its Send() method to send emails.", true )]
         public static void Send( Guid emailTemplateGuid, List<RecipientData> recipients, string appRoot = "", string themeRoot = "", bool createCommunicationHistory = true )
         {
             using ( var rockContext = new RockContext() )
@@ -153,7 +164,8 @@ namespace Rock.Communication
         /// <param name="themeRoot">The theme root.</param>
         /// <param name="attachments">The attachments.</param>
         /// <param name="createCommunicationHistory">if set to <c>true</c> [create communication history].</param>
-        [Obsolete( "Use the RockEmailMessage object and its Send() method to send emails." )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "Use the RockEmailMessage object and its Send() method to send emails.", true )]
         public static void Send( string fromEmail, string subject, List<string> recipients, string message, string appRoot = "", string themeRoot = "", List<Attachment> attachments = null, bool createCommunicationHistory = true )
         {
             Send( fromEmail, string.Empty, subject, recipients, message, appRoot, themeRoot, attachments, createCommunicationHistory );
@@ -173,7 +185,8 @@ namespace Rock.Communication
         /// <param name="attachments">The attachments.</param>
         /// <param name="createCommunicationHistory">if set to <c>true</c> [create communication history].</param>
         /// <exception cref="System.Exception">Error sending System Email: Could not read Email Medium Entity Type</exception>
-        [Obsolete( "Use the RockEmailMessage object and its Send() method to send emails." )]
+        [RockObsolete( "1.7" )]
+        [Obsolete( "Use the RockEmailMessage object and its Send() method to send emails.", true )]
         public static void Send( string fromEmail, string fromName, string subject, List<string> recipients, string message, string appRoot = "", string themeRoot = "", List<Attachment> attachments = null, bool createCommunicationHistory = true )
         {
             var errorMessages = new List<string>();

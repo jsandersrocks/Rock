@@ -70,6 +70,12 @@ namespace Rock.Model
                 return false;
             }  
  
+            if ( new Service<CommunicationTemplate>( Context ).Queryable().Any( a => a.LogoBinaryFileId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", BinaryFile.FriendlyTypeName, CommunicationTemplate.FriendlyTypeName );
+                return false;
+            }  
+ 
             if ( new Service<CommunicationTemplateAttachment>( Context ).Queryable().Any( a => a.BinaryFileId == item.Id ) )
             {
                 errorMessage = string.Format( "This {0} is assigned to a {1}.", BinaryFile.FriendlyTypeName, CommunicationTemplateAttachment.FriendlyTypeName );
@@ -112,6 +118,12 @@ namespace Rock.Model
                 return false;
             }  
  
+            if ( new Service<NoteAttachment>( Context ).Queryable().Any( a => a.BinaryFileId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", BinaryFile.FriendlyTypeName, NoteAttachment.FriendlyTypeName );
+                return false;
+            }  
+ 
             if ( new Service<Person>( Context ).Queryable().Any( a => a.PhotoId == item.Id ) )
             {
                 errorMessage = string.Format( "This {0} is assigned to a {1}.", BinaryFile.FriendlyTypeName, Person.FriendlyTypeName );
@@ -125,6 +137,12 @@ namespace Rock.Model
             }  
  
             if ( new Service<Site>( Context ).Queryable().Any( a => a.FavIconBinaryFileId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", BinaryFile.FriendlyTypeName, Site.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<Site>( Context ).Queryable().Any( a => a.SiteLogoBinaryFileId == item.Id ) )
             {
                 errorMessage = string.Format( "This {0} is assigned to a {1}.", BinaryFile.FriendlyTypeName, Site.FriendlyTypeName );
                 return false;
@@ -173,11 +191,13 @@ namespace Rock.Model
             target.FileSize = source.FileSize;
             target.ForeignGuid = source.ForeignGuid;
             target.ForeignKey = source.ForeignKey;
+            target.Height = source.Height;
             target.IsSystem = source.IsSystem;
             target.IsTemporary = source.IsTemporary;
             target.MimeType = source.MimeType;
             target.Path = source.Path;
             target.StorageEntitySettings = source.StorageEntitySettings;
+            target.Width = source.Width;
             target.CreatedDateTime = source.CreatedDateTime;
             target.ModifiedDateTime = source.ModifiedDateTime;
             target.CreatedByPersonAliasId = source.CreatedByPersonAliasId;

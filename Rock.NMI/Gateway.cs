@@ -31,8 +31,8 @@ using RestSharp;
 using Rock.Attribute;
 using Rock.Financial;
 using Rock.Model;
-using Rock.Security;
 using Rock.Web.Cache;
+using Rock.Security;
 
 namespace Rock.NMI
 {
@@ -50,7 +50,7 @@ namespace Rock.NMI
     [TextField( "Query API URL", "The URL of the NMI Query API", true, "https://secure.networkmerchants.com/api/query.php", "", 4, "QueryUrl" )]
     [BooleanField( "Prompt for Name On Card", "Should users be prompted to enter name on the card", false, "", 5, "PromptForName" )]
     [BooleanField( "Prompt for Billing Address", "Should users be prompted to enter billing address", false, "", 7, "PromptForAddress" )]
-    public class Gateway : ThreeStepGatewayComponent
+    public class Gateway : GatewayComponent, IThreeStepGatewayComponent
     {
 
         #region Gateway Component Implementation
@@ -61,7 +61,7 @@ namespace Rock.NMI
         /// <value>
         /// The step2 form URL.
         /// </value>
-        public override string Step2FormUrl
+        public string Step2FormUrl
         {
             get
             {
@@ -126,16 +126,16 @@ namespace Rock.NMI
             get
             {
                 var values = new List<DefinedValueCache>();
-                values.Add( DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME ) );
-                values.Add( DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_WEEKLY ) );
-                values.Add( DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_BIWEEKLY ) );
-                values.Add( DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_MONTHLY ) );
+                values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME ) );
+                values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_WEEKLY ) );
+                values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_BIWEEKLY ) );
+                values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_MONTHLY ) );
                 return values;
             }
         }
 
         /// <summary>
-        /// Returnes a boolean value indicating if 'Saved Account' functionality is supported for frequency (i.e. one-time vs repeating )
+        /// Returns a boolean value indicating if 'Saved Account' functionality is supported for frequency (i.e. one-time vs repeating )
         /// </summary>
         /// <param name="isRepeating">if set to <c>true</c> [is repeating].</param>
         /// <returns></returns>
@@ -149,7 +149,7 @@ namespace Rock.NMI
         /// </summary>
         /// <param name="redirectUrl">The redirect URL.</param>
         /// <returns></returns>
-        public override Dictionary<string, string> GetStep1Parameters( string redirectUrl )
+        public Dictionary<string, string> GetStep1Parameters( string redirectUrl )
         {
             var parameters = new Dictionary<string, string>();
             parameters.Add( "redirect-url", redirectUrl );
@@ -179,7 +179,7 @@ namespace Rock.NMI
         /// Url to post the Step2 request to
         /// </returns>
         /// <exception cref="System.ArgumentNullException">paymentInfo</exception>
-        public override string ChargeStep1( FinancialGateway financialGateway, PaymentInfo paymentInfo, out string errorMessage )
+        public string ChargeStep1( FinancialGateway financialGateway, PaymentInfo paymentInfo, out string errorMessage )
         {
             errorMessage = string.Empty;
 
@@ -264,7 +264,7 @@ namespace Rock.NMI
         /// <param name="resultQueryString">The result query string from step 2.</param>
         /// <param name="errorMessage">The error message.</param>
         /// <returns></returns>
-        public override FinancialTransaction ChargeStep3( FinancialGateway financialGateway, string resultQueryString, out string errorMessage )
+        public FinancialTransaction ChargeStep3( FinancialGateway financialGateway, string resultQueryString, out string errorMessage )
         {
             errorMessage = string.Empty;
 
@@ -286,7 +286,7 @@ namespace Rock.NMI
                     errorMessage = result.GetValueOrNull( "result-text" );
 
                     string resultCodeMessage = GetResultCodeMessage( result );
-                    if ( resultCodeMessage.IsNotNullOrWhitespace() )
+                    if ( resultCodeMessage.IsNotNullOrWhiteSpace() )
                     {
                         errorMessage += string.Format( " ({0})", resultCodeMessage );
                     }
@@ -306,7 +306,8 @@ namespace Rock.NMI
                 if ( !string.IsNullOrWhiteSpace( ccNumber ) )
                 {
                     // cc payment
-                    var curType = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD );
+                    var curType = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD );
+                    transaction.FinancialPaymentDetail.NameOnCardEncrypted = Encryption.EncryptString( $"{result.GetValueOrNull( "billing_first-name" )} {result.GetValueOrNull( "billing_last-name" )}" );
                     transaction.FinancialPaymentDetail.CurrencyTypeValueId = curType != null ? curType.Id : (int?)null;
                     transaction.FinancialPaymentDetail.CreditCardTypeValueId = CreditCardPaymentInfo.GetCreditCardType( ccNumber.Replace( '*', '1' ).AsNumeric() )?.Id;
                     transaction.FinancialPaymentDetail.AccountNumberMasked = ccNumber.Masked( true );
@@ -321,9 +322,9 @@ namespace Rock.NMI
                 else
                 {
                     // ach payment
-                    var curType = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH );
+                    var curType = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH );
                     transaction.FinancialPaymentDetail.CurrencyTypeValueId = curType != null ? curType.Id : (int?)null;
-                    transaction.FinancialPaymentDetail.AccountNumberMasked = result.GetValueOrNull( "billing_account_number" ).Masked( true );
+                    transaction.FinancialPaymentDetail.AccountNumberMasked = result.GetValueOrNull( "billing_account-number" ).Masked( true );
                 }
 
                 transaction.AdditionalLavaFields = new Dictionary<string,object>();
@@ -420,7 +421,7 @@ namespace Rock.NMI
         /// <param name="errorMessage">The error message.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">paymentInfo</exception>
-        public override string AddScheduledPaymentStep1( FinancialGateway financialGateway, PaymentSchedule schedule, PaymentInfo paymentInfo, out string errorMessage )
+        public string AddScheduledPaymentStep1( FinancialGateway financialGateway, PaymentSchedule schedule, PaymentInfo paymentInfo, out string errorMessage )
         {
             errorMessage = string.Empty;
 
@@ -500,7 +501,7 @@ namespace Rock.NMI
         /// <param name="errorMessage">The error message.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">tokenId</exception>
-        public override FinancialScheduledTransaction AddScheduledPaymentStep3( FinancialGateway financialGateway, string resultQueryString, out string errorMessage )
+        public FinancialScheduledTransaction AddScheduledPaymentStep3( FinancialGateway financialGateway, string resultQueryString, out string errorMessage )
         {
             errorMessage = string.Empty;
 
@@ -533,7 +534,7 @@ namespace Rock.NMI
                 if ( !string.IsNullOrWhiteSpace( ccNumber ) )
                 {
                     // cc payment
-                    var curType = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD );
+                    var curType = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD );
                     scheduledTransaction.FinancialPaymentDetail.CurrencyTypeValueId = curType != null ? curType.Id : (int?)null;
                     scheduledTransaction.FinancialPaymentDetail.CreditCardTypeValueId = CreditCardPaymentInfo.GetCreditCardType( ccNumber.Replace( '*', '1' ).AsNumeric() )?.Id;
                     scheduledTransaction.FinancialPaymentDetail.AccountNumberMasked = ccNumber.Masked( true );
@@ -548,7 +549,7 @@ namespace Rock.NMI
                 else
                 {
                     // ach payment
-                    var curType = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH );
+                    var curType = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH );
                     scheduledTransaction.FinancialPaymentDetail.CurrencyTypeValueId = curType != null ? curType.Id : (int?)null;
                     scheduledTransaction.FinancialPaymentDetail.AccountNumberMasked = result.GetValueOrNull( "billing_account_number" ).Masked( true );
                 }
@@ -591,7 +592,7 @@ namespace Rock.NMI
         /// <returns></returns>
         public override bool ReactivateScheduledPayment( FinancialScheduledTransaction transaction, out string errorMessage )
         {
-            errorMessage = "The payment gateway associated with this scheduled tranaction (NMI) does not support reactivating scheduled transactions. A new scheduled transaction should be created instead.";
+            errorMessage = "The payment gateway associated with this scheduled transaction (NMI) does not support reactivating scheduled transactions. A new scheduled transaction should be created instead.";
             return false;
         }
 
@@ -828,6 +829,17 @@ namespace Rock.NMI
             return string.Empty;
         }
 
+        /// <summary>
+        /// Gets the next payment date.
+        /// </summary>
+        /// <param name="scheduledTransaction">The transaction.</param>
+        /// <param name="lastTransactionDate">The last transaction date.</param>
+        /// <returns></returns>
+        public override DateTime? GetNextPaymentDate( FinancialScheduledTransaction scheduledTransaction, DateTime? lastTransactionDate )
+        {
+            return CalculateNextPaymentDate( scheduledTransaction, lastTransactionDate );
+        }
+
         private XElement GetRoot( FinancialGateway financialGateway, string elementName )
         {
             XElement rootElement = new XElement( elementName,
@@ -844,6 +856,13 @@ namespace Rock.NMI
         /// <returns></returns>
         private XElement GetBilling( PaymentInfo paymentInfo )
         {
+            // If giving from a Business, FirstName will be blank
+            // The Gateway might require a FirstName, so just put '-' if no FirstName was provided
+            if ( paymentInfo.FirstName.IsNullOrWhiteSpace())
+            {
+                paymentInfo.FirstName = "-";
+            }
+
             XElement billingElement = new XElement( "billing",
                 new XElement( "first-name", paymentInfo.FirstName ),
                 new XElement( "last-name", paymentInfo.LastName ),

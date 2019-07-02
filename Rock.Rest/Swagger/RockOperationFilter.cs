@@ -17,7 +17,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Http.Description;
+
 using Rock.Attribute;
+
 using Swashbuckle.Swagger;
 
 namespace Rock.Rest.Swagger

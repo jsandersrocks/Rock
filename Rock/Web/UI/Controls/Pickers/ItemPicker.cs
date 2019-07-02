@@ -27,7 +27,7 @@ namespace Rock.Web.UI.Controls
     /// <summary>
     /// 
     /// </summary>
-    public abstract class ItemPicker : CompositeControl, IRockControl
+    public abstract class ItemPicker : CompositeControl, IRockControl, IRockChangeHandlerControl
     {
         #region IRockControl implementation
 
@@ -454,6 +454,16 @@ namespace Rock.Web.UI.Controls
         public bool AllowMultiSelect { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether [allow category selection].
+        /// If set to true then the user will be allowed to select a Category in addition to the Items.
+        /// Default value is false.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [allow category selection]; otherwise, <c>false</c>.
+        /// </value>
+        public bool AllowCategorySelection { get; set; } = false;
+
+        /// <summary>
         /// Gets or sets a value indicating whether [show select children].
         /// </summary>
         /// <value>
@@ -548,6 +558,7 @@ $@"Rock.controls.itemPicker.initialize({{
     controlId: '{this.ClientID}',
     restUrl: '{this.ResolveUrl( ItemRestUrl )}',
     allowMultiSelect: {this.AllowMultiSelect.ToString().ToLower()},
+    allowCategorySelection: {this.AllowCategorySelection.ToString().ToLower()},
     defaultText: '{this.DefaultText}',
     restParams: $('#{_hfItemRestUrlExtraParams.ClientID}').val(),
     expandedIds: [{this.InitialItemParentIds}],
@@ -594,8 +605,8 @@ $@"Rock.controls.itemPicker.initialize({{
             _btnSelect.InnerText = "Select";
             _btnSelect.CausesValidation = false;
 
-            // we only need the postback on Select if SelectItem is assigned or if this is PagePicker
-            if ( SelectItem != null || ( this is PagePicker ) )
+            // make sure  this always does a postback if this is a PagePicker or if ValueChanged is assigned, even if _selectItem is not assigned
+            if ( _selectItem == null && ( this is PagePicker || _valueChanged != null ) )
             {
                 _btnSelect.ServerClick += btnSelect_Click;
             }
@@ -607,8 +618,8 @@ $@"Rock.controls.itemPicker.initialize({{
             _btnSelectNone.CausesValidation = false;
             _btnSelectNone.Style[HtmlTextWriterStyle.Display] = "none";
 
-            // we only need the postback on SelectNone if SelectItem is assigned or if this is PagePicker
-            if ( SelectItem != null || ( this is PagePicker ) )
+            // make sure  this always does a postback if this is a PagePicker or if ValueChanged is assigned, even if _selectItem is not assigned
+            if ( _selectItem == null && ( this is PagePicker || _valueChanged != null ) )
             {
                 _btnSelectNone.ServerClick += btnSelect_Click;
             }
@@ -640,7 +651,7 @@ $@"Rock.controls.itemPicker.initialize({{
         }
 
         /// <summary>
-        /// This is where you implment the simple aspects of rendering your control.  The rest
+        /// This is where you implement the simple aspects of rendering your control.  The rest
         /// will be handled by calling RenderControlHelper's RenderControl() method.
         /// </summary>
         /// <param name="writer">The writer.</param>
@@ -845,14 +856,13 @@ $@"Rock.controls.itemPicker.initialize({{
                 SetValueOnSelect();
             }
 
-            if ( SelectItem != null )
-            {
-                SelectItem( sender, e );
-            }
+            
+            _selectItem?.Invoke( sender, e );
+            _valueChanged?.Invoke( sender, e );
         }
 
         /// <summary>
-        /// Sets the value.
+        /// Sets the selected value to the item with the specified id
         /// </summary>
         /// <param name="id">The id.</param>
         public void SetValue( int? id )
@@ -862,12 +872,12 @@ $@"Rock.controls.itemPicker.initialize({{
         }
 
         /// <summary>
-        /// Sets the values.
+        /// Sets the selected values to the items with the specified ids
         /// </summary>
         /// <param name="ids">The ids.</param>
         public void SetValues( IEnumerable<int> ids )
         {
-            ItemIds = ids.Select( i => i.ToString() );
+            ItemIds = ids != null ? ids.Select( i => i.ToString() ) : new List<string>();
             SetValuesOnSelect();
         }
 
@@ -882,9 +892,56 @@ $@"Rock.controls.itemPicker.initialize({{
         protected abstract void SetValuesOnSelect();
 
         /// <summary>
+        /// private reference to ValueChanged so that we can do special stuff in the add/remove accessors
+        /// </summary>
+        private event EventHandler _valueChanged;
+
+        /// <summary>
+        /// Occurs when the selected value has changed
+        /// </summary>
+        public event EventHandler ValueChanged
+        {
+            add
+            {
+                EnsureChildControls();
+                _valueChanged += value;
+                _btnSelect.ServerClick += btnSelect_Click;
+                _btnSelectNone.ServerClick += btnSelect_Click;
+            }
+
+            remove
+            {
+                _valueChanged -= value;
+                _btnSelect.ServerClick -= btnSelect_Click;
+                _btnSelectNone.ServerClick -= btnSelect_Click;
+            }
+        }
+
+        /// <summary>
+        /// private reference to SelectItem so that we can do special stuff in the add/remove accessors
+        /// </summary>
+        private event EventHandler _selectItem;
+
+        /// <summary>
         /// Occurs when [select item].
         /// </summary>
-        public event EventHandler SelectItem;
+        public event EventHandler SelectItem
+        {
+            add
+            {
+                EnsureChildControls();
+                _selectItem += value;
+                _btnSelect.ServerClick += btnSelect_Click;
+                _btnSelectNone.ServerClick += btnSelect_Click;
+            }
+
+            remove
+            {
+                _selectItem -= value;
+                _btnSelect.ServerClick -= btnSelect_Click;
+                _btnSelectNone.ServerClick -= btnSelect_Click;
+            }
+        }
 
         /// <summary>
         /// Shows the error message.

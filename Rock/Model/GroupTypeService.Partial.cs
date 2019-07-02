@@ -17,7 +17,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Rock.Data;
+using Rock.Web.Cache;
 
 namespace Rock.Model
 {
@@ -85,6 +87,8 @@ namespace Rock.Model
 		            SELECT [a].[GroupTypeId],[a].[ChildGroupTypeId] FROM [GroupTypeAssociation] [a]
 		            JOIN CTE acte ON acte.[ChildGroupTypeId] = [a].[GroupTypeId]
                     WHERE acte.[ChildGroupTypeId] <> acte.[GroupTypeId]
+					-- and the child group type can't be a parent group type
+					AND [a].[ChildGroupTypeId] <> acte.[GroupTypeId]
                  )
                 SELECT *
                 FROM [GroupType]
@@ -133,6 +137,8 @@ namespace Rock.Model
 		                INNER JOIN CTE ON CTE.[ChildGroupTypeId] = GTA.[GroupTypeId]
 		                INNER JOIN [GroupType] GT2 ON GT2.[Id] = GTA.[GroupTypeId]
                       WHERE CTE.[ChildGroupTypeId] <> CTE.[GroupTypeId]
+					  -- and the child group type can't be a parent group type
+					  AND GTA.[ChildGroupTypeId] <> CTE.[GroupTypeId]
                 )
                 SELECT GT3.*
                 FROM CTE
@@ -154,7 +160,7 @@ namespace Rock.Model
         {
             return this.Context.Database.SqlQuery<GroupTypePath>(
                 @"
-                -- Get GroupType association heirarchy with GroupType ancestor path information
+                -- Get GroupType association hierarchy with GroupType ancestor path information
                 WITH CTE (ChildGroupTypeId,GroupTypeId, HierarchyPath) AS
                 (
                       SELECT [ChildGroupTypeId], [GroupTypeId], CONVERT(nvarchar(500),'')
@@ -169,6 +175,8 @@ namespace Rock.Model
 		                INNER JOIN CTE ON CTE.[ChildGroupTypeId] = GTA.[GroupTypeId]
 		                INNER JOIN [GroupType] GT2 ON GT2.[Id] = GTA.[GroupTypeId]
                       WHERE CTE.[ChildGroupTypeId] <> CTE.[GroupTypeId]
+					  -- and the child group type can't be a parent group type
+					  AND GTA.[ChildGroupTypeId] <> CTE.[GroupTypeId]
                 )
                 SELECT GT3.Id as 'GroupTypeId', SUBSTRING( CONVERT(nvarchar(500), CTE.HierarchyPath + ' > ' + GT3.Name), 4, 500) AS 'Path'
                 FROM CTE
@@ -189,7 +197,7 @@ namespace Rock.Model
             var qry = groupTypeService.Queryable();
 
             // limit to show only GroupTypes that have a group type purpose of Checkin Template
-            int groupTypePurposeCheckInTemplateId = Rock.Web.Cache.DefinedValueCache.Read( new Guid( Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE ) ).Id;
+            int groupTypePurposeCheckInTemplateId = DefinedValueCache.Get( new Guid( Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE ) ).Id;
             qry = qry.Where( a => a.GroupTypePurposeValueId == groupTypePurposeCheckInTemplateId );
 
             foreach ( var groupTypeId in qry.Select( a => a.Id ) )
@@ -230,13 +238,27 @@ namespace Rock.Model
         }
 
         /// <summary>
+        /// Does a direct Bulk Delete of group history for all groups and group members of the specified group type and commits the changes to the database.
+        /// </summary>
+        /// <param name="groupTypeId">The group type identifier.</param>
+        public void BulkDeleteGroupHistory( int groupTypeId )
+        {
+            var rockContext = this.Context as RockContext;
+            var groupHistoryRecordsToDelete = new GroupHistoricalService( rockContext ).Queryable().Where( a => a.GroupTypeId == groupTypeId );
+            var groupMemberHistoryRecordsToDelete = new GroupMemberHistoricalService( rockContext ).Queryable().Where( a => a.Group.GroupTypeId == groupTypeId );
+
+            rockContext.BulkDelete( groupHistoryRecordsToDelete );
+            rockContext.BulkDelete( groupMemberHistoryRecordsToDelete );
+        }
+
+        /// <summary>
         /// Gets the Guid for the GroupType that has the specified Id
         /// </summary>
         /// <param name="id">The identifier.</param>
         /// <returns></returns>
         public override Guid? GetGuid( int id )
         {
-            var cacheItem = Rock.Web.Cache.GroupTypeCache.Read( id );
+            var cacheItem = GroupTypeCache.Get( id );
             if ( cacheItem != null )
             {
                 return cacheItem.Guid;

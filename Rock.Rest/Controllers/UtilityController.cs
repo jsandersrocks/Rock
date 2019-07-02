@@ -15,12 +15,11 @@
 // </copyright>
 //
 using System;
-using System.Web.Http;
-using System.Collections.Generic;
 using System.Linq;
+using System.Web.Http;
+
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
-using Rock.VersionInfo;
 
 namespace Rock.Rest.Controllers
 {
@@ -38,9 +37,26 @@ namespace Rock.Rest.Controllers
         /// <returns></returns>
         [System.Web.Http.Route( "api/Utility/CalculateSlidingDateRange" )]
         [HttpGet]
-        public string CalculateSlidingDateRange( Rock.Web.UI.Controls.SlidingDateRangePicker.SlidingDateRangeType slidingDateRangeType, Rock.Web.UI.Controls.SlidingDateRangePicker.TimeUnitType timeUnitType, int number = 1 )
+        public string CalculateSlidingDateRange( SlidingDateRangePicker.SlidingDateRangeType slidingDateRangeType, SlidingDateRangePicker.TimeUnitType timeUnitType, int number = 1 )
         {
-            var dateRange = SlidingDateRangePicker.CalculateDateRangeFromDelimitedValues( string.Format( "{0}|{1}|{2}||", slidingDateRangeType, number, timeUnitType ) );
+            var dateRange = SlidingDateRangePicker.CalculateDateRangeFromDelimitedValues( string.Format( "{0}|{1}|{2}|{3}|{4}", slidingDateRangeType, number, timeUnitType, string.Empty, string.Empty ) );
+            return dateRange.ToStringAutomatic();
+        }
+
+        /// <summary>
+        /// Calculates the sliding date range with optional start and end dates.
+        /// </summary>
+        /// <param name="slidingDateRangeType">Type of the sliding date range.</param>
+        /// <param name="timeUnitType">Type of the time unit. Hour = 0, Day = 1, Week = 2, Month = 3, Year = 4</param>
+        /// <param name="startDate">The start date.</param>
+        /// <param name="endDate">The end date.</param>
+        /// <param name="number">The number.</param>
+        /// <returns></returns>
+        [System.Web.Http.Route( "api/Utility/CalculateSlidingDateRange" )]
+        [HttpGet]
+        public string CalculateSlidingDateRange( SlidingDateRangePicker.SlidingDateRangeType slidingDateRangeType, SlidingDateRangePicker.TimeUnitType timeUnitType, string startDate, string endDate, int number = 1 )
+        {
+            var dateRange = SlidingDateRangePicker.CalculateDateRangeFromDelimitedValues( string.Format( "{0}|{1}|{2}|{3}|{4}", slidingDateRangeType, number, timeUnitType, startDate, endDate ) );
             return dateRange.ToStringAutomatic();
         }
 
@@ -53,9 +69,26 @@ namespace Rock.Rest.Controllers
         /// <returns></returns>
         [System.Web.Http.Route( "api/Utility/GetSlidingDateRangeTextValue" )]
         [HttpGet]
-        public string GetSlidingDateRangeTextValue( Rock.Web.UI.Controls.SlidingDateRangePicker.SlidingDateRangeType slidingDateRangeType, Rock.Web.UI.Controls.SlidingDateRangePicker.TimeUnitType timeUnitType, int number = 1 )
+        public string GetSlidingDateRangeTextValue( SlidingDateRangePicker.SlidingDateRangeType slidingDateRangeType, SlidingDateRangePicker.TimeUnitType timeUnitType, int number = 1 )
         {
-            string textValue = SlidingDateRangePicker.FormatDelimitedValues( string.Format( "{0}|{1}|{2}||", slidingDateRangeType, number, timeUnitType ) );
+            string textValue = SlidingDateRangePicker.FormatDelimitedValues( string.Format( "{0}|{1}|{2}|{3}|{4}", slidingDateRangeType, number, timeUnitType, string.Empty, string.Empty ) );
+            return textValue;
+        }
+
+        /// <summary>
+        /// Calculates the sliding date range text value for the SlidingDateRange control (called from client side) and returns a string of the sliding date range picker values in text format (Last 4 Weeks, etc)
+        /// </summary>
+        /// <param name="slidingDateRangeType">Type of the sliding date range. </param>
+        /// <param name="timeUnitType">Type of the time unit. Hour = 0, Day = 1, Week = 2, Month = 3, Year = 4</param>
+        /// <param name="number">The number.</param>
+        /// <param name="startDate"></param>
+        /// <param name="endDate"></param>
+        /// <returns></returns>
+        [System.Web.Http.Route( "api/Utility/GetSlidingDateRangeTextValue" )]
+        [HttpGet]
+        public string GetSlidingDateRangeTextValue( SlidingDateRangePicker.SlidingDateRangeType slidingDateRangeType, SlidingDateRangePicker.TimeUnitType timeUnitType, string startDate, string endDate, int number = 1 )
+        {
+            string textValue = SlidingDateRangePicker.FormatDelimitedValues( string.Format( "{0}|{1}|{2}|{3}|{4}", slidingDateRangeType, number, timeUnitType, startDate, endDate ) );
             return textValue;
         }
 
@@ -91,7 +124,7 @@ namespace Rock.Rest.Controllers
                 {
                     int id = idParts[0].AsInteger();
                     Guid guid = idParts[1].AsGuid();
-                    var campus = CampusCache.Read( guid );
+                    var campus = CampusCache.Get( guid );
                     if ( campus != null )
                     {
                         return campus.Id;
@@ -115,6 +148,25 @@ namespace Rock.Rest.Controllers
         public string GetRockSemanticVersionNumber()
         {
             return VersionInfo.VersionInfo.GetRockSemanticVersionNumber();
+        }
+
+        /// <summary>
+        /// Initiates a new workflow
+        /// </summary>
+        /// <param name="fromNumber">From number.</param>
+        /// <param name="toNumber">To number.</param>
+        /// <param name="message">The message.</param>
+        /// <returns></returns>
+        //[Authenticate, Secured]
+        [HttpPost]
+        [System.Web.Http.Route( "api/Utility/TextToWorkflow/{fromNumber}/{toNumber}/{message}" )]
+        public string TextToWorkflow( string fromNumber, string toNumber, string message )
+        {
+            var processResponse = string.Empty;
+
+            Utility.TextToWorkflow.MessageRecieved( toNumber, fromNumber, message, out processResponse );
+
+            return processResponse;
         }
     }
 }

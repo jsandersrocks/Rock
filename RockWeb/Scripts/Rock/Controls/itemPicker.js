@@ -9,6 +9,7 @@
 
             // set a flag so that the picker only auto-scrolls to a selected item once. This prevents it from scrolling at unwanted times
             this.alreadyScrolledToSelected = false;
+            this.iScroll = null;
         },
             exports;
 
@@ -19,6 +20,7 @@
                     $tree = $control.find('.treeview'),
                     treeOptions = {
                         multiselect: this.options.allowMultiSelect,
+                        categorySelection: this.options.allowCategorySelection,
                         restUrl: this.options.restUrl,
                         restParams: this.options.restParams,
                         expandedIds: this.options.expandedIds,
@@ -41,8 +43,22 @@
                 }
                 $tree.empty();
 
-                $control.find('.scroll-container').tinyscrollbar({ size: 120, sizethumb: 20 });
-                // Since some hanlers are "live" events, they need to be bound before tree is initialized
+                var $scrollContainer = $control.find('.scroll-container .viewport');
+                var $scrollIndicator = $control.find('.track');
+                this.iScroll = new IScroll($scrollContainer[0], {
+                    mouseWheel: true,
+                    indicators: {
+                        el: $scrollIndicator[0],
+                        interactive: true,
+                        resize: false,
+                        listenY: true,
+                        listenX: false,
+                    },
+                    click: false,
+                    preventDefaultException: { tagName: /.*/ }
+                });
+
+                // Since some handlers are "live" events, they need to be bound before tree is initialized
                 this.initializeEventHandlers();
 
                 if ($hfItemIds.val() && $hfItemIds !== '0') {
@@ -84,15 +100,18 @@
 
                 $control.find('a.picker-label').click(function (e) {
                     e.preventDefault();
-                    $control.find('.picker-menu').first().toggle(function () {
+                    $(this).toggleClass("active");
+                    $control.find('.picker-menu').first().toggle(0, function () {
                         self.scrollToSelectedItem();
                     });
                 });
 
                 $control.find('.picker-cancel').click(function () {
-                    $(this).closest('.picker-menu').slideUp(function () {
+                    $(this).toggleClass("active");
+                    $(this).closest('.picker-menu').toggle(0, function () {
                         self.updateScrollbar();
                     });
+                    $(this).closest('a.picker-label').toggleClass("active");
                 });
 
                 // have the X appear on hover if something is selected
@@ -108,9 +127,10 @@
                             selectedIds = [],
                             selectedNames = [];
 
-                    $.each(selectedNodes, function (index, node) {
-                        selectedIds.push(node.id);
-                        selectedNames.push(node.name);
+                  $.each(selectedNodes, function (index, node) {
+                    var nodeName = $("<textarea/>").html(node.name).text();
+                    selectedNames.push(nodeName);
+                    selectedIds.push(node.id);
                     });
 
                     $hfItemIds.val(selectedIds.join(','));
@@ -123,10 +143,11 @@
                     $spanNames.text(selectedNames.join(', '));
                     $spanNames.attr('title', $spanNames.text());
 
-                    $(this).closest('.picker-menu').slideUp(function () {
+                    $(this).closest('a.picker-label').toggleClass("active");
+                    $(this).closest('.picker-menu').toggle(0, function () {
                         self.updateScrollbar();
                     });
-                    
+
                     if (!(el && el.originalEvent && el.originalEvent.srcElement == this)) {
                         // if this event was called by something other than the button itself, make sure the execute the href (which is probably javascript)
                         var jsPostback = $(this).attr('href');
@@ -172,7 +193,7 @@
                   });
 
                   if (!allItemNodesAlreadySelected) {
-                    // mark them all as unselected (just in case some are selected already), then click them to select them 
+                    // mark them all as unselected (just in case some are selected already), then click them to select them
                     $itemNameNodes.removeClass('selected');
                     $itemNameNodes.click();
                   } else {
@@ -183,42 +204,30 @@
                 });
             },
             updateScrollbar: function (sPosition) {
+                var self = this;
                 // first, update this control's scrollbar, then the modal's
-                var $container = $('#' + this.options.controlId).find('.scroll-container')
+                var $container = $('#' + this.options.controlId).find('.scroll-container');
 
                 if ($container.is(':visible')) {
                     if (!sPosition) {
                         sPosition = 'relative'
                     }
-                    $container.tinyscrollbar_update(sPosition);
+                    if (self.iScroll) {
+                        self.iScroll.refresh();
+                    }
                 }
 
-                // update the outer modal  
+                // update the outer modal
                 Rock.dialogs.updateModalScrollBar(this.options.controlId);
             },
             scrollToSelectedItem: function () {
-                var $selectedItem = $('#' + this.options.controlId).find('.picker-menu').find('.selected').first()
+                var $selectedItem = $('#' + this.options.controlId).find('.picker-menu').find('.selected').first();
                 if ($selectedItem.length && (!this.alreadyScrolledToSelected)) {
-                    var $scrollContainer = $selectedItem.closest('.scroll-container');
-                    var itemTop = $selectedItem.offset().top
-                    var itemBottom = $selectedItem.offset().top + $selectedItem.height();
-                    var viewportTop = $scrollContainer.offset().top;
-                    var viewportBottom = $scrollContainer.offset().top + $scrollContainer.height();
-
-                    // scroll so the item is at top if it isn't already showing within the viewport
-                    if (itemTop < viewportTop || itemBottom > viewportBottom) {
-                        var treeview = $selectedItem.closest('.treeview');
-                        var pPosition = $selectedItem.offset().top - treeview.offset().top;
-                        // initialize/update the scrollbar and set to a specific position
-                        this.updateScrollbar(pPosition);
-                        this.alreadyScrolledToSelected = true;
-                    }
-                    else {
-                        // initialize/update the scrollbar 
-                        this.updateScrollbar();
-                    }
+                    this.updateScrollbar();
+                    this.iScroll.scrollToElement('.selected', '0s');
+                    this.alreadyScrolledToSelected = true;
                 } else {
-                    // initialize/update the scrollbar 
+                    // initialize/update the scrollbar
                     this.updateScrollbar();
                 }
             }
@@ -230,6 +239,7 @@
                 controlId: null,
                 restUrl: null,
                 restParams: null,
+                allowCategorySelection: false,
                 allowMultiSelect: false,
                 defaultText: '',
                 selectedIds: null,

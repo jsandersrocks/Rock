@@ -26,7 +26,7 @@ namespace Rock.Web.UI.Controls
     /// <summary>
     /// 
     /// </summary>
-    public class DatePartsPicker : CompositeControl, IRockControl
+    public class DatePartsPicker : CompositeControl, IRockControl, IRockChangeHandlerControl
     {
         #region IRockControl implementation
 
@@ -362,6 +362,7 @@ namespace Rock.Web.UI.Controls
             Controls.Clear();
             RockControlHelper.CreateChildControls( this, Controls );
 
+            this.Attributes["data-required"] = this.Required.ToTrueFalse().ToLower();
             this.Attributes["data-requireyear"] = this.RequireYear.ToTrueFalse().ToLower();
             this.Attributes["data-allowFuture"] = this.AllowFutureDates.ToTrueFalse().ToLower();
 
@@ -404,12 +405,18 @@ namespace Rock.Web.UI.Controls
         protected void dateList_SelectedIndexChanged( object sender, EventArgs e )
         {
             SelectedDatePartsChanged?.Invoke( this, e );
+            ValueChanged?.Invoke( this, e );
         }
 
         /// <summary>
         /// Occurs when [selected date parts changed].
         /// </summary>
         public event EventHandler SelectedDatePartsChanged;
+
+        /// <summary>
+        /// Occurs when the selected value has changed
+        /// </summary>
+        public event EventHandler ValueChanged;
 
         /// <summary>
         /// Populates the drop downs.
@@ -467,13 +474,14 @@ namespace Rock.Web.UI.Controls
         /// <param name="writer">The writer.</param>
         public void RenderBaseControl( HtmlTextWriter writer )
         {
-            bool needsAutoPostBack = SelectedDatePartsChanged != null;
+            bool needsAutoPostBack = SelectedDatePartsChanged != null || ValueChanged != null;
             monthDropDownList.AutoPostBack = needsAutoPostBack;
             dayDropDownList.AutoPostBack = needsAutoPostBack;
             yearDropDownList.AutoPostBack = needsAutoPostBack;
 
             writer.AddAttribute( "class", "form-control-group js-datepartspicker" );
 
+            writer.AddAttribute( "data-required", this.Required.ToTrueFalse().ToLower() );
             writer.AddAttribute( "data-requireyear", this.RequireYear.ToTrueFalse().ToLower() );
             writer.AddAttribute( "data-allowFuture", this.AllowFutureDates.ToTrueFalse().ToLower() );
             writer.AddAttribute( "data-itemlabel", this.Label );
@@ -540,7 +548,7 @@ namespace Rock.Web.UI.Controls
                 if ( selectedMonth.HasValue && selectedDay.HasValue )
                 {
                     // if they picked a day of the month that is invalid, just round it to last day that month;
-                    int correctedDayOfMonth = Math.Min( DateTime.DaysInMonth( DateTime.MinValue.Year, selectedMonth.Value ), selectedDay.Value );
+                    int correctedDayOfMonth = Math.Min( DateTime.DaysInMonth( selectedYear ?? DateTime.MinValue.Year, selectedMonth.Value ), selectedDay.Value );
 
                     var date = new DateTime( ( selectedYear.HasValue ? selectedYear.Value : DateTime.MinValue.Year ), selectedMonth.Value, correctedDayOfMonth );
                     if ( !this.AllowFutureDates && date > RockDateTime.Today )

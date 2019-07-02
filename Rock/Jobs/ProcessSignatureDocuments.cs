@@ -17,15 +17,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.IO;
 
 using Quartz;
 
 using Rock;
 using Rock.Attribute;
-using Rock.Model;
 using Rock.Data;
+using Rock.Model;
 
 namespace Rock.Jobs
 {
@@ -40,7 +38,7 @@ namespace Rock.Jobs
     public class ProcessSignatureDocuments : IJob
     {
         /// <summary> 
-        /// Empty constructor for job initilization
+        /// Empty constructor for job initialization
         /// <para>
         /// Jobs require a public empty constructor so that the
         /// scheduler can instantiate the class whenever it needs.
@@ -116,7 +114,7 @@ namespace Rock.Jobs
                 foreach ( var gm in new GroupMemberService( rockContext ).Queryable()
                     .Where( m =>
                         m.GroupMemberStatus == GroupMemberStatus.Active &&
-                        m.Group.IsActive &&
+                        m.Group.IsActive && !m.Group.IsArchived &&
                         m.Person.Email != null &&
                         m.Person.Email != "" &&
                         m.Group.RequiredSignatureDocumentTemplate != null &&

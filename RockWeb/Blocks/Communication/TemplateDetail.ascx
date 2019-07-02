@@ -8,11 +8,12 @@
                 <h1 class="panel-title"><i class="fa fa-file-text-o"></i>
                     <asp:Literal ID="lTitle" runat="server" /></h1>
             </div>
+            <Rock:PanelDrawer ID="pdAuditDetails" runat="server"></Rock:PanelDrawer>
             <div class="panel-body">
 
                 <asp:HiddenField ID="hfCommunicationTemplateId" runat="server" />
 
-                <asp:ValidationSummary ID="ValidationSummary" runat="server" HeaderText="Please Correct the Following" CssClass="alert alert-danger" />
+                <asp:ValidationSummary ID="ValidationSummary" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" />
 
                 <Rock:NotificationBox ID="nbEditModeMessage" runat="server" NotificationBoxType="Info" />
 
@@ -33,18 +34,25 @@
 
                 <div class="row">
                     <div class="col-md-6">
+                        <Rock:CategoryPicker ID="cpCategory" runat="server" Required="false" Label="Category" EntityTypeName="Rock.Model.CommunicationTemplate" />
+                    </div>
+                    <div class="col-md-6">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
                         <Rock:ImageUploader ID="imgTemplatePreview" runat="server" Label="Template Preview Image" Help="The preview of this template to show when selecting a template for a new communication" />
                     </div>
                 </div>
 
-                <asp:Panel ID="pnlEmailTemplate" CssClass="js-email-template" runat="server">
-                    <h2>Email</h2>
+                <Rock:PanelWidget ID="pnlEmailTemplate" Title="Email" TitleIconCssClass="fa fa-envelope" CssClass="js-email-template" runat="server" Expanded="true">
                     <div class="row">
                         <div class="col-md-6">
-                            <Rock:RockTextBox ID="tbFromName" runat="server" Label="From Name" />
+                            <Rock:RockTextBox ID="tbFromName" runat="server" Label="From Name" Help="<small><span class='tip tip-lava'></span></small>" />
                         </div>
                         <div class="col-md-6">
-                            <Rock:RockTextBox ID="tbFromAddress" runat="server" Label="From Address" />
+                            <Rock:EmailBox ID="tbFromAddress" runat="server" Label="From Address" AllowMultiple="false" Help="<small><span class='tip tip-lava'></span></small>" AllowLava="true" />
                             <asp:HiddenField ID="hfShowAdditionalFields" runat="server" />
                             <div class="pull-right">
                                 <a href="#" class="btn btn-xs btn-link js-show-additional-fields">Show Additional Fields</a>
@@ -55,17 +63,17 @@
                     <asp:Panel ID="pnlEmailSummaryAdditionalFields" runat="server" CssClass="js-additional-fields" Style="display: none">
                         <div class="row">
                             <div class="col-md-6">
-                                <Rock:RockTextBox ID="tbReplyToAddress" runat="server" Label="Reply To Address" />
+                                <Rock:EmailBox ID="tbReplyToAddress" runat="server" Label="Reply To Address" />
                             </div>
                             <div class="col-md-6">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
-                                <Rock:RockTextBox ID="tbCCList" runat="server" Label="CC List" />
+                                <Rock:EmailBox ID="tbCCList" runat="server" Label="CC List" AllowMultiple="true" />
                             </div>
                             <div class="col-md-6">
-                                <Rock:RockTextBox ID="tbBCCList" runat="server" Label="BCC List" />
+                                <Rock:EmailBox ID="tbBCCList" runat="server" Label="BCC List" AllowMultiple="true" />
                             </div>
                         </div>
                     </asp:Panel>
@@ -85,22 +93,78 @@
                         </div>
                     </div>
 
-
                     <label class="control-label">Message Template</label>
+                    
+                    <div class="well">
+                    <Rock:Toggle ID="tglPreviewAdvanced" runat="server" CssClass="pull-right" OnText="Preview" OffText="Advanced" Checked="true" ButtonSizeCssClass="btn-xs" OnCssClass="btn-info" OffCssClass="btn-info" OnCheckedChanged="tglPreviewAdvanced_CheckedChanged" />
+                    
+                    <asp:Panel ID="pnlAdvanced" runat="server" CssClass="margin-t-md">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="js-help-container">
+                                    <a class="help" href="javascript: $('.js-template-help').toggle;"><i class="fa fa-question-circle"></i></a>        
+                                    <div class="alert alert-info js-template-help" id="nbTemplateHelp" runat="server" style="display: none;"></div>                                
+                                </div>
+                                <Rock:CodeEditor ID="ceEmailTemplate" runat="server" EditorHeight="400" EditorMode="Html" />
+                            </div>
+                            <div class="col-md-4">
+                                <Rock:RockCheckBox ID="cbCssInliningEnabled" runat="server" Text="CSS Inlining Enabled" Help="Enable CSS Inlining to move styles to inline attributes. This can help maximize compatibility with email clients." />
+                                <Rock:KeyValueList ID="kvlMergeFields" runat="server" Label="Lava Fields" KeyPrompt="Key" Help="Add any fields and their default values that can be used as lava merge fields within the template html. Any fields with a 'Color' suffix will use a Color Picker as the value editor." ValuePrompt="Default Value" />
+                                
+                                <asp:LinkButton ID="lbUpdateLavaFields" runat="server" Text="Update Lava Fields" CssClass="btn btn-xs btn-action" OnClick="lbUpdateLavaFields_Click" CausesValidation="false" />
+                            </div>
+                        </div>
+                    </asp:Panel>
+                    <asp:Panel ID="pnlPreview" runat="server" CssClass="margin-t-md">
+                        <asp:UpdatePanel ID="upnlEmailPreview" runat="server" UpdateMode="Conditional">
+                            <ContentTemplate>
+                                <asp:Panel ID="pnlEmailPreview" runat="server" Visible="false">
+                                    <div class="row">
+                                        <div class="col-md-9">
+                                            <div id="pnlEmailPreviewContainer" runat="server" class="email-preview js-email-preview device-browser center-block">
+                                                <iframe id="ifEmailPreview" name="emailpreview-iframe" class="emaileditor-iframe js-emailpreview-iframe email-wrapper" runat="server" src="javascript: window.frameElement.getAttribute('srcdoc');" frameborder="0" border="0" cellspacing="0" scrolling="yes"></iframe>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <Rock:RockControlWrapper ID="rcwPreviewMode" runat="server" Label="Preview Mode">
+                                                
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-xs btn-info active js-preview-desktop">
+                                                        <i class="fa fa-desktop"></i>
+                                                        Desktop
+                                                    </button>
+                                                    <button type="button" class="btn btn-xs btn-default js-preview-mobile">
+                                                        <i class="fa fa-mobile"></i>
+                                                        Mobile
+                                                    </button>
+                                                </div>
+                                            </Rock:RockControlWrapper>
 
-                    <a class="help" href="javascript: $('.js-template-help').toggle;"><i class="fa fa-question-circle"></i></a>
-                    <div class="alert alert-info js-template-help" id="nbTemplateHelp" runat="server" style="display: none;"></div>
+                                            <asp:Panel ID="pnlTemplateLogo" runat="server" class="row">
+                                                <div class="col-md-6">
+                                                    <Rock:ImageUploader ID="imgTemplateLogo" runat="server" Label="Logo" Help="The Logo that can be included in the contents of the message" OnImageUploaded="imgTemplateLogo_ImageUploaded" OnImageRemoved="imgTemplateLogo_ImageUploaded" />
+                                                </div>
+                                            </asp:Panel>
 
-                    <asp:LinkButton ID="btnEmailPreview" runat="server" CssClass="btn btn-xs btn-default pull-right" Text="Preview" OnClick="btnEmailPreview_Click" />
-                    <Rock:CodeEditor ID="ceEmailTemplate" runat="server" EditorHeight="400" EditorMode="Html" />
+                                            <asp:HiddenField ID="hfLavaFieldsState" runat="server" />
+                                            <asp:PlaceHolder ID="phLavaFieldsControls" runat="server" />
+                                            <asp:LinkButton ID="btnUpdateTemplatePreview" runat="server" CssClass="btn btn-xs btn-action" Text="Update" OnClick="btnUpdateTemplatePreview_Click" CausesValidation="false" />
+                                        </div>
+                                    </div>
+                                </asp:Panel>
+                            </ContentTemplate>
+                        </asp:UpdatePanel>
+                    </asp:Panel>
 
-                </asp:Panel>
+                    </div>
 
-                <asp:Panel ID="pnlSMSTemplate" CssClass="js-sms-template" runat="server">
+                </Rock:PanelWidget>
+
+                <Rock:PanelWidget ID="pnlSMSTemplate" Title="SMS" TitleIconCssClass="fa fa-mobile-phone" CssClass="js-sms-template" runat="server">
                     <h2>SMS</h2>
                     <div class="row">
                         <div class="col-md-6">
-                            <Rock:RockDropDownList ID="ddlSMSFrom" runat="server" Label="From" Help="The number to originate message from (configured under Admin Tools > General Settings > Defined Types > SMS From Values)." />
+                            <Rock:DefinedValuePicker ID="dvpSMSFrom" runat="server" Label="From" Help="The number to originate message from (configured under Admin Tools > Communications > SMS Phone Numbers)." />
                             <Rock:RockControlWrapper ID="rcwSMSMessage" runat="server" Label="Message" Help="<span class='tip tip-lava'></span>">
                                 <Rock:MergeFieldPicker ID="mfpSMSMessage" runat="server" CssClass="margin-b-sm pull-right" OnSelectItem="mfpMessage_SelectItem" />
                                 <asp:HiddenField ID="hfSMSCharLimit" runat="server" />
@@ -112,7 +176,7 @@
                         <div class="col-md-6">
                         </div>
                     </div>
-                </asp:Panel>
+                </Rock:PanelWidget>
 
                 <div class="actions">
                     <asp:LinkButton ID="btnSave" runat="server" AccessKey="s" ToolTip="Alt+s" Text="Save" CssClass="btn btn-primary" OnClick="btnSave_Click" />
@@ -122,45 +186,20 @@
             </div>
         </div>
 
-        <asp:UpdatePanel ID="upnlEmailPreview" runat="server" UpdateMode="Conditional">
-            <ContentTemplate>
-                <asp:Panel ID="pnlEmailPreview" runat="server" Visible="false">
-                    <Rock:ModalDialog ID="mdEmailPreview" runat="server" Title="Email Preview">
-                        <Content>
-                            <div class="text-center margin-v-md">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-default js-preview-desktop"><i class="fa fa-desktop"></i> Desktop</button>
-                                    <button type="button" class="btn btn-default js-preview-mobile"><i class="fa fa-mobile"></i> Mobile</button>
-                                </div>
-                            </div>
-                            <div id="pnlEmailPreviewContainer" runat="server" class="email-preview js-email-preview device-browser center-block">
-                                <iframe id="ifEmailPreview" name="emailpreview-iframe" class="emaileditor-iframe js-emailpreview-iframe email-wrapper" runat="server" src="javascript: window.frameElement.getAttribute('srcdoc');" frameborder="0" border="0" cellspacing="0" scrolling="yes"></iframe>
-                            </div>
-                        </Content>
-
-                    </Rock:ModalDialog>
-                </asp:Panel>
-            </ContentTemplate>
-        </asp:UpdatePanel>
-
         <script>
 
-            Sys.Application.add_load(function ()
-            {
+            Sys.Application.add_load(function () {
                 if ($('#<%=pnlEmailPreview.ClientID%>').length) {
                     var $emailPreviewIframe = $('.js-emailpreview-iframe');
-
-                    var $previewModal = $emailPreviewIframe.closest('.modal-content');
+                    var $previewModal = $('#<%=pnlEmailPreview.ClientID%>');
 
                     // set opacity to 0 to hide flicker when loading
                     $previewModal.fadeTo(0, 0);
 
                     $emailPreviewIframe.height('auto');
 
-                    $emailPreviewIframe.load(function ()
-                    {
-                        new ResizeSensor($('#<%=pnlEmailPreviewContainer.ClientID%>'), function ()
-                        {
+                    $emailPreviewIframe.load(function () {
+                        new ResizeSensor($('#<%=pnlEmailPreviewContainer.ClientID%>'), function () {
                             $('#<%=ifEmailPreview.ClientID%>', window.parent.document).height($('#<%=pnlEmailPreviewContainer.ClientID%>').height());
                         });
 
@@ -187,16 +226,17 @@
                 });
 
                 if ($('#<%=hfShowAdditionalFields.ClientID %>').val() == "true") {
-                     $('.js-additional-fields').show();
-                     $('.js-show-additional-fields').text('Hide Additional Fields');
-                 }
+                    $('.js-additional-fields').show();
+                    $('.js-show-additional-fields').text('Hide Additional Fields');
+                }
 
                 // resize the email preview when the Mobile/Desktop modes are clicked
-                $('.js-preview-mobile, .js-preview-desktop').off('click').on('click', function (a, b, c)
-                {
+                $('.js-preview-mobile, .js-preview-desktop').off('click').on('click', function (a, b, c) {
                     var $emailPreviewIframe = $('.js-emailpreview-iframe');
 
                     if ($(this).hasClass('js-preview-mobile')) {
+                        $('.js-preview-mobile').removeClass('btn-default').addClass('btn-info').addClass('active')
+                        $('.js-preview-desktop').removeClass('btn-info').removeClass('active').addClass('btn-default');
                         var mobileContainerHeight = '585px';
 
                         $('.js-email-preview').removeClass("device-browser").addClass("device-mobile");
@@ -206,6 +246,8 @@
                         $('#<%=pnlEmailPreviewContainer.ClientID%>').height(mobileContainerHeight);
                     }
                     else {
+                        $('.js-preview-desktop').removeClass('btn-default').addClass('btn-info').addClass('active')
+                        $('.js-preview-mobile').removeClass('btn-info').removeClass('active').addClass('btn-default');
                         $('.js-email-preview').removeClass("device-mobile").addClass("device-browser");
                         $emailPreviewIframe.height('auto');
 
@@ -218,10 +260,22 @@
                         $('#<%=pnlEmailPreviewContainer.ClientID%>').height(newHeight);
                     }
                 });
+
+                $('.js-revertlavavalue').off('click').on('click', function () {
+                    var valueControlId = $(this).attr('data-value-control');
+                    var defaultValue = $(this).attr('data-default');
+                    var $colorPicker = $('#' + valueControlId).closest('.rock-colorpicker-input');
+                    if ($colorPicker.length) {
+                        $colorPicker.colorpicker('setValue', defaultValue);
+                    }
+                    else {
+                        $('#' + valueControlId).val(defaultValue);
+                    }
+                    $(this).css('visibility', 'hidden');
+                });
             });
 
-            function removeAttachment(source, hf, fileId)
-            {
+            function removeAttachment(source, hf, fileId) {
                 // Get the attachment list
                 var $hf = $('#' + hf);
                 var fileIds = $hf.val().split(',');

@@ -202,11 +202,8 @@ namespace RockWeb.Blocks.Core
                     }
                 }
 
-                var uri = new UriBuilder( outputBinaryFileDoc.Url );
-                var qry = System.Web.HttpUtility.ParseQueryString( uri.Query );
-                qry["attachment"] = true.ToTrueFalse();
-                uri.Query = qry.ToString();
-                Response.Redirect( uri.ToString(), false );
+                string getFileUrl = string.Format( "{0}?Guid={1}&attachment=true", ResolveRockUrl( "~/GetFile.ashx" ), outputBinaryFileDoc.Guid );
+                Response.Redirect( getFileUrl, false );
                 Context.ApplicationInstance.CompleteRequest();
             }
             catch ( Exception ex )
@@ -220,7 +217,7 @@ namespace RockWeb.Blocks.Core
                 {
                     nbMergeError.Text = "An error occurred while merging";
                 }
-                
+
                 nbMergeError.Details = ex.Message;
                 nbMergeError.Visible = true;
             }
@@ -266,7 +263,7 @@ namespace RockWeb.Blocks.Core
                     qryEntity = qryEntity.Take( fetchCount.Value );
                 }
 
-                var entityTypeCache = EntityTypeCache.Read( entitySet.EntityTypeId.Value );
+                var entityTypeCache = EntityTypeCache.Get( entitySet.EntityTypeId.Value );
                 bool isPersonEntityType = entityTypeCache != null && entityTypeCache.Guid == Rock.SystemGuid.EntityType.PERSON.AsGuid();
                 bool isGroupMemberEntityType = entityTypeCache != null && entityTypeCache.Guid == Rock.SystemGuid.EntityType.GROUP_MEMBER.AsGuid();
                 bool combineFamilyMembers = cbCombineFamilyMembers.Visible && cbCombineFamilyMembers.Checked;
@@ -276,7 +273,7 @@ namespace RockWeb.Blocks.Core
                     IQueryable<IEntity> qryPersons;
                     if ( isGroupMemberEntityType )
                     {
-                        qryPersons = qryEntity.OfType<GroupMember>().Select( a => a.Person ).Distinct();
+                        qryPersons = qryEntity.OfType<GroupMember>().Select( a => a.Person );
                     }
                     else
                     {
@@ -284,9 +281,16 @@ namespace RockWeb.Blocks.Core
                     }
 
                     Guid familyGroupType = Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY.AsGuid();
-                    var qryFamilyGroupMembers = new GroupMemberService( rockContext ).Queryable()
+                    var orderIds = qryPersons.Select( a => a.Id ).ToList();
+                    if ( isGroupMemberEntityType )
+                    {
+                        qryPersons = qryPersons.Distinct();
+                    }
+
+                    var qryFamilyGroupMembers = new GroupMemberService( rockContext ).Queryable( "GroupRole,Person" ).AsNoTracking()
                         .Where( a => a.Group.GroupType.Guid == familyGroupType )
-                        .Where( a => qryPersons.Any( aa => aa.Id == a.PersonId ) );
+                        .Where( a => orderIds.Contains( a.PersonId ) );
+
 
                     var qryCombined = qryFamilyGroupMembers.Join(
                         qryPersons,
@@ -297,7 +301,17 @@ namespace RockWeb.Blocks.Core
                         .Select( x => new
                         {
                             GroupId = x.Key,
-                            Persons = x.Select( xx => xx.Person ).Distinct()
+                            // Order People to match ordering in the GroupMembers.ascx block.
+                            Persons =
+                                    // Adult Male 
+                                    x.Where( xx => xx.GroupMember.GroupRole.Guid.Equals( new Guid( Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_ADULT ) ) &&
+                                    xx.GroupMember.Person.Gender == Gender.Male ).OrderByDescending( xx => xx.GroupMember.Person.BirthDate ).Select( xx => xx.Person )
+                                    // Adult Female
+                                    .Concat( x.Where( xx => xx.GroupMember.GroupRole.Guid.Equals( new Guid( Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_ADULT ) ) &&
+                                    xx.GroupMember.Person.Gender != Gender.Male ).OrderByDescending( xx => xx.GroupMember.Person.BirthDate ).Select( xx => xx.Person ) )
+                                    // non-adults
+                                    .Concat( x.Where( xx => !xx.GroupMember.GroupRole.Guid.Equals( new Guid( Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_ADULT ) ) )
+                                    .OrderByDescending( xx => xx.GroupMember.Person.BirthDate ).Select( xx => xx.Person ) )
                         } );
 
                     foreach ( var combinedFamilyItem in qryCombined )
@@ -355,15 +369,26 @@ namespace RockWeb.Blocks.Core
 
                         mergeObjectsDictionary.AddOrIgnore( primaryGroupPerson.Id, mergeObject );
                     }
+
+                    mergeObjectsDictionary = mergeObjectsDictionary.OrderBy( a => orderIds.IndexOf( a.Key ) ).ToDictionary( x => x.Key, y => y.Value );
                 }
                 else if ( isGroupMemberEntityType )
                 {
+                    List<int> personIds = new List<int>();
+
                     foreach ( var groupMember in qryEntity.AsNoTracking().OfType<GroupMember>() )
                     {
                         var person = groupMember.Person;
+                        if ( !personIds.Contains( person.Id ) )
+                        {
+                            // Attach the person record to rockContext so that navigation properties can be still lazy-loaded if needed (if the lava template needs it)
+                            rockContext.People.Attach( person );
+                        }
+
                         person.AdditionalLavaFields = new Dictionary<string, object>();
                         person.AdditionalLavaFields.Add( "GroupMember", groupMember );
                         mergeObjectsDictionary.AddOrIgnore( groupMember.PersonId, person );
+                        personIds.Add( person.Id );
                     }
                 }
                 else
@@ -489,7 +514,7 @@ namespace RockWeb.Blocks.Core
             {
                 var qry = entitySetService.GetEntityQuery( entitySetId ).Take( 15 );
 
-                EntityTypeCache itemEntityType = EntityTypeCache.Read( entitySet.EntityTypeId ?? 0 );
+                EntityTypeCache itemEntityType = EntityTypeCache.Get( entitySet.EntityTypeId ?? 0 );
                 gPreview.CreatePreviewColumns( itemEntityType.GetEntityType() );
 
                 gPreview.DataSource = qry.ToList();
@@ -583,7 +608,7 @@ namespace RockWeb.Blocks.Core
         public class MergeTemplateCombinedPerson : Person
         {
             /// <summary>
-            /// Overide of FullName that should be set to whatever the FamilyTitle should be
+            /// Override of FullName that should be set to whatever the FamilyTitle should be
             /// </summary>
             /// <value>
             /// A <see cref="System.String" /> representing the Family Title of a combined person
