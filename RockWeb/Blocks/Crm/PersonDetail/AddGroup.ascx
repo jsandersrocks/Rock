@@ -111,8 +111,6 @@
         <script type="text/javascript">
             $(document).ready(function () {
                 Sys.Application.add_load(function () {
-                    <%-- workaround for RadioButtons in Repeaters https://support.microsoft.com/en-us/kb/316495 --%>
-                    //$('.js-groupfamilychoice').attr('Name', 'groupFamilyChoice');
                     $('.js-familychoice').click(function (a, b, c) {
                         $('.js-familychoice').not($(this)).prop('checked', false);
 

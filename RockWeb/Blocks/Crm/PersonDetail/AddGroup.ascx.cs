@@ -43,7 +43,13 @@ namespace RockWeb.Blocks.Crm.PersonDetail
     [Category( "CRM > Person Detail" )]
     [Description( "Allows for adding a new group and the people in the group (e.g. New Families." )]
 
-    [GroupTypeField( "Group Type", "The group type to display groups for (default is Family)", false, Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY, "", 0 )]
+    [GroupTypeField( "Group Type",
+        Key  = AttributeKey.GroupType, 
+        Description = "The group type to display groups for (default is Family)",
+        IsRequired = false,
+        DefaultValue =  Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY,
+        Order = 0)]
+
     [GroupField( "Parent Group", "The parent group to add the new group to (default is none)", false, "", "", 1 )]
     [BooleanField( "Show Title", "Show person title.", true, order: 2 )]
     [BooleanField( "Show Nick Name", "Show an edit box for Nick Name.", false, order: 3 )]
@@ -62,7 +68,10 @@ namespace RockWeb.Blocks.Crm.PersonDetail
     [DefinedValueField( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS, "Adult Marital Status", "When Family group type, the default marital status for adults in the family.", false, false, "", "", 16 )]
     [DefinedValueField( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS, "Child Marital Status", "When Family group type, the marital status to use for children in the family.", false, false, Rock.SystemGuid.DefinedValue.PERSON_MARITAL_STATUS_SINGLE, "", 17 )]
     [CustomDropdownListField( "Address", "Should an address be required for the family?", "REQUIRE^Require an address,HOMELESS^Require an address unless family is homeless,NOTREQUIRED^Don't require", false, "NOTREQUIRED", "", 18 )]
+
     [DefinedValueField( Rock.SystemGuid.DefinedType.GROUP_LOCATION_TYPE, "Location Type", "The type of location that address should use", false, false, Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME, "", 19 )]
+
+
     [BooleanField( "Show Cell Phone Number First", "Should the cell phone number be listed first before home phone number?", false, "", 20 )]
     [BooleanField( "Phone Number", "Require a phone number", "Don't require", "Should a phone number be required for at least one person?", false, "", 21 )]
     [BooleanField( "Adult Phone Number", "Require a phone number for each adult", "Don't require", "When Family group type, should a phone number be required for each adult added?", false, "", 22 )]
@@ -75,8 +84,36 @@ namespace RockWeb.Blocks.Crm.PersonDetail
     [LinkedPage( "Person Detail Page", "The Page to navigate to after the family has been added. (Note that {GroupId} and {PersonId} can be included in the route). Leave blank to go to the default page of ~/Person/{PersonId}.", false, order: 29 )]
     [BooleanField( "Enable Alternate Identifier", "If enabled, an additional step will be shown for supplying a custom alternate identifier for each person.", false, order: 30 )]
     [BooleanField( "Generate Alternate Identifier", "If enabled, a custom alternate identifier will be generated for each person.", true, order: 31 )]
+
+    [BooleanField(
+        "Detect Groups already at the Address",
+        Description = "If enabled, a prompt to select an existing group will be displayed if there are existing groups that have the same address as the new group.",
+        Key = AttributeKey.DetectGroupsAlreadyAtTheAddress,
+        DefaultBooleanValue = true,
+        Order = 32 )]
+
+    [IntegerField(
+        "Max Groups at Address to Detect",
+        Key = AttributeKey.MaxGroupsAtAddressToDetect,
+        DefaultIntegerValue = 10,
+        Order = 33
+        )]
     public partial class AddGroup : Rock.Web.UI.RockBlock
     {
+        #region Attribute Keys
+
+        /// <summary>
+        /// Keys to use for Block Attributes
+        /// </summary>
+        protected static class AttributeKey
+        {
+            public const string GroupType = "GroupType";
+            public const string DetectGroupsAlreadyAtTheAddress = "DetectGroupsAlreadyAtTheAddress";
+            public const string MaxGroupsAtAddressToDetect = "MaxGroupsAtAddressToDetect";
+        }
+
+        #endregion Attribute Keys
+
         #region Fields
 
         private GroupTypeCache _groupType = null;
@@ -178,7 +215,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
             Page.Response.Cache.SetExpires( DateTime.UtcNow.AddHours( -1 ) );
             Page.Response.Cache.SetNoStore();
 
-            _groupType = GroupTypeCache.Get( GetAttributeValue( "GroupType" ).AsGuid() );
+            _groupType = GroupTypeCache.Get( GetAttributeValue( AttributeKey.GroupType ).AsGuid() );
             if ( _groupType == null )
             {
                 _groupType = GroupTypeCache.GetFamilyGroupType();
@@ -430,11 +467,11 @@ namespace RockWeb.Blocks.Crm.PersonDetail
 
                     if ( GetAttributeValue( "BirthDate" ).AsBoolean() && people.Any( p => !p.BirthDate.HasValue ) )
                     {
-                        errorMessages.Add( "Birthdate is required for all members." );
+                        errorMessages.Add( "Birth Date is required for all members." );
                     }
                     else if ( GetAttributeValue( "ChildBirthdate" ).AsBoolean() && children.Any( p => !p.BirthDate.HasValue ) )
                     {
-                        errorMessages.Add( "Birthdate is required for all children." );
+                        errorMessages.Add( "Birth Date is required for all children." );
                     }
 
                     if ( GetAttributeValue( "Grade" ).AsBoolean() && children.Any( p => !p.GraduationYear.HasValue ) )
@@ -520,7 +557,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                                                 .Distinct()
                                                 .ToList();
 
-                        if ( duplicateAlternateIds.Count == 1  )
+                        if ( duplicateAlternateIds.Count == 1 )
                         {
                             errorMessages.Add( string.Format( "Alternate Id '{0}' is already assigned to another person.", duplicateAlternateIds[0] ) );
                         }
@@ -559,57 +596,66 @@ namespace RockWeb.Blocks.Crm.PersonDetail
 
                                 Guid? parentGroupGuid = GetAttributeValue( "ParentGroup" ).AsGuidOrNull();
                                 int? groupId = null;
+                                bool isNewGroup = true;
+                                List<Guid> newGroupMemberPersonGuids = GroupMembers.Select( a => a.Person.Guid ).ToList();
 
                                 try
                                 {
                                     rockContext.WrapTransaction( () =>
                                     {
-                                        Group group = null;
-                                // TODO, put them in the selected family if an existing family was selected in the "Detect Families at Address" prompt
-                                if ( pnlAddressInUseWarning.Visible )
-                                {
-                                    int? familyToAddToGroupId = hfSelectedFamilyGroupId.Value.AsIntegerOrNull();
-                                }
+                                        int? addToExistingFamilyId = hfSelectedFamilyGroupId.Value.AsIntegerOrNull();
 
-                                        if ( _isFamilyGroupType )
+                                        // put them in the selected family if an existing family was selected in the "Detect Families at Address" prompt
+                                        if ( addToExistingFamilyId.HasValue )
                                         {
-                                            group = GroupService.SaveNewFamily( rockContext, GroupMembers, cpCampus.SelectedValueAsInt(), true );
+                                            foreach ( var groupMember in GroupMembers )
+                                            {
+                                                PersonService.AddPersonToGroup( groupMember.Person, true, addToExistingFamilyId.Value, groupMember.GroupRoleId, rockContext );
+                                            }
+
+                                            groupId = addToExistingFamilyId;
                                         }
                                         else
                                         {
-                                            group = GroupService.SaveNewGroup( rockContext, _groupType.Id, parentGroupGuid, tbGroupName.Text, GroupMembers, null, true );
-                                        }
+                                            Group group;
+                                            if ( _isFamilyGroupType )
+                                            {
+                                                group = GroupService.SaveNewFamily( rockContext, GroupMembers, cpCampus.SelectedValueAsInt(), true );
+                                            }
+                                            else
+                                            {
+                                                group = GroupService.SaveNewGroup( rockContext, _groupType.Id, parentGroupGuid, tbGroupName.Text, GroupMembers, null, true );
+                                            }
 
-                                        if ( group != null )
-                                        {
                                             groupId = group.Id;
                                             string locationKey = GetLocationKey();
                                             if ( !string.IsNullOrEmpty( locationKey ) && _verifiedLocations.ContainsKey( locationKey ) )
                                             {
                                                 GroupService.AddNewGroupAddress( rockContext, group, _locationType.Guid.ToString(), _verifiedLocations[locationKey] );
                                             }
-
-                                            if ( _enableAlternateIdentifier )
-                                            {
-                                                var personSearchKeyService = new PersonSearchKeyService( rockContext );
-                                                int alternateValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_SEARCH_KEYS_ALTERNATE_ID.AsGuid() ).Id;
-                                                foreach ( var groupMember in GroupMembers )
-                                                {
-                                                    var personSearchKey = new PersonSearchKey();
-                                                    personSearchKey.SearchValue = _alternateIds[groupMember.Person.Guid];
-                                                    personSearchKey.PersonAliasId = groupMember.Person.PrimaryAliasId;
-                                                    personSearchKey.SearchTypeValueId = alternateValueId;
-                                                    personSearchKeyService.Add( personSearchKey );
-                                                }
-
-                                                rockContext.SaveChanges();
-                                            }
                                         }
+
+                                        if ( _enableAlternateIdentifier )
+                                        {
+                                            var personSearchKeyService = new PersonSearchKeyService( rockContext );
+                                            int alternateValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_SEARCH_KEYS_ALTERNATE_ID.AsGuid() ).Id;
+                                            foreach ( var groupMember in GroupMembers )
+                                            {
+                                                var personSearchKey = new PersonSearchKey();
+                                                personSearchKey.SearchValue = _alternateIds[groupMember.Person.Guid];
+                                                personSearchKey.PersonAliasId = groupMember.Person.PrimaryAliasId;
+                                                personSearchKey.SearchTypeValueId = alternateValueId;
+                                                personSearchKeyService.Add( personSearchKey );
+                                            }
+
+                                            rockContext.SaveChanges();
+                                        }
+
                                     } );
 
                                     if ( groupId.HasValue )
                                     {
-                                        LaunchWorkflows( groupId.Value, rockContext );
+                                        LaunchWorkflows( groupId.Value, isNewGroup, newGroupMemberPersonGuids );
                                     }
 
                                     // If a custom PersonDetailPage is specified, navigate to that. Otherwise, just go to ~/Person/{PersonId}
@@ -819,10 +865,10 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                     }
                 }
 
-                // Prompt if there are already families at the address
-                if ( _isFamilyGroupType )
+                // Prompt if there are already groups at the address
+                if ( this.GetAttributeValue(AttributeKey.DetectGroupsAlreadyAtTheAddress).AsBoolean() )
                 {
-                    ShowFamiliesAtAddress();
+                    ShowGroupsAtAddress();
                 }
 
                 // show duplicate person warning
@@ -895,10 +941,9 @@ namespace RockWeb.Blocks.Crm.PersonDetail
         }
 
         /// <summary>
-        /// Shows the families at address.
+        /// Shows any groups have that have the same address.
         /// </summary>
-        /// <param name="rockContext">The rock context.</param>
-        private void ShowFamiliesAtAddress()
+        private void ShowGroupsAtAddress()
         {
             string locationKey = GetLocationKey();
             pnlAddressInUseWarning.Visible = false;
@@ -908,31 +953,32 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                 if ( locationId.HasValue )
                 {
                     RockContext rockContext = new RockContext();
-                    var location = new LocationService( rockContext ).Get( locationId.Value );
                     var groupLocationService = new GroupLocationService( rockContext );
-                    var groupLocationTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME.AsGuid() ).Id;
-                    var groupTypeIdFamily = GroupTypeCache.GetFamilyGroupType().Id;
-                    var familiesAtLocationList = groupLocationService.Queryable().Where( a =>
-                            a.GroupLocationTypeValueId == groupLocationTypeValueId
-                            && a.Group.GroupTypeId == groupTypeIdFamily
+                    
+                    var groupsAtLocationList = groupLocationService.Queryable().Where( a =>
+                            a.GroupLocationTypeValueId == _locationType.Id
+                            && a.Group.GroupTypeId == _groupType.Id
                             && a.Group.IsActive
                             && a.LocationId == locationId )
                             .Select( a => a.Group )
                             .ToList();
-                            
 
-                    if ( familiesAtLocationList.Any() )
+                    var maxGroupsAtAddressToDetect = this.GetAttributeValue( AttributeKey.MaxGroupsAtAddressToDetect ).AsInteger();
+
+                    groupsAtLocationList = groupsAtLocationList.Take( maxGroupsAtAddressToDetect ).ToList();
+
+                    if ( groupsAtLocationList.Any() )
                     {
                         pnlAddressInUseWarning.Visible = CurrentPageIndex == 1;
-                        var sortedFamilyList = familiesAtLocationList.Select( a => new
+                        var sortedGroupsList = groupsAtLocationList.Select( a => new
                         {
                             Id = a.Id,
                             FamilyTitle = RockUdfHelper.ufnCrm_GetFamilyTitle( rockContext, null, a.Id, null, true ),
                             GroupLocation = a.GroupLocations.Where( gl => gl.LocationId == locationId ).FirstOrDefault(),
-                            FamilyMembers = a.Members
-                        } ).OrderBy(a => a.FamilyMembers.AsQueryable().HeadOfHousehold().LastName).ToList();
+                            GroupMembers = a.Members
+                        } ).OrderBy( a => a.GroupMembers.AsQueryable().HeadOfHousehold().LastName ).ToList();
 
-                        rptFamiliesAtAddress.DataSource = sortedFamilyList;
+                        rptFamiliesAtAddress.DataSource = sortedGroupsList;
 
                         rptFamiliesAtAddress.DataBind();
                     }
@@ -1389,8 +1435,16 @@ namespace RockWeb.Blocks.Crm.PersonDetail
             return Duplicates.Any();
         }
 
-        private void LaunchWorkflows( int groupId, RockContext rockContext )
+        /// <summary>
+        /// Launches the workflows.
+        /// </summary>
+        /// <param name="groupId">The group identifier.</param>
+        /// <param name="isNewGroup">if set to <c>true</c> [is new group].</param>
+        /// <param name="newGroupMemberIds">The new group member ids.</param>
+        private void LaunchWorkflows( int groupId, bool isNewGroup, List<Guid> newGroupMemberPersonGuids )
         {
+            RockContext rockContext = new RockContext();
+
             // Launch any workflows
             var workflowService = new WorkflowService( rockContext );
 
@@ -1399,16 +1453,16 @@ namespace RockWeb.Blocks.Crm.PersonDetail
             var childWorkflows = GetAttributeValue( "ChildWorkflows" ).SplitDelimitedValues().AsGuidList();
             var groupWorkflows = GetAttributeValue( "GroupWorkflows" ).SplitDelimitedValues().AsGuidList();
 
-            if ( personWorkflows.Any() || adultWorkflows.Any() || childWorkflows.Any() || groupWorkflows.Any() )
+            if ( true || personWorkflows.Any() || adultWorkflows.Any() || childWorkflows.Any() || groupWorkflows.Any() )
             {
                 var group = new GroupService( rockContext ).Get( groupId );
                 if ( group != null )
                 {
-                    foreach ( var groupMember in group.Members )
+                    foreach ( var groupMember in group.Members.Where( a => newGroupMemberPersonGuids.Contains( a.Person.Guid ) ).ToList() )
                     {
                         foreach ( var workflowType in personWorkflows )
                         {
-                            LaunchWorkflows( workflowService, workflowType, groupMember.Person.FullName, groupMember.Person );
+                            LaunchWorkflow( workflowService, workflowType, groupMember.Person.FullName, groupMember.Person );
                         }
 
                         if ( _isFamilyGroupType )
@@ -1417,14 +1471,14 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                             {
                                 foreach ( var workflowType in childWorkflows )
                                 {
-                                    LaunchWorkflows( workflowService, workflowType, groupMember.Person.FullName, groupMember.Person );
+                                    LaunchWorkflow( workflowService, workflowType, groupMember.Person.FullName, groupMember.Person );
                                 }
                             }
                             else
                             {
                                 foreach ( var workflowType in adultWorkflows )
                                 {
-                                    LaunchWorkflows( workflowService, workflowType, groupMember.Person.FullName, groupMember.Person );
+                                    LaunchWorkflow( workflowService, workflowType, groupMember.Person.FullName, groupMember.Person );
                                 }
                             }
                         }
@@ -1432,14 +1486,24 @@ namespace RockWeb.Blocks.Crm.PersonDetail
 
                     foreach ( var workflowType in groupWorkflows )
                     {
-                        LaunchWorkflows( workflowService, workflowType, group.Name, group );
+                        if ( isNewGroup )
+                        {
+                            LaunchWorkflow( workflowService, workflowType, group.Name, group );
+                        }
                     }
 
                 }
             }
         }
 
-        private void LaunchWorkflows( WorkflowService workflowService, Guid workflowTypeGuid, string name, object entity )
+        /// <summary>
+        /// Launches the workflow.
+        /// </summary>
+        /// <param name="workflowService">The workflow service.</param>
+        /// <param name="workflowTypeGuid">The workflow type unique identifier.</param>
+        /// <param name="name">The name.</param>
+        /// <param name="entity">The entity.</param>
+        private void LaunchWorkflow( WorkflowService workflowService, Guid workflowTypeGuid, string name, object entity )
         {
             var workflowType = WorkflowTypeCache.Get( workflowTypeGuid );
             if ( workflowType != null )
@@ -1516,7 +1580,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                 var rbFamilyToUse = e.Item.FindControl( "rbFamilyToUse" ) as RockRadioButton;
                 if ( rbFamilyToUse != null )
                 {
-                    rbFamilyToUse.Attributes["data-familygroupid"] = ( (int)e.Item.DataItem.GetPropertyValue( "Id" ) ).ToString();
+                    rbFamilyToUse.Attributes["data-familygroupid"] = ( ( int ) e.Item.DataItem.GetPropertyValue( "Id" ) ).ToString();
                 }
 
                 var sortedFamilyMembers = familyMembers.OrderBy( a => a.GroupRole.Order ).ThenBy( a => a.Person.Gender ).ThenBy( a => a.Person.NickName ).ToList();
@@ -1533,7 +1597,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                 }
 
                 lFamilyMembersHtml.Text = string.Format( "<ul>{0}</ul>", familyMembersHtml );
-                if ((e.Item.ItemIndex-1) % 3 == 0 )
+                if ( ( e.Item.ItemIndex - 1 ) % 3 == 0 )
                 {
                     var lNewRowHtml = e.Item.FindControl( "lNewRowHtml" ) as Literal;
                     lNewRowHtml.Text = "</div><div class='row'>";
