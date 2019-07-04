@@ -39,7 +39,7 @@
                     <div class="row">
                         <div class="col-md-4">
                             <Rock:CampusPicker ID="cpCampus" runat="server" Required="true" />
-                            <Rock:DefinedValuePicker ID="dvpMaritalStatus" runat="server" Label="Marital Status of Adults" 
+                            <Rock:DefinedValuePicker ID="dvpMaritalStatus" runat="server" Label="Marital Status of Adults"
                                 Help="The marital status to use for the adults in this family." />
                         </div>
 
@@ -52,24 +52,27 @@
                 </asp:Panel>
 
                 <asp:Panel ID="pnlAddressInUseWarning" runat="server" Visible="false">
-                    <Rock:HiddenFieldWithClass ID="hfSelectedFamilyGroupId" runat="server" CssClass="js-selectedfamilychoice" />
+                    <Rock:HiddenFieldWithClass ID="hfSelectedGroupAtAddressGroupId" runat="server" CssClass="js-selected-group-at-address-choice" />
                     <div class="alert alert-warning">
                         <h4>Address Already In Use</h4>
-                        <p>This address already has a family assigned to it. Select the family if you would prefer to add the individuals as new family members. You may also continue adding the new family if you believe this is the correct information.</p>
+                        <p>
+                            <asp:Literal ID="lAlreadyInUseWarning" runat="server" /></p>
+                        <p></p>
                         <div class="row">
                             <div class="col-md-4">
-                                <Rock:RockRadioButton ID="rbNewFamily" runat="server" CssClass="js-familychoice" GroupName="groupFamilyChoice" Checked="true" DisplayInline="false" />
+                                <Rock:RockRadioButton ID="rbNewGroup" runat="server" CssClass="js-group-at-address-choice" GroupName="groupAtAddressChoice" Checked="true" DisplayInline="false" />
                                 <strong>New Family</strong>
                                 <br />
                             </div>
-                            <asp:Repeater ID="rptFamiliesAtAddress" runat="server" OnItemDataBound="rptFamiliesAtAddress_ItemDataBound">
+                            <asp:Repeater ID="rptGroupsAtAddress" runat="server" OnItemDataBound="rptGroupsAtAddress_ItemDataBound">
                                 <ItemTemplate>
                                     <div class="col-md-4">
-                                        <Rock:RockRadioButton ID="rbFamilyToUse" runat="server" CssClass="js-familychoice" GroupName="groupFamilyChoice" DisplayInline="false" />
-                                        <strong><%# Eval("FamilyTitle") %></strong>
+                                        <Rock:RockRadioButton ID="rbGroupToUse" runat="server" CssClass="js-group-at-address-choice" GroupName="groupAtAddressChoice" DisplayInline="false" />
+                                        <strong>
+                                            <asp:Literal runat="server" ID="lGroupTitle" /></strong>
                                         <br />
-                                        <%# Eval( "GroupLocation.GroupLocationTypeValue" )%>: <%# Eval( "GroupLocation.Location" )%>
-                                        <asp:Literal ID="lFamilyMembersHtml" runat="server" />
+                                        <asp:Literal runat="server" ID="lGroupLocationHtml" />
+                                        <asp:Literal runat="server" ID="lGroupMembersHtml" />
                                     </div>
                                     <asp:Literal ID="lNewRowHtml" runat="server" />
                                 </ItemTemplate>
@@ -111,10 +114,14 @@
         <script type="text/javascript">
             $(document).ready(function () {
                 Sys.Application.add_load(function () {
-                    $('.js-familychoice').click(function (a, b, c) {
-                        $('.js-familychoice').not($(this)).prop('checked', false);
 
-                        $('.js-selectedfamilychoice').val($(this).attr('data-familygroupid'));
+                     <%-- workaround for RadioButtons in Repeaters https://stackoverflow.com/a/16793570/1755417 --%>
+                    $('.js-group-at-address-choice').attr('Name', 'groupAtAddressChoice');
+
+                    $('.js-group-at-address-choice').click(function (a, b, c) {
+                        $('.js-group-at-address-choice').not($(this)).prop('checked', false);
+
+                        $('.js-selected-group-at-address-choice').val($(this).attr('data-groupid'));
                     });
                 });
             });

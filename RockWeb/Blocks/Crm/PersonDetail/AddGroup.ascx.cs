@@ -31,24 +31,25 @@ using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
 using Rock.Security;
+using Rock.Utility;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 
 namespace RockWeb.Blocks.Crm.PersonDetail
 {
     /// <summary>
-    /// Block for adding new families
+    /// Block for adding new families/groups
     /// </summary>
     [DisplayName( "Add Group" )]
     [Category( "CRM > Person Detail" )]
     [Description( "Allows for adding a new group and the people in the group (e.g. New Families." )]
 
     [GroupTypeField( "Group Type",
-        Key  = AttributeKey.GroupType, 
+        Key = AttributeKey.GroupType,
         Description = "The group type to display groups for (default is Family)",
         IsRequired = false,
-        DefaultValue =  Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY,
-        Order = 0)]
+        DefaultValue = Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY,
+        Order = 0 )]
 
     [GroupField( "Parent Group", "The parent group to add the new group to (default is none)", false, "", "", 1 )]
     [BooleanField( "Show Title", "Show person title.", true, order: 2 )]
@@ -58,8 +59,8 @@ namespace RockWeb.Blocks.Crm.PersonDetail
     [DefinedValueField( Rock.SystemGuid.DefinedType.PERSON_CONNECTION_STATUS, "Default Connection Status", "The connection status that should be set by default", false, false, Rock.SystemGuid.DefinedValue.PERSON_CONNECTION_STATUS_VISITOR, "", 6 )]
     [BooleanField( "Show Suffix", "Show person suffix.", true, order: 7 )]
     [BooleanField( "Gender", "Require a gender for each person", "Don't require", "Should Gender be required for each person added?", false, "", 8 )]
-    [BooleanField( "Birth Date", "Require a birthdate for each person", "Don't require", "Should a Birthdate be required for each person added?", false, "", 9 )]
-    [BooleanField( "Child Birthdate", "Require a birthdate for each child", "Don't require", "When Family group type, should Birthdate be required for each child added?", false, "", 10 )]
+    [BooleanField( "Birth Date", "Require a birth date for each person", "Don't require", "Should a birth date be required for each person added?", false, "", 9 )]
+    [BooleanField( "Child Birthdate", "Require a birth date for each child", "Don't require", "When Family group type, should birth date be required for each child added?", false, "", 10 )]
     [CustomDropdownListField( "Grade", "When Family group type, should Grade be required for each child added?", "True^Require a grade for each child,False^Don't require,None^Grade is not displayed", false, "", "", 11 )]
     [BooleanField( "Show Inactive Campuses", "Determines if inactive campuses should be shown.", true, order: 12 )]
     [BooleanField( "Require Campus", "Determines if a campus is required.", true, "", 13 )]
@@ -69,8 +70,15 @@ namespace RockWeb.Blocks.Crm.PersonDetail
     [DefinedValueField( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS, "Child Marital Status", "When Family group type, the marital status to use for children in the family.", false, false, Rock.SystemGuid.DefinedValue.PERSON_MARITAL_STATUS_SINGLE, "", 17 )]
     [CustomDropdownListField( "Address", "Should an address be required for the family?", "REQUIRE^Require an address,HOMELESS^Require an address unless family is homeless,NOTREQUIRED^Don't require", false, "NOTREQUIRED", "", 18 )]
 
-    [DefinedValueField( Rock.SystemGuid.DefinedType.GROUP_LOCATION_TYPE, "Location Type", "The type of location that address should use", false, false, Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME, "", 19 )]
-
+    [DefinedValueField(
+        "Location Type",
+        Key = AttributeKey.LocationType,
+        DefinedTypeGuid = Rock.SystemGuid.DefinedType.GROUP_LOCATION_TYPE,
+        Description = "The type of location that address should use",
+        IsRequired = false,
+        AllowMultiple = false,
+        DefaultValue = Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME,
+        Order = 19 )]
 
     [BooleanField( "Show Cell Phone Number First", "Should the cell phone number be listed first before home phone number?", false, "", 20 )]
     [BooleanField( "Phone Number", "Require a phone number", "Don't require", "Should a phone number be required for at least one person?", false, "", 21 )]
@@ -110,6 +118,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
             public const string GroupType = "GroupType";
             public const string DetectGroupsAlreadyAtTheAddress = "DetectGroupsAlreadyAtTheAddress";
             public const string MaxGroupsAtAddressToDetect = "MaxGroupsAtAddressToDetect";
+            public const string LocationType = "LocationType";
         }
 
         #endregion Attribute Keys
@@ -155,12 +164,12 @@ namespace RockWeb.Blocks.Crm.PersonDetail
         protected List<GroupMember> GroupMembers { get; set; }
 
         /// <summary>
-        /// Gets or sets any possible duplicates for each group member
+        /// A dictionary of a list of duplicate person ids for each Person.Guid  Gets or sets any possible duplicates for each group member
         /// </summary>
         /// <value>
         /// The duplicates.
         /// </value>
-        protected Dictionary<Guid, List<Person>> Duplicates { get; set; }
+        protected Dictionary<Guid, int[]> Duplicates { get; set; }
 
         #endregion
 
@@ -189,11 +198,11 @@ namespace RockWeb.Blocks.Crm.PersonDetail
             json = ViewState["Duplicates"] as string;
             if ( string.IsNullOrWhiteSpace( json ) )
             {
-                Duplicates = new Dictionary<Guid, List<Person>>();
+                Duplicates = new Dictionary<Guid, int[]>();
             }
             else
             {
-                Duplicates = JsonConvert.DeserializeObject<Dictionary<Guid, List<Person>>>( json );
+                Duplicates = JsonConvert.DeserializeObject<Dictionary<Guid, int[]>>( json );
             }
 
             _verifiedLocations = ViewState["VerifiedLocations"] as Dictionary<string, int?>;
@@ -334,7 +343,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
             if ( !Page.IsPostBack )
             {
                 GroupMembers = new List<GroupMember>();
-                Duplicates = new Dictionary<Guid, List<Person>>();
+                Duplicates = new Dictionary<Guid, int[]>();
                 _verifiedLocations = new Dictionary<string, int?>();
                 _alternateIds = new Dictionary<Guid, string>();
                 AddGroupMember();
@@ -603,17 +612,17 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                                 {
                                     rockContext.WrapTransaction( () =>
                                     {
-                                        int? addToExistingFamilyId = hfSelectedFamilyGroupId.Value.AsIntegerOrNull();
+                                        int? addToExistingGroupId = hfSelectedGroupAtAddressGroupId.Value.AsIntegerOrNull();
 
-                                        // put them in the selected family if an existing family was selected in the "Detect Families at Address" prompt
-                                        if ( addToExistingFamilyId.HasValue )
+                                        // put them in the selected group if an existing group was selected in the "Detect Groups at Address" prompt
+                                        if ( addToExistingGroupId.HasValue )
                                         {
                                             foreach ( var groupMember in GroupMembers )
                                             {
-                                                PersonService.AddPersonToGroup( groupMember.Person, true, addToExistingFamilyId.Value, groupMember.GroupRoleId, rockContext );
+                                                PersonService.AddPersonToGroup( groupMember.Person, true, addToExistingGroupId.Value, groupMember.GroupRoleId, rockContext );
                                             }
 
-                                            groupId = addToExistingFamilyId;
+                                            groupId = addToExistingGroupId;
                                         }
                                         else
                                         {
@@ -866,7 +875,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                 }
 
                 // Prompt if there are already groups at the address
-                if ( this.GetAttributeValue(AttributeKey.DetectGroupsAlreadyAtTheAddress).AsBoolean() )
+                if ( this.GetAttributeValue( AttributeKey.DetectGroupsAlreadyAtTheAddress ).AsBoolean() )
                 {
                     ShowGroupsAtAddress();
                 }
@@ -907,29 +916,33 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                     duplicateHeader.InnerText = "Possible Duplicate Records";
                     dupPersonCol.Controls.Add( duplicateHeader );
 
-                    foreach ( var duplicate in Duplicates[groupMember.Person.Guid] )
+                    foreach ( var duplicatePersonId in Duplicates[groupMember.Person.Guid] )
                     {
                         GroupTypeRole groupTypeRole = null;
                         Location duplocation = null;
+                        Person duplicatePerson = null;
 
                         var dupGroupMember = groupMemberService.Queryable()
-                            .Where( a => a.PersonId == duplicate.Id )
+                            .Where( a => a.PersonId == duplicatePersonId )
                             .Where( a => a.Group.GroupTypeId == _groupType.Id )
                             .Select( s => new
                             {
                                 s.GroupRole,
+                                s.Person,
                                 GroupLocation = s.Group.GroupLocations.Where( a => a.GroupLocationTypeValue.Guid.Equals( _locationType.Guid ) ).Select( a => a.Location ).FirstOrDefault()
                             } )
-                            .FirstOrDefault();
+                            .AsNoTracking().FirstOrDefault();
+
                         if ( dupGroupMember != null )
                         {
                             groupTypeRole = dupGroupMember.GroupRole;
                             duplocation = dupGroupMember.GroupLocation;
+                            duplicatePerson = dupGroupMember.Person;
                         }
 
                         dupPersonCol.Controls.Add( PersonHtmlPanel(
                             groupMemberGuidString,
-                            duplicate,
+                            duplicatePerson,
                             groupTypeRole,
                             duplocation,
                             rockContext ) );
@@ -947,6 +960,10 @@ namespace RockWeb.Blocks.Crm.PersonDetail
         {
             string locationKey = GetLocationKey();
             pnlAddressInUseWarning.Visible = false;
+            lAlreadyInUseWarning.Text = string.Format(
+                "This address already has a {0} assigned to it. Select the {0} if you would prefer to add the individuals as new {1}. You may also continue adding the new {0} if you believe this is the correct information.",
+                _groupType.GroupTerm.ToLower(), _groupType.GroupMemberTerm.Pluralize().ToLower() );
+
             if ( !string.IsNullOrWhiteSpace( locationKey ) && _verifiedLocations.ContainsKey( locationKey ) )
             {
                 int? locationId = _verifiedLocations[locationKey];
@@ -954,7 +971,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                 {
                     RockContext rockContext = new RockContext();
                     var groupLocationService = new GroupLocationService( rockContext );
-                    
+
                     var groupsAtLocationList = groupLocationService.Queryable().Where( a =>
                             a.GroupLocationTypeValueId == _locationType.Id
                             && a.Group.GroupTypeId == _groupType.Id
@@ -970,17 +987,17 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                     if ( groupsAtLocationList.Any() )
                     {
                         pnlAddressInUseWarning.Visible = CurrentPageIndex == 1;
-                        var sortedGroupsList = groupsAtLocationList.Select( a => new
+                        var sortedGroupsList = groupsAtLocationList.Select( a => new GroupAtLocationInfo
                         {
                             Id = a.Id,
-                            FamilyTitle = RockUdfHelper.ufnCrm_GetFamilyTitle( rockContext, null, a.Id, null, true ),
+                            GroupTitle = _isFamilyGroupType ? RockUdfHelper.ufnCrm_GetFamilyTitle( rockContext, null, a.Id, null, true ) : a.Name,
                             GroupLocation = a.GroupLocations.Where( gl => gl.LocationId == locationId ).FirstOrDefault(),
                             GroupMembers = a.Members
                         } ).OrderBy( a => a.GroupMembers.AsQueryable().HeadOfHousehold().LastName ).ToList();
 
-                        rptFamiliesAtAddress.DataSource = sortedGroupsList;
+                        rptGroupsAtAddress.DataSource = sortedGroupsList;
 
-                        rptFamiliesAtAddress.DataBind();
+                        rptGroupsAtAddress.DataBind();
                     }
                 }
             }
@@ -1318,7 +1335,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
         /// <returns></returns>
         public bool FindDuplicates()
         {
-            Duplicates = new Dictionary<Guid, List<Person>>();
+            Duplicates = new Dictionary<Guid, int[]>();
 
             var rockContext = new RockContext();
             var locationService = new LocationService( rockContext );
@@ -1412,23 +1429,23 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                         .Where( p => p.Email == person.Email );
                 }
 
-                var dups = new List<Person>();
+                var dups = new List<int>();
                 if ( otherCriteria )
                 {
                     // If a birthday, email, phone, or address was entered, find anyone with same info and same first name
-                    dups = personQry.ToList();
+                    dups = personQry.Select( a => a.Id ).ToList();
                 }
                 else
                 {
                     // otherwise find people with same first and last name
                     dups = personQry
                         .Where( p => p.LastName == person.LastName )
-                        .ToList();
+                        .Select( a => a.Id ).ToList();
                 }
 
                 if ( dups.Any() )
                 {
-                    Duplicates.Add( person.Guid, dups );
+                    Duplicates.Add( person.Guid, dups.ToArray() );
                 }
             }
 
@@ -1565,44 +1582,88 @@ namespace RockWeb.Blocks.Crm.PersonDetail
 
         #endregion
 
-        /// <summary>
-        /// Handles the ItemDataBound event of the rptFamiliesAtAddress control.
-        /// </summary>
+        /// <summary>Handles the ItemDataBound event of the rptGroupsAtAddress control.</summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RepeaterItemEventArgs"/> instance containing the event data.</param>
-        protected void rptFamiliesAtAddress_ItemDataBound( object sender, RepeaterItemEventArgs e )
+        protected void rptGroupsAtAddress_ItemDataBound( object sender, RepeaterItemEventArgs e )
         {
             if ( e.Item.DataItem != null )
             {
-                var familyMembers = e.Item.DataItem.GetPropertyValue( "FamilyMembers" ) as IEnumerable<GroupMember>;
-                var lFamilyMembersHtml = e.Item.FindControl( "lFamilyMembersHtml" ) as Literal;
+                GroupAtLocationInfo groupAtLocationInfo = e.Item.DataItem as GroupAtLocationInfo;
+                var groupMembers = groupAtLocationInfo.GroupMembers;
 
-                var rbFamilyToUse = e.Item.FindControl( "rbFamilyToUse" ) as RockRadioButton;
-                if ( rbFamilyToUse != null )
+                var lGroupTitle = e.Item.FindControl( "lGroupTitle" ) as Literal;
+                lGroupTitle.Text = groupAtLocationInfo.GroupTitle;
+
+                var lGroupLocationHtml = e.Item.FindControl( "lGroupLocationHtml" ) as Literal;
+                lGroupLocationHtml.Text = groupAtLocationInfo.GroupLocation.GroupLocationTypeValue.Value + ": " + groupAtLocationInfo.GroupLocation.Location.ToString();
+
+                var rbGroupToUse = e.Item.FindControl( "rbGroupToUse" ) as RockRadioButton;
+                if ( rbGroupToUse != null )
                 {
-                    rbFamilyToUse.Attributes["data-familygroupid"] = ( ( int ) e.Item.DataItem.GetPropertyValue( "Id" ) ).ToString();
+                    rbGroupToUse.Attributes["data-groupid"] = groupAtLocationInfo.Id.ToString();
                 }
 
-                var sortedFamilyMembers = familyMembers.OrderBy( a => a.GroupRole.Order ).ThenBy( a => a.Person.Gender ).ThenBy( a => a.Person.NickName ).ToList();
-                string familyMembersHtml = string.Empty;
-                foreach ( var familyMember in sortedFamilyMembers )
+                var sortedGroupMembers = groupMembers.OrderBy( a => a.GroupRole.Order ).ThenBy( a => a.Person.Gender ).ThenBy( a => a.Person.NickName ).ToList();
+                string groupMembersHtml = string.Empty;
+                foreach ( var groupMember in sortedGroupMembers )
                 {
-                    familyMembersHtml += string.Format( "<li>{0}: {1}, {2}, {3}", familyMember.Person.FullName, familyMember.GroupRole, familyMember.Person.MaritalStatusValue.Value, familyMember.Person.Gender.ConvertToString() );
-                    if ( familyMember.Person.Age.HasValue )
+                    groupMembersHtml += string.Format( "<li>{0}: {1}, {2}, {3}", groupMember.Person.FullName, groupMember.GroupRole, groupMember.Person.MaritalStatusValue.Value, groupMember.Person.Gender.ConvertToString() );
+                    if ( groupMember.Person.Age.HasValue )
                     {
-                        familyMembersHtml += ", Age " + familyMember.Person.Age.ToString();
+                        groupMembersHtml += ", Age " + groupMember.Person.Age.ToString();
                     }
 
-                    familyMembersHtml += "</li>";
+                    groupMembersHtml += "</li>";
                 }
 
-                lFamilyMembersHtml.Text = string.Format( "<ul>{0}</ul>", familyMembersHtml );
+                var lGroupMembersHtml = e.Item.FindControl( "lGroupMembersHtml" ) as Literal;
+                lGroupMembersHtml.Text = string.Format( "<ul>{0}</ul>", groupMembersHtml );
                 if ( ( e.Item.ItemIndex - 1 ) % 3 == 0 )
                 {
                     var lNewRowHtml = e.Item.FindControl( "lNewRowHtml" ) as Literal;
                     lNewRowHtml.Text = "</div><div class='row'>";
                 }
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <seealso cref="Rock.Utility.RockDynamic" />
+        public class GroupAtLocationInfo : RockDynamic
+        {
+            /// <summary>
+            /// Gets or sets the identifier.
+            /// </summary>
+            /// <value>
+            /// The identifier.
+            /// </value>
+            public int Id { get; set; }
+
+            /// <summary>
+            /// Gets or sets the group location.
+            /// </summary>
+            /// <value>
+            /// The group location.
+            /// </value>
+            public GroupLocation GroupLocation { get; set; }
+
+            /// <summary>
+            /// Gets or sets the group members.
+            /// </summary>
+            /// <value>
+            /// The group members.
+            /// </value>
+            public ICollection<GroupMember> GroupMembers { get; set; }
+
+            /// <summary>
+            /// Gets the group title.
+            /// </summary>
+            /// <value>
+            /// The group title.
+            /// </value>
+            public string GroupTitle { get; internal set; }
         }
     }
 }
