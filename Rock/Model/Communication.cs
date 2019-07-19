@@ -781,14 +781,13 @@ namespace Rock.Model
                     .Where( a => a.PersonAlias.Person.PhoneNumbers.Where( pn => pn.IsMessagingEnabled ).Any() )
                     .GroupBy( a => a.PersonAlias.Person.PhoneNumbers.Where( pn => pn.IsMessagingEnabled ).FirstOrDefault().Number )
                     .Where( a => a.Count() > 1 )
-                    .Select( a => a.Skip( 1 ).ToList() )
+                    .Select( a => a.OrderBy( x => x.Id ).Skip( 1 ).ToList() )
                     .SelectMany( a => a );
 
                 var duplicateSMSRecipients = duplicateSMSRecipientsQuery.ToList();
 
                 foreach ( var duplicateSMSRecipient in duplicateSMSRecipients )
                 {
-                    this.Recipients.Remove( duplicateSMSRecipient );
                     communicationRecipientService.Delete( duplicateSMSRecipient );
                 }
             }
@@ -799,17 +798,18 @@ namespace Rock.Model
                 IQueryable<CommunicationRecipient> duplicateEmailRecipientsQry = recipientsQry.Where( a => a.MediumEntityTypeId == emailMediumEntityTypeId.Value )
                     .GroupBy( a => a.PersonAlias.Person.Email )
                     .Where( a => a.Count() > 1 )
-                    .Select( a => a.Skip( 1 ).ToList() )
+                    .Select( a => a.OrderBy( x => x.Id ).Skip( 1 ).ToList() )
                     .SelectMany( a => a );
 
                 var duplicateEmailRecipients = duplicateEmailRecipientsQry.ToList();
 
                 foreach ( var duplicateEmailRecipient in duplicateEmailRecipients )
                 {
-                    this.Recipients.Remove( duplicateEmailRecipient );
                     communicationRecipientService.Delete( duplicateEmailRecipient );
                 }
             }
+
+            rockContext.SaveChanges();
         }
 
         /// <summary>
