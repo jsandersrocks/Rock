@@ -131,23 +131,27 @@ namespace Rock.Model
         #region Virtual Properties
 
         /// <summary>
-        /// Gets the Value as a double (Computed Column)
+        /// Gets the Value as a decimal (Computed on Save). Note: Use <see cref="SetValueAsNumeric(decimal?)(DateTime?)"/> set the Value
         /// </summary>
         /// <value>
         /// </value>
-        /* Computed Column Spec:
-        CASE 
-        WHEN len([value]) < (100)
-            AND isnumeric([value]) = (1)
-            AND NOT [value] LIKE '%[^0-9.]%'
-            AND NOT [value] LIKE '%[.]%'
-            THEN CONVERT([numeric](38, 10), [value])
-        END         
-         */
         [DataMember]
-        [DatabaseGenerated( DatabaseGeneratedOption.Computed )]
         [LavaIgnore]
-        public decimal? ValueAsNumeric { get; set; }
+        public decimal? ValueAsNumeric
+        {
+            get
+            {
+                _valueAsNumeric = this.Value.AsDecimalOrNull();
+                return _valueAsNumeric;
+            }
+
+            set
+            {
+                this.Value = value.ToString();
+            }
+        }
+
+        private decimal? _valueAsNumeric;
 
         /// <summary>
         /// Gets the Value as a DateTime (maintained by SQL Trigger on AttributeValue)
@@ -329,7 +333,7 @@ namespace Rock.Model
         }
 
         /// <summary>
-        /// Gets or sets the history changes to be saved in PostSaveChanges
+        /// Gets or sets the history changes to be saved in <see cref="PostSaveChanges(Data.DbContext)"/>
         /// </summary>
         /// <value>
         /// The history changes.
@@ -338,7 +342,7 @@ namespace Rock.Model
         private History.HistoryChangeList HistoryChanges { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether a new AttributeValueHistory with CurrentRowIndicator needs to be saved in PostSaveChanges
+        /// Gets or sets a value indicating whether a new AttributeValueHistory with CurrentRowIndicator needs to be saved in <see cref="PostSaveChanges(Data.DbContext)"/>
         /// </summary>
         /// <value>
         ///   <c>true</c> if [post save attribute value history]; otherwise, <c>false</c>.
