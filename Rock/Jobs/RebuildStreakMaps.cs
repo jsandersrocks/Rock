@@ -22,17 +22,17 @@ using Rock.Model;
 namespace Rock.Jobs
 {
     /// <summary>
-    /// Uses <see cref="SequenceService.RebuildSequenceAndEnrollmentsFromAttendance"/> to rebuild sequence occurrence and enrollment attendance maps.
+    /// Uses <see cref="StreakTypeService.RebuildStreakTypeFromAttendance"/> to rebuild streak maps.
     /// </summary>
     [DisallowConcurrentExecution]
-    public class RebuildSequenceMaps : IJob
+    public class RebuildStreakMaps : IJob
     {
         /// <summary>
         /// Keys for the data map
         /// </summary>
         public static class DataMapKeys
         {
-            public const string SequenceId = "SequenceId";
+            public const string StreakTypeId = "StreakTypeId";
         }
 
         /// <summary> 
@@ -42,7 +42,7 @@ namespace Rock.Jobs
         /// scheduler can instantiate the class whenever it needs.
         /// </para>
         /// </summary>
-        public RebuildSequenceMaps()
+        public RebuildStreakMaps()
         {
         }
 
@@ -52,12 +52,12 @@ namespace Rock.Jobs
         /// <param name="context">The context.</param>
         public void Execute( IJobExecutionContext context )
         {
-            var sequenceId = context.JobDetail.JobDataMap.GetString( DataMapKeys.SequenceId ).AsInteger();
-            SequenceService.RebuildSequenceAndEnrollmentsFromAttendance( sequenceId, out var errorMessage );
+            var streakTypeId = context.JobDetail.JobDataMap.GetString( DataMapKeys.StreakTypeId ).AsInteger();
+            StreakTypeService.RebuildStreakTypeFromAttendance( streakTypeId, out var errorMessage );
 
             if ( errorMessage.IsNullOrWhiteSpace() )
             {
-                context.Result = string.Format( "Sequence occurrence and enrollment attendance maps have been rebuilt for sequence id {0}", sequenceId );
+                context.Result = string.Format( "Streak maps have been rebuilt for streak type id {0}", streakTypeId );
                 return;
             }
 

@@ -93,6 +93,6 @@ namespace Rock.SystemGuid
         /// <summary>
         /// The Job to Rebuild a Sequence.
         /// </summary>
-        public const string REBUILD_SEQUENCE = "BFBB9524-10E8-42CF-BCD3-0CC7D2B22C3A";
+        public const string REBUILD_STREAK = "BFBB9524-10E8-42CF-BCD3-0CC7D2B22C3A";
     }
 }

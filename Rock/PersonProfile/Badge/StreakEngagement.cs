@@ -24,17 +24,17 @@ using Rock.Web.Cache;
 namespace Rock.PersonProfile.Badge
 {
     /// <summary>
-    /// Sequence Badge
+    /// Streak Engagement Badge
     /// </summary>
-    [Description( "Shows a chart of the engagement history with each bar representing one month or day depending on the sequence." )]
+    [Description( "Shows a chart of the engagement history with each bar representing one month or day depending on the streak type." )]
     [Export( typeof( BadgeComponent ) )]
-    [ExportMetadata( "ComponentName", "Sequence Engagement" )]
+    [ExportMetadata( "ComponentName", "Streak Engagement" )]
 
-    [SequenceField(
-        name: "Sequence Id",
-        description: "The sequence to display enrollment data for the given person about",
+    [StreakTypeField(
+        name: "Streak Type",
+        description: "The streak type to display streak data for the given person about",
         required: true,
-        key: AttributeKey.Sequence )]
+        key: AttributeKey.StreakType )]
 
     [IntegerField(
         name: "Units To Display",
@@ -57,12 +57,12 @@ namespace Rock.PersonProfile.Badge
         key: AttributeKey.AnimateBars )]
 
     [LinkedPage(
-        name: "Enrollment Detail Page",
+        name: "Streak Detail Page",
         description: "If set, clicking this badge will navigate to the given page.",
         required: false,
-        key: AttributeKey.EnrollmentDetailPage )]
+        key: AttributeKey.StreakDetailPage )]
 
-    public class SequenceEngagement : BadgeComponent
+    public class StreakEngagement : BadgeComponent
     {
         #region Keys
 
@@ -74,7 +74,7 @@ namespace Rock.PersonProfile.Badge
             /// <summary>
             /// The sequence attribute key
             /// </summary>
-            public const string Sequence = "Sequence";
+            public const string StreakType = "StreakType";
 
             /// <summary>
             /// The bar count attribute key
@@ -94,7 +94,7 @@ namespace Rock.PersonProfile.Badge
             /// <summary>
             /// The enrollment detail page attribute key
             /// </summary>
-            public const string EnrollmentDetailPage = "EnrollmentDetailPage";
+            public const string StreakDetailPage = "EnrollmentDetailPage";
         }
 
         /// <summary>
@@ -132,14 +132,14 @@ namespace Rock.PersonProfile.Badge
                 return;
             }
             
-            var sequence = GetSequence( badge );
+            var sequence = GetStreakTypeCache( badge );
 
             if ( sequence == null )
             {
                 return;
             }
 
-            var isDaily = sequence.OccurrenceFrequency == SequenceOccurrenceFrequency.Daily;
+            var isDaily = sequence.OccurrenceFrequency == StreakOccurrenceFrequency.Daily;
             var timeUnit = isDaily ? "day" : "week";
             var timeUnits = isDaily ? "days" : "weeks";
 
@@ -180,7 +180,7 @@ namespace Rock.PersonProfile.Badge
     }});
 </script>";
 
-            var linkedPageGuid = GetAttributeValue( badge, AttributeKey.EnrollmentDetailPage ).AsGuidOrNull();
+            var linkedPageGuid = GetAttributeValue( badge, AttributeKey.StreakDetailPage ).AsGuidOrNull();
             var linkedPageId = linkedPageGuid.HasValue ? PageCache.GetId( linkedPageGuid.Value ) : null;
 
             if ( !linkedPageId.HasValue )
@@ -199,16 +199,16 @@ namespace Rock.PersonProfile.Badge
         /// </summary>
         /// <param name="badge"></param>
         /// <returns></returns>
-        private SequenceCache GetSequence( BadgeCache badge )
+        private StreakTypeCache GetStreakTypeCache( BadgeCache badge )
         {
-            var sequenceGuid = GetAttributeValue( badge, AttributeKey.Sequence ).AsGuidOrNull();
+            var streakTypeGuid = GetAttributeValue( badge, AttributeKey.StreakType ).AsGuidOrNull();
 
-            if ( !sequenceGuid.HasValue )
+            if ( !streakTypeGuid.HasValue )
             {
                 return null;
             }
 
-            return SequenceCache.Get( sequenceGuid.Value );
+            return StreakTypeCache.Get( streakTypeGuid.Value );
         }
     }
 }

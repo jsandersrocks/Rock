@@ -1,12 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SequenceEnrollmentDetail.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceEnrollmentDetail" %>
-
-<script type="text/javascript">
-    Sys.Application.add_load(function () {
-        var left = $('.chart-container').outerWidth() - $('.chart-scroll-container').width();
-        console.log(left);
-        $('.chart-container').scrollLeft(left);
-    });
-</script>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeExclusionDetail.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceExclusionDetail" %>
 
 <asp:UpdatePanel ID="upEnrollmentDetail" runat="server">
     <ContentTemplate>
@@ -15,7 +7,7 @@
         <asp:Panel ID="pnlDetails" CssClass="panel panel-block" runat="server">
             <div class="panel-heading">
                 <h1 class="panel-title">
-                    <i class="fa fa-clipboard-check"></i>
+                    <i class="fa fa-calendar-times"></i>
                     <asp:Literal ID="lReadOnlyTitle" runat="server" />
                 </h1>
             </div>
@@ -25,23 +17,11 @@
                 <asp:ValidationSummary ID="valEnrollmentDetail" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" />
 
                 <div id="pnlViewDetails" runat="server">
-
-                    <div class="row">
-                        <div class="col-md-12">                            
-                            <ul class="streak-chart margin-b-md">
-                                <asp:Literal ID="lStreakChart" runat="server" />
-                            </ul>
-                        </div>
-                    </div>
-
                     <div class="row">
                         <div class="col-lg-6">
-                            <h5 id="h5Left" runat="server">This Enrollment</h5>
-                            <Rock:ButtonGroup ID="rbgEnrollmentLinks" runat="server" OnSelectedIndexChanged="rbgEnrollmentLinks_SelectedIndexChanged" AutoPostBack="true" CssClass="margin-b-md" />
-                            <asp:Literal ID="lEnrollmentDescription" runat="server" />
+                            <asp:Literal ID="lExclusionDescription" runat="server" />
                         </div>
                         <div class="col-lg-6">
-                            <h5 id="h5Right" runat="server">Aggregate Data</h5>
                             <asp:Literal ID="lStreakData" runat="server" />
                         </div>
                     </div>
@@ -50,22 +30,13 @@
                         <asp:LinkButton ID="btnEdit" runat="server" AccessKey="e" ToolTip="Alt+e" Text="Edit" CssClass="btn btn-primary" OnClick="btnEdit_Click" CausesValidation="false" />
                         <Rock:ModalAlert ID="mdDeleteWarning" runat="server" />
                         <asp:LinkButton ID="btnDelete" runat="server" Text="Delete" CssClass="btn btn-link" CausesValidation="false" OnClick="btnDelete_Click" />
-                        <span class="pull-right">
-                            <asp:LinkButton runat="server" ID="btnRebuild" CausesValidation="false" OnClick="btnRebuild_Click" CssClass="btn btn-danger btn-sm margin-l-md" Text="Rebuild" />
-                        </span>
                     </div>
                 </div>
 
                 <div id="pnlEditDetails" runat="server">
                     <div class="row">
                         <div class="col-sm-6 col-md-4">
-                            <Rock:PersonPicker ID="rppPerson" runat="server" SourceTypeName="Rock.Model.SequenceEnrollment, Rock" PropertyName="PersonAliasId" Required="true" Label="Person" />
-                        </div>
-                        <div class="col-sm-6 col-md-4">
                             <Rock:LocationPicker ID="rlpLocation" runat="server" AllowedPickerModes="Named" SourceTypeName="Rock.Model.SequenceEnrollment, Rock" PropertyName="LocationId" Label="Location" />
-                        </div>
-                        <div class="col-sm-6 col-md-4">
-                            <Rock:DatePicker ID="rdpEnrollmentDate" runat="server" SourceTypeName="Rock.Model.SequenceEnrollment, Rock" PropertyName="EnrollmentDate" Label="Enrollment Date" />
                         </div>
                     </div>
 

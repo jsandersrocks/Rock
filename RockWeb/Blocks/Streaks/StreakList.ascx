@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SequenceEnrollmentList.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceEnrollmentList" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakList.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceEnrollmentList" %>
 
 <script type="text/javascript">
     Sys.Application.add_load(function () {

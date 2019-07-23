@@ -16,8 +16,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -32,13 +30,13 @@ using Rock.Web.Cache;
 namespace Rock.Rest.Controllers
 {
     /// <summary>
-    /// FinancialScheduledTransactions REST API
+    /// StreakTypes REST API
     /// </summary>
-    public partial class SequencesController
+    public partial class StreakTypesController
     {
         /// <summary>
         /// Gets recent sequence engagement data. Returns an array of bits representing "unitCount" units (days or weeks)
-        /// with the last bit representing today. This is used for the <see cref="SequenceEngagement" /> badge.
+        /// with the last bit representing today. This is used for the <see cref="StreakEngagement" /> badge.
         /// </summary>
         /// <returns></returns>
         [Authenticate, Secured]
@@ -46,7 +44,7 @@ namespace Rock.Rest.Controllers
         [System.Web.Http.Route( "api/Sequences/RecentEngagement/{sequenceId}/{personId}" )]
         public bool[] GetRecentEngagement( int sequenceId, int personId, [FromUri] int unitCount = 24 )
         {
-            var service = Service as SequenceService;
+            var service = Service as StreakTypeService;
             var bits = service.GetRecentEngagementBits( sequenceId, personId, unitCount, out var errorMessage );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
@@ -78,7 +76,7 @@ namespace Rock.Rest.Controllers
         public virtual HttpResponseMessage Enroll( int sequenceId, [FromUri]int? personId = null, [FromUri] DateTime? enrollmentDate = null, [FromUri] int? locationId = null )
         {
             // Make sure the sequence exists
-            var sequence = SequenceCache.Get( sequenceId );
+            var sequence = StreakTypeCache.Get( sequenceId );
 
             if ( sequence == null )
             {
@@ -101,7 +99,7 @@ namespace Rock.Rest.Controllers
             }
 
             // Create the enrollment
-            var sequenceService = Service as SequenceService;
+            var sequenceService = Service as StreakTypeService;
             var sequenceEnrollment = sequenceService.Enroll( sequence, personId.Value, out var errorMessage, enrollmentDate, locationId );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
@@ -134,7 +132,7 @@ namespace Rock.Rest.Controllers
         public virtual IQueryable<Location> GetLocations( int sequenceId )
         {
             // Make sure the sequence exists
-            var sequence = SequenceCache.Get( sequenceId );
+            var sequence = StreakTypeCache.Get( sequenceId );
 
             if ( sequence == null )
             {
@@ -143,7 +141,7 @@ namespace Rock.Rest.Controllers
             }
 
             // Get the locations from the service
-            var sequenceService = Service as SequenceService;
+            var sequenceService = Service as StreakTypeService;
             var locations = sequenceService.GetLocations( sequence, out var errorMessage );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
@@ -174,7 +172,7 @@ namespace Rock.Rest.Controllers
         public virtual IQueryable<Schedule> GetLocationSchedules( int sequenceId, int locationId )
         {
             // Make sure the sequence exists
-            var sequence = SequenceCache.Get( sequenceId );
+            var sequence = StreakTypeCache.Get( sequenceId );
 
             if ( sequence == null )
             {
@@ -183,7 +181,7 @@ namespace Rock.Rest.Controllers
             }
 
             // Get the schedules from the service
-            var sequenceService = Service as SequenceService;
+            var sequenceService = Service as StreakTypeService;
             var schedules = sequenceService.GetLocationSchedules( sequence, locationId, out var errorMessage );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
@@ -214,12 +212,12 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpGet]
         [System.Web.Http.Route( "api/Sequences/EnrollmentStreak/{sequenceId}" )]
-        public virtual SequenceStreakData GetEnrollmentStreak( int sequenceId,
+        public virtual StreakData GetEnrollmentStreak( int sequenceId,
             [FromUri]int? personId = null, [FromUri]DateTime? startDate = null, [FromUri]DateTime? endDate = null,
             [FromUri]bool createObjectArray = false, [FromUri]bool includeBitMaps = false )
         {
             // Make sure the sequence exists
-            var sequence = SequenceCache.Get( sequenceId );
+            var sequence = StreakTypeCache.Get( sequenceId );
 
             if ( sequence == null )
             {
@@ -241,8 +239,8 @@ namespace Rock.Rest.Controllers
             }
 
             // Get the data from the service
-            var sequenceService = Service as SequenceService;
-            var sequenceEnrollmentData = sequenceService.GetSequenceStreakData( sequence, personId.Value, out var errorMessage, startDate, endDate, createObjectArray, includeBitMaps );
+            var sequenceService = Service as StreakTypeService;
+            var sequenceEnrollmentData = sequenceService.GetStreakData( sequence, personId.Value, out var errorMessage, startDate, endDate, createObjectArray, includeBitMaps );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
             {
@@ -276,7 +274,7 @@ namespace Rock.Rest.Controllers
             [FromUri]DateTime? dateOfEngagement = null, [FromUri]int? groupId = null, [FromUri]int? locationId = null, [FromUri]int? scheduleId = null )
         {
             // Make sure the sequence exists
-            var sequence = SequenceCache.Get( sequenceId );
+            var sequence = StreakTypeCache.Get( sequenceId );
 
             if ( sequence == null )
             {
@@ -299,7 +297,7 @@ namespace Rock.Rest.Controllers
             }
 
             // Get the data from the service
-            var sequenceService = Service as SequenceService;
+            var sequenceService = Service as StreakTypeService;
             sequenceService.MarkEngagement( sequence, personId.Value, out var errorMessage,
                 dateOfEngagement, groupId, locationId, scheduleId );
 

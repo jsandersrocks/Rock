@@ -23,20 +23,20 @@ using Rock.Model;
 namespace Rock.Web.Cache
 {
     /// <summary>
-    /// Information about a SequenceOccurrenceExclusion that is required by the rendering engine.
+    /// Information about a StreakTypeExclusion that is required by the rendering engine.
     /// This information will be cached by the engine
     /// </summary>
     [Serializable]
     [DataContract]
-    public class SequenceOccurrenceExclusionCache : ModelCache<SequenceOccurrenceExclusionCache, SequenceOccurrenceExclusion>
+    public class StreakTypeExclusionCache : ModelCache<StreakTypeExclusionCache, StreakTypeExclusion>
     {
         #region Properties
 
         /// <summary>
-        /// Gets or sets the Id of the <see cref="Sequence"/> to which this exclusion map belongs. This property is required.
+        /// Gets or sets the Id of the <see cref="StreakType"/> to which this exclusion map belongs. This property is required.
         /// </summary>
         [DataMember]
-        public int SequenceId { get; private set; }
+        public int StreakTypeId { get; private set; }
 
         /// <summary>
         /// Gets or sets the location identifier by which the sequences's exclusions will be associated.
@@ -63,13 +63,13 @@ namespace Rock.Web.Cache
         {
             base.SetFromEntity( entity );
 
-            var sequenceOccurrenceExclusion = entity as SequenceOccurrenceExclusion;
+            var sequenceOccurrenceExclusion = entity as StreakTypeExclusion;
             if ( sequenceOccurrenceExclusion == null )
             {
                 return;
             }
 
-            SequenceId = sequenceOccurrenceExclusion.SequenceId;
+            StreakTypeId = sequenceOccurrenceExclusion.StreakTypeId;
             LocationId = sequenceOccurrenceExclusion.LocationId;
             ExclusionMap = sequenceOccurrenceExclusion.ExclusionMap;
         }

@@ -20,18 +20,18 @@ using System.Linq;
 namespace Rock.Model
 {
     /// <summary>
-    /// Service/Data access class for <see cref="SequenceOccurrenceExclusion"/> entity objects.
+    /// Service/Data access class for <see cref="StreakTypeExclusion"/> entity objects.
     /// </summary>
-    public partial class SequenceOccurrenceExclusionService
+    public partial class StreakTypeExclusionService
     {
         /// <summary>
         /// Gets the exclusions for the given sequence id
         /// </summary>
         /// <param name="sequenceId"></param>
         /// <returns></returns>
-        public IQueryable<SequenceOccurrenceExclusion> GetBySequenceId( int sequenceId )
+        public IQueryable<StreakTypeExclusion> GetByStreakTypeId( int sequenceId )
         {
-            return Queryable().Where( soe => soe.SequenceId == sequenceId );
+            return Queryable().Where( soe => soe.StreakTypeId == sequenceId );
         }
     }
 }

@@ -22,10 +22,10 @@ namespace Rock.Attribute
     /// Field Attribute to select a Step Program.
     /// </summary>
     [AttributeUsage( AttributeTargets.Class, AllowMultiple = true, Inherited = true )]
-    public class SequenceFieldAttribute : SelectFieldAttribute
+    public class StreakTypeFieldAttribute : SelectFieldAttribute
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="SequenceFieldAttribute" /> class.
+        /// Initializes a new instance of the <see cref="StreakTypeFieldAttributeAttribute" /> class.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="description">The description.</param>
@@ -34,8 +34,8 @@ namespace Rock.Attribute
         /// <param name="category">The category.</param>
         /// <param name="order">The order.</param>
         /// <param name="key">The key.</param>
-        public SequenceFieldAttribute( string name = "", string description = "", bool required = true, string defaultGuids = "", string category = "", int order = 0, string key = null )
-            : base( name, description, required, defaultGuids, category, order, key, typeof( Rock.Field.Types.SequenceFieldType ).FullName )
+        public StreakTypeFieldAttribute( string name = "", string description = "", bool required = true, string defaultGuids = "", string category = "", int order = 0, string key = null )
+            : base( name, description, required, defaultGuids, category, order, key, typeof( Rock.Field.Types.StreakTypeFieldType ).FullName )
         {
         }
     }

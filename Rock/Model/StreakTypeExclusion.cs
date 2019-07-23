@@ -10,21 +10,21 @@ using Rock.Web.Cache;
 namespace Rock.Model
 {
     /// <summary>
-    /// Represents a Sequence Occurrence Exclusion in Rock.
+    /// Represents a Streak Type Exclusion in Rock.
     /// </summary>
-    [RockDomain( "Sequences" )]
-    [Table( "SequenceOccurrenceExclusion" )]
+    [RockDomain( "Streaks" )]
+    [Table( "StreakTypeExclusion" )]
     [DataContract]
-    public partial class SequenceOccurrenceExclusion : Model<SequenceOccurrenceExclusion>, ICacheable
+    public partial class StreakTypeExclusion : Model<StreakTypeExclusion>, ICacheable
     {
         #region Entity Properties
 
         /// <summary>
-        /// Gets or sets the Id of the <see cref="Sequence"/> to which this exclusion map belongs. This property is required.
+        /// Gets or sets the Id of the <see cref="StreakType"/> to which this exclusion map belongs. This property is required.
         /// </summary>
         [Required]
         [DataMember( IsRequired = true )]
-        public int SequenceId { get; set; }
+        public int StreakTypeId { get; set; }
 
         /// <summary>
         /// Gets or sets the location identifier by which the sequences's exclusions will be associated.
@@ -47,7 +47,7 @@ namespace Rock.Model
         /// Gets or sets the Sequence.
         /// </summary>
         [DataMember]
-        public virtual Sequence Sequence { get; set; }
+        public virtual StreakType StreakType { get; set; }
 
         /// <summary>
         /// Gets or sets the Location.
@@ -65,7 +65,7 @@ namespace Rock.Model
         /// <returns></returns>
         public IEntityCache GetCacheObject()
         {
-            return SequenceOccurrenceExclusionCache.Get( Id );
+            return StreakTypeExclusionCache.Get( Id );
         }
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace Rock.Model
         /// <param name="dbContext">The database context.</param>
         public void UpdateCache( EntityState entityState, Rock.Data.DbContext dbContext )
         {
-            SequenceOccurrenceExclusionCache.UpdateCachedEntity( Id, entityState );
+            StreakTypeExclusionCache.UpdateCachedEntity( Id, entityState );
         }
 
         #endregion ICacheable
@@ -83,16 +83,16 @@ namespace Rock.Model
         #region Entity Configuration
 
         /// <summary>
-        /// Sequence Occurrence Exclusion Configuration class.
+        /// Streak Type Exclusion Configuration class.
         /// </summary>
-        public partial class SequenceOccurrenceExclusionConfiguration : EntityTypeConfiguration<SequenceOccurrenceExclusion>
+        public partial class StreakTypeExclusionConfiguration : EntityTypeConfiguration<StreakTypeExclusion>
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="SequenceOccurrenceExclusionConfiguration"/> class.
+            /// Initializes a new instance of the <see cref="StreakTypeExclusionConfiguration"/> class.
             /// </summary>
-            public SequenceOccurrenceExclusionConfiguration()
+            public StreakTypeExclusionConfiguration()
             {
-                HasRequired( soe => soe.Sequence ).WithMany( s => s.SequenceOccurrenceExclusions ).HasForeignKey( soe => soe.SequenceId ).WillCascadeOnDelete( true );
+                HasRequired( soe => soe.StreakType ).WithMany( s => s.StreakTypeExclusions ).HasForeignKey( soe => soe.StreakTypeId ).WillCascadeOnDelete( true );
 
                 HasOptional( se => se.Location ).WithMany().HasForeignKey( se => se.LocationId ).WillCascadeOnDelete( false );
             }
@@ -108,7 +108,7 @@ namespace Rock.Model
         /// <param name="dbContext">The database context.</param>
         public override void PostSaveChanges( Data.DbContext dbContext )
         {
-            SequenceService.UpdateEnrollmentStreakPropertiesAsync( SequenceId );
+            StreakTypeService.UpdateEnrollmentStreakPropertiesAsync( StreakTypeId );
             base.PostSaveChanges( dbContext );
         }
 

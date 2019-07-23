@@ -22,46 +22,46 @@ using Rock.Data;
 namespace Rock.Model
 {
     /// <summary>
-    /// Service/Data access class for <see cref="SequenceEnrollment"/> entity objects.
+    /// Service/Data access class for <see cref="Streak"/> entity objects.
     /// </summary>
-    public partial class SequenceEnrollmentService
+    public partial class StreakService
     {
         /// <summary>
-        /// Get the person's enrollments in the sequence
+        /// Get the person's streaks in the streak type
         /// </summary>
-        /// <param name="sequenceId"></param>
+        /// <param name="streakTypeId"></param>
         /// <param name="personId"></param>
         /// <returns></returns>
-        public IQueryable<SequenceEnrollment> GetBySequenceAndPerson( int sequenceId, int personId )
+        public IQueryable<Streak> GetByStreakTypeAndPerson( int streakTypeId, int personId )
         {
-            return Queryable().Where( se => se.SequenceId == sequenceId && se.PersonAlias.PersonId == personId );
+            return Queryable().Where( se => se.StreakTypeId == streakTypeId && se.PersonAlias.PersonId == personId );
         }
 
         /// <summary>
-        /// Is the person enrolled in the sequence
+        /// Is the person enrolled in the streak type
         /// </summary>
-        /// <param name="sequenceId"></param>
+        /// <param name="streakTypeId"></param>
         /// <param name="personId"></param>
         /// <returns></returns>
-        public bool IsEnrolled( int sequenceId, int personId )
+        public bool IsEnrolled( int streakTypeId, int personId )
         {
-            return Queryable().AsNoTracking().Any( se => se.SequenceId == sequenceId && se.PersonAlias.PersonId == personId );
+            return Queryable().AsNoTracking().Any( se => se.StreakTypeId == streakTypeId && se.PersonAlias.PersonId == personId );
         }
 
         /// <summary>
         /// Start an async task to calculate steak data and then copy it to the enrollment model
         /// </summary>
-        /// <param name="sequenceEnrollmentId"></param>
-        public static void UpdateStreakPropertiesAsync( int sequenceEnrollmentId )
+        /// <param name="streakId"></param>
+        public static void RefreshStreakDenormalizedPropertiesAsync( int streakId )
         {
             Task.Run( () =>
             {
                 var rockContext = new RockContext();
-                var sequenceEnrollmentService = new SequenceEnrollmentService( rockContext );
-                var sequenceService = new SequenceService( rockContext );
+                var streakService = new StreakService( rockContext );
+                var streakTypeService = new StreakTypeService( rockContext );
 
                 // Get the streak data and validate it
-                var streakData = sequenceService.GetSequenceStreakData( sequenceEnrollmentId, out var errorMessage );
+                var streakData = streakTypeService.GetStreakData( streakId, out var errorMessage );
 
                 if ( !errorMessage.IsNullOrWhiteSpace() )
                 {
@@ -75,15 +75,15 @@ namespace Rock.Model
                     return;
                 }
 
-                // Get the enrollment and apply updated information to it
-                var sequenceEnrollment = sequenceEnrollmentService.Get( sequenceEnrollmentId );
-                if ( sequenceEnrollment == null )
+                // Get the streak and apply updated information to it
+                var streak = streakService.Get( streakId );
+                if ( streak == null )
                 {
-                    ExceptionLogService.LogException( "The sequence enrollment was null" );
+                    ExceptionLogService.LogException( "The streak was null" );
                     return;
                 }
 
-                CopyStreakDataToEnrollment( streakData, sequenceEnrollment );
+                CopyStreakDataToStreakModel( streakData, streak );
                 rockContext.SaveChanges();
             } );
         }
@@ -93,7 +93,7 @@ namespace Rock.Model
         /// </summary>
         /// <param name="source"></param>
         /// <param name="target"></param>
-        public static void CopyStreakDataToEnrollment( SequenceStreakData source, SequenceEnrollment target )
+        public static void CopyStreakDataToStreakModel( StreakData source, Streak target )
         {
             if ( source == null || target == null )
             {

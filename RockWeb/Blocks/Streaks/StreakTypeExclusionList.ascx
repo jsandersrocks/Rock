@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SequenceExclusionList.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceExclusionList" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeExclusionList.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceExclusionList" %>
 
 <asp:UpdatePanel ID="upMain" runat="server">
     <ContentTemplate>

@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SequenceMapEditor.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceMapEditor" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakMapEditor.ascx.cs" Inherits="RockWeb.Blocks.Sequences.StreakMapEditor" %>
 
 <asp:UpdatePanel ID="upMapEditor" runat="server">
     <ContentTemplate>

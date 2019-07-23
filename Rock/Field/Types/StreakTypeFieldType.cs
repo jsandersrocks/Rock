@@ -27,19 +27,19 @@ using Rock.Web.Cache;
 namespace Rock.Field.Types
 {
     /// <summary>
-    /// Field Type used to display a dropdown list of sequences and allow a single selection.
+    /// Field Type used to display a dropdown list of streak types and allow a single selection.
     /// </summary>
-    public class SequenceFieldType : EntitySingleSelectionListFieldTypeBase<Sequence>
+    public class StreakTypeFieldType : EntitySingleSelectionListFieldTypeBase<StreakType>
     {
         protected override string OnFormatValue( Guid entityGuid )
         {
-            var entity = GetEntity( entityGuid.ToString() ) as Sequence;
+            var entity = GetEntity( entityGuid.ToString() ) as StreakType;
             return entity.Name;
         }
 
         protected override Dictionary<Guid, string> OnGetItemList()
         {
-            return SequenceCache.All()
+            return StreakTypeCache.All()
                 .Where( s => s.IsActive )
                 .OrderBy( s => s.Name )
                 .Select( s => new

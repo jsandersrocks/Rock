@@ -8,23 +8,23 @@ using Rock.Data;
 namespace Rock.Model
 {
     /// <summary>
-    /// Represents a Sequence Enrollment in Rock.
+    /// Represents a Streak in Rock.
     /// </summary>
-    [RockDomain( "Sequences" )]
-    [Table( "SequenceEnrollment" )]
+    [RockDomain( "Streaks" )]
+    [Table( "Streak" )]
     [DataContract]
-    public partial class SequenceEnrollment : Model<SequenceEnrollment>
+    public partial class Streak : Model<Streak>
     {
         #region Entity Properties
 
         /// <summary>
-        /// Gets or sets the Id of the <see cref="Sequence"/> to which this enrollment belongs. This property is required.
+        /// Gets or sets the Id of the <see cref="StreakType"/> to which this Streak belongs. This property is required.
         /// </summary>
         [Required]
         [DataMember( IsRequired = true )]
-        [Index( "IX_SequenceId", IsUnique = false )]
-        [Index( "IX_SequenceId_PersonAliasId", 0, IsUnique = true )]
-        public int SequenceId { get; set; }
+        [Index( "IX_StreakTypeId", IsUnique = false )]
+        [Index( "IX_StreakTypeId_PersonAliasId", 0, IsUnique = true )]
+        public int StreakTypeId { get; set; }
 
         /// <summary>
         /// Gets or sets the person alias identifier.
@@ -32,12 +32,12 @@ namespace Rock.Model
         [Required]
         [DataMember( IsRequired = true )]
         [Index( "IX_PersonAliasId", IsUnique = false )]
-        [Index( "IX_SequenceId_PersonAliasId", 1, IsUnique = true )]
+        [Index( "IX_StreakTypeId_PersonAliasId", 1, IsUnique = true )]
         public int PersonAliasId { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="DateTime"/> when the person was enrolled in the sequence.
-        /// This is not the sequence start date.
+        /// Gets or sets the <see cref="DateTime"/> when the person was enrolled in the streak type.
+        /// This is not the Streak Type start date.
         /// </summary>
         [DataMember]
         [Required]
@@ -50,17 +50,30 @@ namespace Rock.Model
         private DateTime _enrollmentDate = RockDateTime.Now;
 
         /// <summary>
+        /// Gets or sets the <see cref="DateTime"/> when the person deactivated their Streak. If null, the Streak is active.
+        /// </summary>
+        [DataMember]
+        public DateTime? InactiveDateTime { get; set; }
+
+        /// <summary>
         /// Gets or sets the location identifier by which the person's exclusions will be sourced.
         /// </summary>
         [DataMember]
         public int? LocationId { get; set; }
 
         /// <summary>
-        /// The sequence of bits that represent engagement. The least significant bit (right side) is representative of the Sequence's
+        /// The sequence of bits that represent engagement. The least significant bit (right side) is representative of the StreakType's
         /// StartDate. More significant bits (going left) are more recent dates.
         /// </summary>
         [DataMember]
         public byte[] EngagementMap { get; set; }
+
+        /// <summary>
+        /// The sequence of bits that represent exclusions exclusive to this streak. The least significant bit (right side) is representative
+        /// of the StreakType's StartDate. More significant bits (going left) are more recent dates.
+        /// </summary>
+        [DataMember]
+        public byte[] ExclusionMap { get; set; }
 
         #endregion Entity Properties
 
@@ -113,16 +126,25 @@ namespace Rock.Model
         public virtual PersonAlias PersonAlias { get; set; }
 
         /// <summary>
-        /// Gets or sets the Sequence.
+        /// Gets or sets the StreakType.
         /// </summary>
         [DataMember]
-        public virtual Sequence Sequence { get; set; }
+        public virtual StreakType StreakType { get; set; }
 
         /// <summary>
         /// Gets or sets the Location.
         /// </summary>
         [DataMember]
         public virtual Location Location { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Location.
+        /// </summary>
+        [DataMember]
+        public virtual bool IsActive
+        {
+            get => !InactiveDateTime.HasValue;
+        }
 
         #endregion Virtual Properties
 
@@ -131,14 +153,14 @@ namespace Rock.Model
         /// <summary>
         /// Sequence Enrollment Configuration class.
         /// </summary>
-        public partial class SequenceEnrollmentConfiguration : EntityTypeConfiguration<SequenceEnrollment>
+        public partial class StreakConfiguration : EntityTypeConfiguration<Streak>
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="SequenceEnrollmentConfiguration"/> class.
+            /// Initializes a new instance of the <see cref="StreakConfiguration"/> class.
             /// </summary>
-            public SequenceEnrollmentConfiguration()
+            public StreakConfiguration()
             {
-                HasRequired( se => se.Sequence ).WithMany( s => s.SequenceEnrollments ).HasForeignKey( se => se.SequenceId ).WillCascadeOnDelete( true );
+                HasRequired( se => se.StreakType ).WithMany( s => s.Streaks ).HasForeignKey( se => se.StreakTypeId ).WillCascadeOnDelete( true );
                 HasRequired( se => se.PersonAlias ).WithMany().HasForeignKey( se => se.PersonAliasId ).WillCascadeOnDelete( true );
 
                 HasOptional( se => se.Location ).WithMany().HasForeignKey( se => se.LocationId ).WillCascadeOnDelete( false );
@@ -155,7 +177,7 @@ namespace Rock.Model
         /// <param name="dbContext">The database context.</param>
         public override void PostSaveChanges( DbContext dbContext )
         {
-            SequenceEnrollmentService.UpdateStreakPropertiesAsync( Id );
+            StreakService.RefreshStreakDenormalizedPropertiesAsync( Id );
             base.PostSaveChanges( dbContext );
         }
 

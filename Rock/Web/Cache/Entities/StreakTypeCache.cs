@@ -26,103 +26,103 @@ using Rock.Model;
 namespace Rock.Web.Cache
 {
     /// <summary>
-    /// Information about a sequence that is required by the rendering engine.
+    /// Information about a streak type that is required by the rendering engine.
     /// This information will be cached by the engine
     /// </summary>
     [Serializable]
     [DataContract]
-    public class SequenceCache : ModelCache<SequenceCache, Sequence>
+    public class StreakTypeCache : ModelCache<StreakTypeCache, StreakType>
     {
         #region Properties
 
         private readonly object _obj = new object();
 
         /// <summary>
-        /// Gets or sets the name of the sequence. This property is required.
+        /// Gets or sets the name of the streak type. This property is required.
         /// </summary>
         [DataMember]
         public string Name { get; private set; }
 
         /// <summary>
-        /// Gets or sets a description of the sequence.
+        /// Gets or sets a description of the streak type.
         /// </summary>
         [DataMember]
         public string Description { get; private set; }
 
         /// <summary>
-        /// Gets or sets the attendance association (<see cref="Rock.Model.SequenceStructureType"/>). If not set, this sequence
+        /// Gets or sets the attendance association (<see cref="Rock.Model.StreakStructureType"/>). If not set, this streak type
         /// will not produce attendance records.
         /// </summary>
         [DataMember]
-        public SequenceStructureType? StructureType { get; private set; }
+        public StreakStructureType? StructureType { get; private set; }
 
         /// <summary>
-        /// Gets or sets the Id of the Entity associated with attendance for this sequence.
+        /// Gets or sets the Id of the Entity associated with attendance for this streak type.
         /// </summary>
         [DataMember]
         public int? StructureEntityId { get; private set; }
 
         /// <summary>
-        /// This determines whether the sequence will write attendance records when marking someone as present or
+        /// This determines whether the streak type will write attendance records when marking someone as present or
         /// if it will just update the enrolled individual’s map.
         /// </summary>
         [DataMember]
         public bool EnableAttendance { get; private set; }
 
         /// <summary>
-        /// Gets or sets a flag indicating if this sequence requires explicit enrollment. If not set, a person can be
+        /// Gets or sets a flag indicating if this streak type requires explicit enrollment. If not set, a person can be
         /// implicitly enrolled through attendance.
         /// </summary>
         [DataMember]
         public bool RequiresEnrollment { get; private set; }
 
         /// <summary>
-        /// Gets or sets the timespan that each map bit represents (<see cref="Rock.Model.SequenceOccurrenceFrequency"/>).
+        /// Gets or sets the timespan that each map bit represents (<see cref="Rock.Model.StreakOccurrenceFrequency"/>).
         /// </summary>
         [DataMember]
-        public SequenceOccurrenceFrequency OccurrenceFrequency { get; private set; }
+        public StreakOccurrenceFrequency OccurrenceFrequency { get; private set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="DateTime"/> associated with the first bit of this sequence.
+        /// Gets or sets the <see cref="DateTime"/> associated with the first bit of this streak type.
         /// </summary>
         [DataMember]
         public DateTime StartDate { get; private set; }
 
         /// <summary>
-        /// The sequence of bits that represent occurrences where attendance was possible. The least significant bit (right side) is
+        /// The streak type of bits that represent occurrences where attendance was possible. The least significant bit (right side) is
         /// representative of the StartDate. More significant bits (going left) are more recent dates.
         /// </summary>
         [DataMember]
         public byte[] OccurrenceMap { get; private set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this Sequence is active.
+        /// Gets or sets a value indicating whether this streak type is active.
         /// </summary>
         [DataMember]
         public bool IsActive { get; private set; }
 
         /// <summary>
-        /// Gets the Sequence Occurrence Exclusions
+        /// Gets the Streak Type Exclusions
         /// </summary>
         /// <value>
         /// The exclusion values.
         /// </value>
-        public List<SequenceOccurrenceExclusionCache> SequenceOccurrenceExclusions
+        public List<StreakTypeExclusionCache> StreakTypeExclusions
         {
             get
             {
-                var sequenceOccurrenceExclusions = new List<SequenceOccurrenceExclusionCache>();
+                var streakTypeExclusions = new List<StreakTypeExclusionCache>();
 
-                if ( _sequenceOccurrenceExclusionIds == null )
+                if ( _streakTypeExclusionIds == null )
                 {
                     lock ( _obj )
                     {
-                        if ( _sequenceOccurrenceExclusionIds == null )
+                        if ( _streakTypeExclusionIds == null )
                         {
                             using ( var rockContext = new RockContext() )
                             {
-                                _sequenceOccurrenceExclusionIds = new SequenceOccurrenceExclusionService( rockContext )
-                                    .GetBySequenceId( Id )
+                                _streakTypeExclusionIds = new StreakTypeExclusionService( rockContext )
+                                    .GetByStreakTypeId( Id )
                                     .AsNoTracking()
                                     .Select( soe => soe.Id )
                                     .ToList();
@@ -131,27 +131,27 @@ namespace Rock.Web.Cache
                     }
                 }
 
-                foreach ( var id in _sequenceOccurrenceExclusionIds )
+                foreach ( var id in _streakTypeExclusionIds )
                 {
-                    var sequenceOccurrenceExclusion = SequenceOccurrenceExclusionCache.Get( id );
-                    if ( sequenceOccurrenceExclusion != null )
+                    var streakTypeExclusionCache = StreakTypeExclusionCache.Get( id );
+                    if ( streakTypeExclusionCache != null )
                     {
-                        sequenceOccurrenceExclusions.Add( sequenceOccurrenceExclusion );
+                        streakTypeExclusions.Add( streakTypeExclusionCache );
                     }
                 }
 
-                return sequenceOccurrenceExclusions;
+                return streakTypeExclusions;
             }
         }
-        private List<int> _sequenceOccurrenceExclusionIds = null;
+        private List<int> _streakTypeExclusionIds = null;
 
         /// <summary>
         /// Reloads the exclusion values.
         /// </summary>
         public void ReloadOccurrenceExclusions()
         {
-            // set _sequenceOccurrenceExclusionIds to null so it load them all at once on demand
-            _sequenceOccurrenceExclusionIds = null;
+            // set ids to null so it load them all at once on demand
+            _streakTypeExclusionIds = null;
         }
 
         #endregion
@@ -166,22 +166,22 @@ namespace Rock.Web.Cache
         {
             base.SetFromEntity( entity );
 
-            var sequence = entity as Sequence;
-            if ( sequence == null )
+            var sourceModel = entity as StreakType;
+            if ( sourceModel == null )
             {
                 return;
             }
 
-            Name = sequence.Name;
-            Description = sequence.Description;
-            IsActive = sequence.IsActive;
-            StructureType = sequence.StructureType;
-            StructureEntityId = sequence.StructureEntityId;
-            EnableAttendance = sequence.EnableAttendance;
-            RequiresEnrollment = sequence.RequiresEnrollment;
-            OccurrenceFrequency = sequence.OccurrenceFrequency;
-            StartDate = sequence.StartDate;
-            OccurrenceMap = sequence.OccurrenceMap;
+            Name = sourceModel.Name;
+            Description = sourceModel.Description;
+            IsActive = sourceModel.IsActive;
+            StructureType = sourceModel.StructureType;
+            StructureEntityId = sourceModel.StructureEntityId;
+            EnableAttendance = sourceModel.EnableAttendance;
+            RequiresEnrollment = sourceModel.RequiresEnrollment;
+            OccurrenceFrequency = sourceModel.OccurrenceFrequency;
+            StartDate = sourceModel.StartDate;
+            OccurrenceMap = sourceModel.OccurrenceMap;
 
             ReloadOccurrenceExclusions();
         }

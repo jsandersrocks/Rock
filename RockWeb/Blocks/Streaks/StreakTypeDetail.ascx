@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SequenceDetail.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceDetail" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeDetail.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceDetail" %>
 
 <asp:UpdatePanel ID="upSequenceDetail" runat="server">
     <ContentTemplate>

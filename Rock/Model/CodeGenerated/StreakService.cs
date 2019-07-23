@@ -28,15 +28,15 @@ using Rock.Data;
 namespace Rock.Model
 {
     /// <summary>
-    /// Sequence Service class
+    /// Streak Service class
     /// </summary>
-    public partial class SequenceService : Service<Sequence>
+    public partial class StreakService : Service<Streak>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="SequenceService"/> class
+        /// Initializes a new instance of the <see cref="StreakService"/> class
         /// </summary>
         /// <param name="context">The context.</param>
-        public SequenceService(RockContext context) : base(context)
+        public StreakService(RockContext context) : base(context)
         {
         }
 
@@ -48,7 +48,7 @@ namespace Rock.Model
         /// <returns>
         ///   <c>true</c> if this instance can delete the specified item; otherwise, <c>false</c>.
         /// </returns>
-        public bool CanDelete( Sequence item, out string errorMessage )
+        public bool CanDelete( Streak item, out string errorMessage )
         {
             errorMessage = string.Empty;
             return true;
@@ -58,48 +58,43 @@ namespace Rock.Model
     /// <summary>
     /// Generated Extension Methods
     /// </summary>
-    public static partial class SequenceExtensionMethods
+    public static partial class StreakExtensionMethods
     {
         /// <summary>
-        /// Clones this Sequence object to a new Sequence object
+        /// Clones this SequenceEnrollment object to a new SequenceEnrollment object
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="deepCopy">if set to <c>true</c> a deep copy is made. If false, only the basic entity properties are copied.</param>
         /// <returns></returns>
-        public static Sequence Clone( this Sequence source, bool deepCopy )
+        public static Streak Clone( this Streak source, bool deepCopy )
         {
             if (deepCopy)
             {
-                return source.Clone() as Sequence;
+                return source.Clone() as Streak;
             }
             else
             {
-                var target = new Sequence();
+                var target = new Streak();
                 target.CopyPropertiesFrom( source );
                 return target;
             }
         }
 
         /// <summary>
-        /// Copies the properties from another Sequence object to this Sequence object
+        /// Copies the properties from another SequenceEnrollment object to this SequenceEnrollment object
         /// </summary>
         /// <param name="target">The target.</param>
         /// <param name="source">The source.</param>
-        public static void CopyPropertiesFrom( this Sequence target, Sequence source )
+        public static void CopyPropertiesFrom( this Streak target, Streak source )
         {
             target.Id = source.Id;
-            target.Description = source.Description;
-            target.EnableAttendance = source.EnableAttendance;
+            target.EnrollmentDate = source.EnrollmentDate;
             target.ForeignGuid = source.ForeignGuid;
             target.ForeignKey = source.ForeignKey;
-            target.IsActive = source.IsActive;
-            target.Name = source.Name;
-            target.OccurrenceFrequency = source.OccurrenceFrequency;
-            target.OccurrenceMap = source.OccurrenceMap;
-            target.RequiresEnrollment = source.RequiresEnrollment;
-            target.StartDate = source.StartDate;
-            target.StructureEntityId = source.StructureEntityId;
-            target.StructureType = source.StructureType;
+            target.LocationId = source.LocationId;
+            target.EngagementMap = source.EngagementMap;
+            target.PersonAliasId = source.PersonAliasId;
+            target.StreakTypeId = source.StreakTypeId;
             target.CreatedDateTime = source.CreatedDateTime;
             target.ModifiedDateTime = source.ModifiedDateTime;
             target.CreatedByPersonAliasId = source.CreatedByPersonAliasId;
