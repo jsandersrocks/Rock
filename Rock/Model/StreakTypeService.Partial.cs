@@ -45,9 +45,9 @@ namespace Rock.Model
         private const int BitsPerByte = 8;        
 
         /// <summary>
-        /// The minimum size of a byte array for a sequence related map. The point is to reduce memory reallocations which
+        /// The minimum size of a byte array for a streak related map. The point is to reduce memory reallocations which
         /// are costly, by starting and growing by this size. 128 bytes is trivial memory, but has 1024 bits, which is enough to represent
-        /// almost 3 years worth of daily sequence data.
+        /// almost 3 years worth of daily streak data.
         /// </summary>
         private const int MapByteGrowthCount = 128;
 
@@ -160,7 +160,7 @@ namespace Rock.Model
 
             if ( enrollmentDate.Value < minDate )
             {
-                errorMessage = "The enrollmentDate cannot be before the sequence began";
+                errorMessage = "The enrollmentDate cannot be before the streak type start date";
                 return null;
             }
 
@@ -335,7 +335,7 @@ namespace Rock.Model
                 return;
             }
 
-            // Set the sequence occurrence map according to the dates returned
+            // Set the streak type occurrence map according to the dates returned
             streakType.StartDate = occurrenceDates.First();
             var occurrenceMap = AllocateNewByteArray();
 
@@ -352,7 +352,7 @@ namespace Rock.Model
             streakType.OccurrenceMap = occurrenceMap;
             rockContext.SaveChanges();
 
-            // Get all of the attendees for the sequence
+            // Get all of the attendees for the streak type
             var personAliasIds = occurrenceQuery
                 .SelectMany( ao => ao.Attendees.Where( a => a.DidAttend == true && a.PersonAliasId.HasValue ) )
                 .Select( a => a.PersonAliasId.Value )
@@ -473,7 +473,7 @@ namespace Rock.Model
         /// </summary>
         /// <param name="streakTypeCache"></param>
         /// <param name="personId"></param>
-        /// <param name="startDate">Defaults to the sequence start date</param>
+        /// <param name="startDate">Defaults to the streak type start date</param>
         /// <param name="endDate">Defaults to now</param>
         /// <param name="createObjectArray">Defaults to false. This may be a costly operation if enabled.</param>
         /// <param name="includeBitMaps">Defaults to false. This may be a costly operation if enabled.</param>
@@ -487,7 +487,7 @@ namespace Rock.Model
 
             errorMessage = string.Empty;
 
-            // Validate the sequence
+            // Validate the streak type
             if ( streakTypeCache == null )
             {
                 errorMessage = "A valid streak type is required";
@@ -531,7 +531,7 @@ namespace Rock.Model
 
             if ( startDate < minDate )
             {
-                errorMessage = "StartDate cannot be before the sequence began";
+                errorMessage = "StartDate cannot be before the streak type start date";
                 return null;
             }
 
@@ -733,7 +733,7 @@ namespace Rock.Model
         /// Calculate streak data (like the current streak and longest streak count)
         /// </summary>
         /// <param name="streakId"></param>
-        /// <param name="startDate">Defaults to the sequence start date</param>
+        /// <param name="startDate">Defaults to the streak type start date</param>
         /// <param name="endDate">Defaults to now</param>
         /// <param name="createObjectArray">Defaults to false. This may be a costly operation if enabled.</param>
         /// <param name="includeBitMaps">Defaults to false. This may be a costly operation if enabled.</param>
@@ -773,7 +773,7 @@ namespace Rock.Model
         /// <param name="personId"></param>
         /// <param name="errorMessage"></param>
         /// <param name="dateOfEngagement">Defaults to today</param>
-        /// <param name="groupId">This is required for marking attendance unless the sequence is a group structure type</param>
+        /// <param name="groupId">This is required for marking attendance unless the streak type is a group structure type</param>
         /// <param name="locationId"></param>
         /// <param name="scheduleId"></param>
         /// <param name="addOrUpdateAttendanceRecord">Should this method add or create <see cref="Attendance"/> models?</param>
@@ -783,7 +783,7 @@ namespace Rock.Model
         {
             errorMessage = string.Empty;
 
-            // Validate the sequence
+            // Validate the streak type
             if ( streakTypeCache == null )
             {
                 errorMessage = "A valid streak type is required";
@@ -796,7 +796,7 @@ namespace Rock.Model
                 return;
             }
 
-            // Override the group id if the sequence is explicit about the group
+            // Override the group id if the streak type is explicit about the group
             if ( streakTypeCache.StructureType == StreakStructureType.Group && streakTypeCache.StructureEntityId.HasValue )
             {
                 groupId = streakTypeCache.StructureEntityId;
@@ -881,7 +881,7 @@ namespace Rock.Model
                     var asyncRockContext = new RockContext();
                     var attendanceService = new AttendanceService( asyncRockContext );
 
-                    // Add or update the attendance, but don't sync sequences since that would create a logic loop
+                    // Add or update the attendance, but don't sync streaks since that would create a logic loop
                     attendanceService.AddOrUpdate( streak.PersonAliasId, dateOfEngagement.Value, groupId, locationId,
                         scheduleId, null, null, null, null, null, null, null,
                         syncMatchingStreaks: false );
@@ -910,7 +910,7 @@ namespace Rock.Model
 
             if ( attendance.DidAttend != true )
             {
-                // If DidAttend is false, then don't do anything for the sequence. We should not unset the bit for the day/week because
+                // If DidAttend is false, then don't do anything for the streak type. We should not unset the bit for the day/week because
                 // we don't know if they had some other engagement besides this and cannot assume it should be unset.
                 return;
             }
@@ -942,7 +942,7 @@ namespace Rock.Model
                 return;
             }
 
-            // Get the person's sequence enrollments
+            // Get the person's streaks
             var personId = person.Id;
             var streakService = new StreakService( rockContext );
             var enrolledInStreakTypeIdQuery = streakService.Queryable()
@@ -1014,7 +1014,7 @@ namespace Rock.Model
 
         /// <summary>
         /// This convenience method calls <see cref="HandleAttendanceRecord"/> for all attendance records associated the occurrence 
-        /// in an asynchronous fashion such that the calling process can continue uninhibited. Use this where the sequence and enrollments 
+        /// in an asynchronous fashion such that the calling process can continue uninhibited. Use this where the streak type and streaks 
         /// should be synchronized, but the calling process should continue quickly and without regard to the success of this operation.
         /// This method creates it's own data context and any changes will be saved automatically.
         /// </summary>
@@ -1035,7 +1035,7 @@ namespace Rock.Model
         }
 
         /// <summary>
-        /// Get the name of the sequence's attendance structure
+        /// Get the name of the streak type's attendance structure
         /// </summary>
         /// <returns></returns>
         public string GetStructureName( StreakStructureType? structureType, int? structureEntityId )
@@ -1147,7 +1147,7 @@ namespace Rock.Model
 
             if ( bitDate < mapStartDate )
             {
-                errorMessage = "The specified date occurs before the sequence begins";
+                errorMessage = "The specified date occurs before the streak type start date";
                 return false;
             }
 
@@ -1167,7 +1167,7 @@ namespace Rock.Model
         /// <summary>
         /// Set the bit that corresponds to bitDate. This method works in-place unless the array has to grow. Note that if the array does not
         /// grow and get reallocated, then Entity Framework will not track the change. If needed, force the property state to Modified:
-        /// rockContext.Entry( sequenceModel ).Property( s => s.OccurrenceMap ).IsModified = true;
+        /// rockContext.Entry( streakModel ).Property( s => s.OccurrenceMap ).IsModified = true;
         /// </summary>
         /// <param name="map"></param>
         /// <param name="mapStartDate"></param>
@@ -1263,11 +1263,11 @@ namespace Rock.Model
         /// </summary>
         /// <param name="startDate"></param>
         /// <param name="frequencyUnits"></param>
-        /// <param name="sequenceOccurrenceFrequency"></param>
+        /// <param name="streakOccurrenceFrequency"></param>
         /// <returns></returns>
-        private DateTime CalculateDateFromOffset( DateTime startDate, int frequencyUnits, StreakOccurrenceFrequency sequenceOccurrenceFrequency )
+        private DateTime CalculateDateFromOffset( DateTime startDate, int frequencyUnits, StreakOccurrenceFrequency streakOccurrenceFrequency )
         {
-            var isDaily = sequenceOccurrenceFrequency == StreakOccurrenceFrequency.Daily;
+            var isDaily = streakOccurrenceFrequency == StreakOccurrenceFrequency.Daily;
 
             if ( !isDaily )
             {
@@ -1486,12 +1486,12 @@ namespace Rock.Model
     public class StreakData
     {
         /// <summary>
-        /// The number of enrollments the person has in the sequence (because of person aliases)
+        /// The number of enrollments the person has in the streak type (because of person aliases)
         /// </summary>
         public int EnrollmentCount { get; set; }
 
         /// <summary>
-        /// The date that the person enrolled into the sequence
+        /// The date that the person enrolled into the streak type
         /// </summary>
         public DateTime? FirstEnrollmentDate { get; set; }
 
@@ -1598,12 +1598,12 @@ namespace Rock.Model
             public bool HasEngagement { get; set; }
 
             /// <summary>
-            /// Did the sequence have an occurrence?
+            /// Did the streak type have an occurrence?
             /// </summary>
             public bool HasOccurrence { get; set; }
 
             /// <summary>
-            /// Did the sequence have an exclusion?
+            /// Did the streak type have an exclusion?
             /// </summary>
             public bool HasExclusion { get; set; }
         }

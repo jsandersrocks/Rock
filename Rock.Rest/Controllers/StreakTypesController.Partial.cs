@@ -35,17 +35,17 @@ namespace Rock.Rest.Controllers
     public partial class StreakTypesController
     {
         /// <summary>
-        /// Gets recent sequence engagement data. Returns an array of bits representing "unitCount" units (days or weeks)
+        /// Gets recent streak engagement data. Returns an array of bits representing "unitCount" units (days or weeks)
         /// with the last bit representing today. This is used for the <see cref="StreakEngagement" /> badge.
         /// </summary>
         /// <returns></returns>
         [Authenticate, Secured]
         [HttpGet]
-        [System.Web.Http.Route( "api/Sequences/RecentEngagement/{sequenceId}/{personId}" )]
-        public bool[] GetRecentEngagement( int sequenceId, int personId, [FromUri] int unitCount = 24 )
+        [System.Web.Http.Route( "api/StreakTypes/RecentEngagement/{streakTypeId}/{personId}" )]
+        public bool[] GetRecentEngagement( int streakTypeId, int personId, [FromUri] int unitCount = 24 )
         {
             var service = Service as StreakTypeService;
-            var bits = service.GetRecentEngagementBits( sequenceId, personId, unitCount, out var errorMessage );
+            var bits = service.GetRecentEngagementBits( streakTypeId, personId, unitCount, out var errorMessage );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
             {
@@ -63,24 +63,24 @@ namespace Rock.Rest.Controllers
         }
 
         /// <summary>
-        /// Enroll the currently logged-in user into the sequence.
+        /// Enroll the currently logged-in user into the streak type.
         /// </summary>
-        /// <param name="sequenceId"></param>
+        /// <param name="streakTypeId"></param>
         /// <param name="personId">Defaults to the current person</param>
         /// <param name="enrollmentDate">Defaults to the current date if omitted</param>
         /// <param name="locationId">Defaults to the person's campus if omitted</param>
         /// <returns></returns>
         [Authenticate, Secured]
         [HttpPost]
-        [System.Web.Http.Route( "api/Sequences/Enroll/{sequenceId}" )]
-        public virtual HttpResponseMessage Enroll( int sequenceId, [FromUri]int? personId = null, [FromUri] DateTime? enrollmentDate = null, [FromUri] int? locationId = null )
+        [System.Web.Http.Route( "api/StreakTypes/Enroll/{streakTypeId}" )]
+        public virtual HttpResponseMessage Enroll( int streakTypeId, [FromUri]int? personId = null, [FromUri] DateTime? enrollmentDate = null, [FromUri] int? locationId = null )
         {
-            // Make sure the sequence exists
-            var sequence = StreakTypeCache.Get( sequenceId );
+            // Make sure the streak type exists
+            var streakTypeCache = StreakTypeCache.Get( streakTypeId );
 
-            if ( sequence == null )
+            if ( streakTypeCache == null )
             {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The sequenceId did not resolve" );
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The streakTypeId did not resolve" );
                 throw new HttpResponseException( errorResponse );
             }
 
@@ -99,8 +99,8 @@ namespace Rock.Rest.Controllers
             }
 
             // Create the enrollment
-            var sequenceService = Service as StreakTypeService;
-            var sequenceEnrollment = sequenceService.Enroll( sequence, personId.Value, out var errorMessage, enrollmentDate, locationId );
+            var streakTypeService = Service as StreakTypeService;
+            var streak = streakTypeService.Enroll( streakTypeCache, personId.Value, out var errorMessage, enrollmentDate, locationId );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
             {
@@ -108,7 +108,7 @@ namespace Rock.Rest.Controllers
                 throw new HttpResponseException( errorResponse );
             }
 
-            if ( sequenceEnrollment == null )
+            if ( streak == null )
             {
                 var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.InternalServerError, "The enrollment was not successful but no error was specified" );
                 throw new HttpResponseException( errorResponse );
@@ -116,33 +116,33 @@ namespace Rock.Rest.Controllers
 
             // Save to the DB and tell the user the new id
             rockContext.SaveChanges();
-            return ControllerContext.Request.CreateResponse( HttpStatusCode.Created, sequenceEnrollment.Id );
+            return ControllerContext.Request.CreateResponse( HttpStatusCode.Created, streak.Id );
         }
 
         /// <summary>
-        /// Returns a listing of locations, including geofence data, for the sequence. These locations are determined from the
-        /// structure type of the sequence.
+        /// Returns a listing of locations, including geofence data, for the streak. These locations are determined from the
+        /// structure type of the streak type.
         /// </summary>
-        /// <param name="sequenceId"></param>
+        /// <param name="streakTypeId"></param>
         /// <returns></returns>
         [Authenticate, Secured]
         [HttpGet]
         [EnableQuery]
-        [System.Web.Http.Route( "api/Sequences/Locations/{sequenceId}" )]
-        public virtual IQueryable<Location> GetLocations( int sequenceId )
+        [System.Web.Http.Route( "api/StreakTypes/Locations/{streakTypeId}" )]
+        public virtual IQueryable<Location> GetLocations( int streakTypeId )
         {
-            // Make sure the sequence exists
-            var sequence = StreakTypeCache.Get( sequenceId );
+            // Make sure the streak type exists
+            var streakTypeCache = StreakTypeCache.Get( streakTypeId );
 
-            if ( sequence == null )
+            if ( streakTypeCache == null )
             {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The sequenceId did not resolve" );
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The streakTypeId did not resolve" );
                 throw new HttpResponseException( errorResponse );
             }
 
             // Get the locations from the service
-            var sequenceService = Service as StreakTypeService;
-            var locations = sequenceService.GetLocations( sequence, out var errorMessage );
+            var streakTypeService = Service as StreakTypeService;
+            var locations = streakTypeService.GetLocations( streakTypeCache, out var errorMessage );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
             {
@@ -160,29 +160,29 @@ namespace Rock.Rest.Controllers
         }
 
         /// <summary>
-        /// Returns a listing of schedules, including iCal data, for the sequence and specified location.
+        /// Returns a listing of schedules, including iCal data, for the streak type and specified location.
         /// </summary>
-        /// <param name="sequenceId"></param>
+        /// <param name="streakTypeId"></param>
         /// <param name="locationId"></param>
         /// <returns></returns>
         [Authenticate, Secured]
         [HttpGet]
         [EnableQuery]
-        [System.Web.Http.Route( "api/Sequences/LocationSchedules/{sequenceId}/{locationId}" )]
-        public virtual IQueryable<Schedule> GetLocationSchedules( int sequenceId, int locationId )
+        [System.Web.Http.Route( "api/StreakTypes/LocationSchedules/{streakTypeId}/{locationId}" )]
+        public virtual IQueryable<Schedule> GetLocationSchedules( int streakTypeId, int locationId )
         {
-            // Make sure the sequence exists
-            var sequence = StreakTypeCache.Get( sequenceId );
+            // Make sure the streak type exists
+            var streakTypeCache = StreakTypeCache.Get( streakTypeId );
 
-            if ( sequence == null )
+            if ( streakTypeCache == null )
             {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The sequenceId did not resolve" );
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The streakTypeId did not resolve" );
                 throw new HttpResponseException( errorResponse );
             }
 
             // Get the schedules from the service
-            var sequenceService = Service as StreakTypeService;
-            var schedules = sequenceService.GetLocationSchedules( sequence, locationId, out var errorMessage );
+            var streakTypeService = Service as StreakTypeService;
+            var schedules = streakTypeService.GetLocationSchedules( streakTypeCache, locationId, out var errorMessage );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
             {
@@ -202,26 +202,26 @@ namespace Rock.Rest.Controllers
         /// <summary>
         /// Returns the currently logged-in user or the person indicated's streak information.
         /// </summary>
-        /// <param name="sequenceId"></param>
+        /// <param name="streakTypeId"></param>
         /// <param name="personId">Defaults to the current person</param>
-        /// <param name="startDate">Defaults to the sequence start date</param>
+        /// <param name="startDate">Defaults to the streak type start date</param>
         /// <param name="endDate">Defaults to now</param>
         /// <param name="createObjectArray">Defaults to false. This may be a costly operation if enabled.</param>
         /// <param name="includeBitMaps">Defaults to false. This may be a costly operation if enabled.</param>
         /// <returns></returns>
         [Authenticate, Secured]
         [HttpGet]
-        [System.Web.Http.Route( "api/Sequences/EnrollmentStreak/{sequenceId}" )]
-        public virtual StreakData GetEnrollmentStreak( int sequenceId,
+        [System.Web.Http.Route( "api/StreakTypes/StreakData/{streakTypeId}" )]
+        public virtual StreakData GetStreakData( int streakTypeId,
             [FromUri]int? personId = null, [FromUri]DateTime? startDate = null, [FromUri]DateTime? endDate = null,
             [FromUri]bool createObjectArray = false, [FromUri]bool includeBitMaps = false )
         {
-            // Make sure the sequence exists
-            var sequence = StreakTypeCache.Get( sequenceId );
+            // Make sure the streak type exists
+            var streakTypeCache = StreakTypeCache.Get( streakTypeId );
 
-            if ( sequence == null )
+            if ( streakTypeCache == null )
             {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The sequenceId did not resolve" );
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The streak type id did not resolve" );
                 throw new HttpResponseException( errorResponse );
             }
 
@@ -239,8 +239,8 @@ namespace Rock.Rest.Controllers
             }
 
             // Get the data from the service
-            var sequenceService = Service as StreakTypeService;
-            var sequenceEnrollmentData = sequenceService.GetStreakData( sequence, personId.Value, out var errorMessage, startDate, endDate, createObjectArray, includeBitMaps );
+            var streakTypeService = Service as StreakTypeService;
+            var streakData = streakTypeService.GetStreakData( streakTypeCache, personId.Value, out var errorMessage, startDate, endDate, createObjectArray, includeBitMaps );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
             {
@@ -248,37 +248,37 @@ namespace Rock.Rest.Controllers
                 throw new HttpResponseException( errorResponse );
             }
 
-            if ( sequenceEnrollmentData == null )
+            if ( streakData == null )
             {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.InternalServerError, "The sequence data retrieval was not successful but no error was specified" );
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.InternalServerError, "The streak data calculation was not successful but no error was specified" );
                 throw new HttpResponseException( errorResponse );
             }
 
-            return sequenceEnrollmentData;
+            return streakData;
         }
 
         /// <summary>
-        /// Notes that the person is present. This will update the SequenceEnrollment map and also attendance (if enabled).
+        /// Notes that the person is present. This will update the occurrence map and also attendance (if enabled).
         /// </summary>
-        /// <param name="sequenceId"></param>
+        /// <param name="streakTypeId"></param>
         /// <param name="personId">Defaults to the current person</param>
         /// <param name="dateOfEngagement">Defaults to now</param>
-        /// <param name="groupId">This is required for marking attendance unless the sequence is a group structure type</param>
+        /// <param name="groupId">This is required for marking attendance unless the streak type is a group structure type</param>
         /// <param name="locationId"></param>
         /// <param name="scheduleId"></param>
         /// <returns></returns>
         [Authenticate, Secured]
         [HttpPost]
-        [System.Web.Http.Route( "api/Sequences/MarkEngagement/{sequenceId}" )]
-        public virtual HttpResponseMessage MarkEngagement( int sequenceId, [FromUri]int? personId = null,
+        [System.Web.Http.Route( "api/StreakTypes/MarkEngagement/{streakTypeId}" )]
+        public virtual HttpResponseMessage MarkEngagement( int streakTypeId, [FromUri]int? personId = null,
             [FromUri]DateTime? dateOfEngagement = null, [FromUri]int? groupId = null, [FromUri]int? locationId = null, [FromUri]int? scheduleId = null )
         {
-            // Make sure the sequence exists
-            var sequence = StreakTypeCache.Get( sequenceId );
+            // Make sure the streak type exists
+            var streakTypeCache = StreakTypeCache.Get( streakTypeId );
 
-            if ( sequence == null )
+            if ( streakTypeCache == null )
             {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The sequenceId did not resolve" );
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The streak type id did not resolve" );
                 throw new HttpResponseException( errorResponse );
             }
 
@@ -297,8 +297,8 @@ namespace Rock.Rest.Controllers
             }
 
             // Get the data from the service
-            var sequenceService = Service as StreakTypeService;
-            sequenceService.MarkEngagement( sequence, personId.Value, out var errorMessage,
+            var streakTypeService = Service as StreakTypeService;
+            streakTypeService.MarkEngagement( streakTypeCache, personId.Value, out var errorMessage,
                 dateOfEngagement, groupId, locationId, scheduleId );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )

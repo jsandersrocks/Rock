@@ -28,11 +28,11 @@ using System.Data.Entity;
 using System.Linq;
 using System.Web.UI;
 
-namespace RockWeb.Blocks.Sequences
+namespace RockWeb.Blocks.Streaks
 {
-    [DisplayName( "Sequence List" )]
-    [Category( "Sequences" )]
-    [Description( "Shows a list of all sequences." )]
+    [DisplayName( "Streak Type List" )]
+    [Category( "Streaks" )]
+    [Description( "Shows a list of all streak types." )]
 
     #region Block Attributes
 
@@ -44,7 +44,7 @@ namespace RockWeb.Blocks.Sequences
 
     #endregion Block Attributes
 
-    public partial class SequenceList : RockBlock
+    public partial class StreakTypeList : RockBlock
     {
         #region Keys
 
@@ -87,9 +87,9 @@ namespace RockWeb.Blocks.Sequences
         protected static class PageParameterKey
         {
             /// <summary>
-            /// Key for the sequence id
+            /// Key for the streak type id
             /// </summary>
-            public const string SequenceId = "SequenceId";
+            public const string StreakTypeId = "StreakTypeId";
         }
 
         #endregion Keys
@@ -114,28 +114,28 @@ namespace RockWeb.Blocks.Sequences
             rFilter.DisplayFilterValue += rFilter_DisplayFilterValue;
 
             // Initialize Grid
-            gSequence.DataKeyNames = new string[] { "Id" };
-            gSequence.Actions.AddClick += gSequence_Add;
-            gSequence.GridRebind += gSequence_GridRebind;
-            gSequence.RowItemText = "Sequence";
+            gStreakTypes.DataKeyNames = new string[] { "Id" };
+            gStreakTypes.Actions.AddClick += gStreakTypes_Add;
+            gStreakTypes.GridRebind += gStreakTypes_GridRebind;
+            gStreakTypes.RowItemText = "Streak Type";
 
             // Initialize Grid: Secured actions
             var canAddEditDelete = IsUserAuthorized( Authorization.EDIT );
 
-            gSequence.Actions.ShowAdd = canAddEditDelete;
-            gSequence.IsDeleteEnabled = canAddEditDelete;
+            gStreakTypes.Actions.ShowAdd = canAddEditDelete;
+            gStreakTypes.IsDeleteEnabled = canAddEditDelete;
 
             if ( canAddEditDelete )
             {
-                gSequence.RowSelected += gSequence_Edit;
+                gStreakTypes.RowSelected += gStreakTypes_Edit;
             }
 
-            var securityField = gSequence.ColumnsOfType<SecurityField>().FirstOrDefault();
-            securityField.EntityTypeId = EntityTypeCache.Get( typeof( Sequence ) ).Id;
+            var securityField = gStreakTypes.ColumnsOfType<SecurityField>().FirstOrDefault();
+            securityField.EntityTypeId = EntityTypeCache.Get( typeof( StreakType ) ).Id;
 
             // Set up Block Settings change notification.
             BlockUpdated += Block_BlockUpdated;
-            AddConfigurationUpdateTrigger( upSequenceList );
+            AddConfigurationUpdateTrigger( upStreakTypeList );
         }
 
         /// <summary>
@@ -215,61 +215,62 @@ namespace RockWeb.Blocks.Sequences
         #region Grid Events
 
         /// <summary>
-        /// Handles the Add event of the gSequence control.
+        /// Handles the Add event of the gStreakTypes control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
-        protected void gSequence_Add( object sender, EventArgs e )
+        protected void gStreakTypes_Add( object sender, EventArgs e )
         {
-            NavigateToLinkedPage( AttributeKey.DetailPage, PageParameterKey.SequenceId, 0 );
+            NavigateToLinkedPage( AttributeKey.DetailPage, PageParameterKey.StreakTypeId, 0 );
         }
 
         /// <summary>
-        /// Handles the Edit event of the gSequence control.
+        /// Handles the Edit event of the gStreakTypes control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RowEventArgs" /> instance containing the event data.</param>
-        protected void gSequence_Edit( object sender, RowEventArgs e )
+        protected void gStreakTypes_Edit( object sender, RowEventArgs e )
         {
-            NavigateToLinkedPage( AttributeKey.DetailPage, PageParameterKey.SequenceId, e.RowKeyId );
+            NavigateToLinkedPage( AttributeKey.DetailPage, PageParameterKey.StreakTypeId, e.RowKeyId );
         }
 
         /// <summary>
-        /// Handles the Delete event of the gSequence control.
+        /// Handles the Delete event of the gStreakTypes control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RowEventArgs" /> instance containing the event data.</param>
-        protected void gSequence_Delete( object sender, RowEventArgs e )
+        protected void gStreakTypes_Delete( object sender, RowEventArgs e )
         {
             var rockContext = GetRockContext();
-            var sequenceId = e.RowKeyId;
-            var sequenceService = new SequenceService( rockContext );
-            var sequence = sequenceService.Get( sequenceId );
+            var streakTypeService = GetStreakTypeService();
 
-            if ( sequence == null )
+            var streakTypeId = e.RowKeyId;
+            var streakType = streakTypeService.Get( streakTypeId );
+
+            if ( streakType == null )
             {
-                mdGridWarning.Show( "The sequence could not be found.", ModalAlertType.Information );
+                mdGridWarning.Show( "The streak type could not be found.", ModalAlertType.Information );
                 return;
             }
 
             var errorMessage = string.Empty;
-            if ( !sequenceService.CanDelete( sequence, out errorMessage ) )
+            if ( !streakTypeService.CanDelete( streakType, out errorMessage ) )
             {
                 mdGridWarning.Show( errorMessage, ModalAlertType.Information );
                 return;
             }
 
-            sequenceService.Delete( sequence );
+            streakTypeService.Delete( streakType );
             rockContext.SaveChanges();
             BindGrid();
         }
 
         /// <summary>
-        /// Handles the GridRebind event of the gSequence control.
+        /// Handles the GridRebind event of the gStreakTypes control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
-        private void gSequence_GridRebind( object sender, EventArgs e )
+        private void gStreakTypes_GridRebind( object sender, EventArgs e )
         {
             BindGrid();
         }
@@ -291,9 +292,9 @@ namespace RockWeb.Blocks.Sequences
         /// </summary>
         private void BindGrid()
         {
-            // Don't use the sequence cache here since the users will expect to see the instant changes to this
+            // Don't use the streak type cache here since the users will expect to see the instant changes to this
             // query when they add, edit, etc
-            var sequenceQuery = GetSequenceService().Queryable().AsNoTracking();
+            var streakTypeQuery = GetStreakTypeService().Queryable().AsNoTracking();
 
             // Filter by: Active
             var activeFilter = rFilter.GetUserPreference( UserPreferenceKey.Active ).ToLower();
@@ -301,26 +302,26 @@ namespace RockWeb.Blocks.Sequences
             switch ( activeFilter )
             {
                 case "active":
-                    sequenceQuery = sequenceQuery.Where( s => s.IsActive );
+                    streakTypeQuery = streakTypeQuery.Where( s => s.IsActive );
                     break;
                 case "inactive":
-                    sequenceQuery = sequenceQuery.Where( a => !a.IsActive );
+                    streakTypeQuery = streakTypeQuery.Where( a => !a.IsActive );
                     break;
             }
 
             // Create view models to display in the grid
-            var viewModelQuery = sequenceQuery.Select( s => new SequenceViewModel
+            var viewModelQuery = streakTypeQuery.Select( s => new StreakTypeViewModel
             {
                 Id = s.Id,
                 Name = s.Name,
                 IsActive = s.IsActive,
                 OccurrenceFrequency = s.OccurrenceFrequency,
-                EnrollmentCount = s.SequenceEnrollments.Count(),
+                EnrollmentCount = s.Streaks.Count(),
                 StartDate = s.StartDate
             } );
 
             // Sort the view models
-            var sortProperty = gSequence.SortProperty;
+            var sortProperty = gStreakTypes.SortProperty;
             if ( sortProperty != null )
             {
                 viewModelQuery = viewModelQuery.Sort( sortProperty );
@@ -330,8 +331,8 @@ namespace RockWeb.Blocks.Sequences
                 viewModelQuery = viewModelQuery.OrderBy( vm => vm.Id );
             }
 
-            gSequence.SetLinqDataSource( viewModelQuery );
-            gSequence.DataBind();
+            gStreakTypes.SetLinqDataSource( viewModelQuery );
+            gStreakTypes.DataBind();
         }
 
         #endregion Internal Methods
@@ -354,34 +355,34 @@ namespace RockWeb.Blocks.Sequences
         private RockContext _rockContext = null;
 
         /// <summary>
-        /// Get the sequence service
+        /// Get the streak type service
         /// </summary>
         /// <returns></returns>
-        private SequenceService GetSequenceService()
+        private StreakTypeService GetStreakTypeService()
         {
-            if ( _sequenceService == null )
+            if ( _streakTypeService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceService = new SequenceService( rockContext );
+                _streakTypeService = new StreakTypeService( rockContext );
             }
 
-            return _sequenceService;
+            return _streakTypeService;
         }
-        private SequenceService _sequenceService = null;
+        private StreakTypeService _streakTypeService = null;
 
         #endregion Data Interface Methods
 
         #region View Models
 
         /// <summary>
-        /// Represents an entry in the list ofSequences shown on this page.
+        /// Represents an entry in the list of streak types shown on this page.
         /// </summary>
-        private class SequenceViewModel
+        private class StreakTypeViewModel
         {
             public int Id { get; set; }
             public string Name { get; set; }
             public bool IsActive { get; set; }
-            public SequenceOccurrenceFrequency OccurrenceFrequency { get; set; }
+            public StreakOccurrenceFrequency OccurrenceFrequency { get; set; }
             public int EnrollmentCount { get; set; }
             public DateTime StartDate { get; set; }
         }

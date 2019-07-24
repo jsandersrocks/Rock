@@ -32,13 +32,13 @@ using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
-namespace RockWeb.Blocks.Sequences
+namespace RockWeb.Blocks.Streaks
 {
-    [DisplayName( "Sequence Map Editor" )]
-    [Category( "Sequences" )]
-    [Description( "Allows editing a sequence occurrence, engagement, or exclusion map." )]
+    [DisplayName( "Streak Map Editor" )]
+    [Category( "Streaks" )]
+    [Description( "Allows editing a streak occurrence, engagement, or exclusion map." )]
 
-    public partial class SequenceMapEditor : RockBlock, ISecondaryBlock
+    public partial class StreakMapEditor : RockBlock, ISecondaryBlock
     {
         #region Constants
 
@@ -57,7 +57,7 @@ namespace RockWeb.Blocks.Sequences
             /// <summary>
             /// The date range user preference key
             /// </summary>
-            public const string DateRange = "SequenceMapEditorDateRange";
+            public const string DateRange = "StreakMapEditorDateRange";
         }
 
         /// <summary>
@@ -66,19 +66,19 @@ namespace RockWeb.Blocks.Sequences
         protected static class PageParameterKey
         {
             /// <summary>
-            /// The sequence id page parameter key
+            /// The streak type id page parameter key
             /// </summary>
-            public const string SequenceId = "SequenceId";
+            public const string StreakTypeId = "StreakTypeId";
 
             /// <summary>
-            /// The sequence enrollment id page parameter key
+            /// The streak id page parameter key
             /// </summary>
-            public const string SequenceEnrollmentId = "SequenceEnrollmentId";
+            public const string StreakId = "StreakId";
 
             /// <summary>
-            /// The sequence occurrence exclusion id page parameter key
+            /// The streak type exclusion id page parameter key
             /// </summary>
-            public const string SequenceOccurrenceExclusionId = "SequenceOccurrenceExclusionId";
+            public const string StreakTypeExclusionId = "StreakTypeExclusionId";
         }
 
         /// <summary>
@@ -129,11 +129,11 @@ namespace RockWeb.Blocks.Sequences
 
             if ( !Page.IsPostBack )
             {
-                var sequence = GetSequence();
+                var streakType = GetStreakType();
 
-                if ( sequence == null )
+                if ( streakType == null )
                 {
-                    nbMessage.Text = "A sequence is required.";
+                    nbMessage.Text = "A streak type is required.";
                     return;
                 }
 
@@ -235,12 +235,12 @@ namespace RockWeb.Blocks.Sequences
                 return;
             }
 
-            // Validate the sequence            
-            var sequence = GetSequence();
+            // Validate the streak type            
+            var streakType = GetStreakType();
 
-            if ( sequence == null )
+            if ( streakType == null )
             {
-                ShowBlockError( nbMessage, "A sequence is required" );
+                ShowBlockError( nbMessage, "A streak type is required" );
                 return;
             }
 
@@ -249,17 +249,17 @@ namespace RockWeb.Blocks.Sequences
 
             if ( IsTargetingEngagementMap() )
             {
-                var enrollment = GetSequenceEnrollment();
+                var enrollment = GetStreak();
                 enrollment.EngagementMap = map;
             }
             else if ( IsTargetingExclusionMap() )
             {
-                var exclusion = GetSequenceOccurrenceExclusion();
+                var exclusion = GetStreakTypeExclusion();
                 exclusion.ExclusionMap = map;
             }
             else
             {
-                sequence.OccurrenceMap = map;
+                streakType.OccurrenceMap = map;
             }
 
             rockContext.SaveChanges();
@@ -284,7 +284,7 @@ namespace RockWeb.Blocks.Sequences
             {
                 sdrpDateRange.SlidingDateRangeMode = SlidingDateRangePicker.SlidingDateRangeType.Last;
                 sdrpDateRange.NumberOfTimeUnits = 7;
-                sdrpDateRange.TimeUnit = IsSequenceDaily() ?
+                sdrpDateRange.TimeUnit = IsStreakTypeDaily() ?
                     SlidingDateRangePicker.TimeUnitType.Day :
                     SlidingDateRangePicker.TimeUnitType.Week;
             }
@@ -296,11 +296,11 @@ namespace RockWeb.Blocks.Sequences
         private void RenderCheckboxes()
         {
             nbMessage.Text = string.Empty;
-            var sequence = GetSequence();
+            var streakType = GetStreakType();
 
-            if ( sequence == null )
+            if ( streakType == null )
             {
-                ShowBlockError( nbMessage, "A sequence is required." );
+                ShowBlockError( nbMessage, "A streak type is required." );
                 return;
             }
 
@@ -314,7 +314,7 @@ namespace RockWeb.Blocks.Sequences
             var map = GetTargetMap();
             var errorMessage = string.Empty;
 
-            var isDaily = sequence.OccurrenceFrequency == SequenceOccurrenceFrequency.Daily;
+            var isDaily = streakType.OccurrenceFrequency == StreakOccurrenceFrequency.Daily;
             var dateRange = GetDateRange();
             var startDate = dateRange.Start.Value;
             var endDate = dateRange.End.Value;
@@ -330,7 +330,7 @@ namespace RockWeb.Blocks.Sequences
 
             var minDate = GetMinDate();
             var maxDate = isDaily ? RockDateTime.Today : RockDateTime.Today.SundayDate();
-            var checkboxCount = SequenceService.GetFrequencyUnitDifference( startDate, endDate, sequence.OccurrenceFrequency, true );
+            var checkboxCount = StreakTypeService.GetFrequencyUnitDifference( startDate, endDate, streakType.OccurrenceFrequency, true );
 
             for ( var i = 0; i < checkboxCount; i++ )
             {
@@ -339,7 +339,7 @@ namespace RockWeb.Blocks.Sequences
                 cblCheckboxes.Items.Add( new ListItem
                 {
                     Enabled = representedDate >= minDate && representedDate <= maxDate,
-                    Selected = SequenceService.IsBitSet( map, sequence.StartDate, representedDate, sequence.OccurrenceFrequency, out errorMessage ),
+                    Selected = StreakTypeService.IsBitSet( map, streakType.StartDate, representedDate, streakType.OccurrenceFrequency, out errorMessage ),
                     Text = GetLabel( isDaily, representedDate ),
                     Value = representedDate.ToISO8601DateString()
                 } );
@@ -376,7 +376,7 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private bool CanEdit()
         {
-            return UserCanAdministrate && GetSequence() != null;
+            return UserCanAdministrate && GetStreakType() != null;
         }
 
         #endregion Internal Methods
@@ -387,55 +387,55 @@ namespace RockWeb.Blocks.Sequences
         /// Get the actual enrollment model for deleting or editing
         /// </summary>
         /// <returns></returns>
-        private Sequence GetSequence()
+        private StreakType GetStreakType()
         {
-            if ( _sequence == null )
+            if ( _streakType == null )
             {
-                var enrollment = GetSequenceEnrollment();
-                var exclusion = GetSequenceOccurrenceExclusion();
+                var streak = GetStreak();
+                var exclusion = GetStreakTypeExclusion();
 
-                if ( enrollment != null && enrollment.Sequence != null )
+                if ( streak != null && streak.StreakType != null )
                 {
-                    _sequence = enrollment.Sequence;
+                    _streakType = streak.StreakType;
                 }
-                else if ( enrollment != null )
+                else if ( streak != null )
                 {
-                    var sequenceService = GetSequenceService();
-                    _sequence = sequenceService.Get( enrollment.SequenceId );
+                    var streakTypeService = GetStreakTypeService();
+                    _streakType = streakTypeService.Get( streak.StreakTypeId );
                 }
-                else if ( exclusion != null && exclusion.Sequence != null )
+                else if ( exclusion != null && exclusion.StreakType != null )
                 {
-                    _sequence = exclusion.Sequence;
+                    _streakType = exclusion.StreakType;
                 }
                 else if ( exclusion != null )
                 {
-                    var sequenceService = GetSequenceService();
-                    _sequence = sequenceService.Get( exclusion.SequenceId );
+                    var streakTypeService = GetStreakTypeService();
+                    _streakType = streakTypeService.Get( exclusion.StreakTypeId );
                 }
                 else
                 {
-                    var sequenceId = PageParameter( PageParameterKey.SequenceId ).AsIntegerOrNull();
+                    var streakTypeId = PageParameter( PageParameterKey.StreakTypeId ).AsIntegerOrNull();
 
-                    if ( sequenceId.HasValue && sequenceId.Value > 0 )
+                    if ( streakTypeId.HasValue && streakTypeId.Value > 0 )
                     {
-                        var sequenceService = GetSequenceService();
-                        _sequence = sequenceService.Get( sequenceId.Value );
+                        var streakTypeService = GetStreakTypeService();
+                        _streakType = streakTypeService.Get( streakTypeId.Value );
                     }
                 }
             }
 
-            return _sequence;
+            return _streakType;
         }
-        private Sequence _sequence = null;
+        private StreakType _streakType = null;
 
         /// <summary>
-        /// Returns true if the sequence is daily (vs weekly)
+        /// Returns true if the streak type is daily (vs weekly)
         /// </summary>
         /// <returns></returns>
-        private bool IsSequenceDaily()
+        private bool IsStreakTypeDaily()
         {
-            var sequence = GetSequence();
-            return sequence != null && sequence.OccurrenceFrequency == SequenceOccurrenceFrequency.Daily;
+            var streakType = GetStreakType();
+            return streakType != null && streakType.OccurrenceFrequency == StreakOccurrenceFrequency.Daily;
         }
 
         /// <summary>
@@ -444,7 +444,7 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private DateTime GetDefaultEndDate()
         {
-            var isDaily = IsSequenceDaily();
+            var isDaily = IsStreakTypeDaily();
 
             if ( isDaily )
             {
@@ -461,7 +461,7 @@ namespace RockWeb.Blocks.Sequences
         private DateTime GetDefaultStartDate()
         {
             // Since the date picked is the earliest bit shown, we want today to be the last bit shown by default
-            var isDaily = IsSequenceDaily();
+            var isDaily = IsStreakTypeDaily();
             const int defaultCheckboxCount = 7;
 
             if ( isDaily )
@@ -478,7 +478,7 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private DateRange GetDateRange()
         {
-            var isDaily = IsSequenceDaily();
+            var isDaily = IsStreakTypeDaily();
             var range = SlidingDateRangePicker.CalculateDateRangeFromDelimitedValues( sdrpDateRange.DelimitedValues );
 
             if ( !range.Start.HasValue && !range.End.HasValue )
@@ -508,22 +508,22 @@ namespace RockWeb.Blocks.Sequences
 
             if ( !savedMapState.IsNullOrWhiteSpace() )
             {
-                return SequenceService.GetMapFromHexDigitString( savedMapState );
+                return StreakTypeService.GetMapFromHexDigitString( savedMapState );
             }
 
             if ( IsTargetingEngagementMap() )
             {
-                return GetSequenceEnrollment().EngagementMap;
+                return GetStreak().EngagementMap;
             }
 
             if ( IsTargetingExclusionMap() )
             {
-                return GetSequenceOccurrenceExclusion().ExclusionMap;
+                return GetStreakTypeExclusion().ExclusionMap;
             }
 
             if ( IsTargetingOccurrenceMap() )
             {
-                return GetSequence().OccurrenceMap;
+                return GetStreakType().OccurrenceMap;
             }
 
             return null;
@@ -535,13 +535,13 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private DateTime GetMinDate()
         {
-            var sequence = GetSequence();
-            var isDaily = sequence.OccurrenceFrequency == SequenceOccurrenceFrequency.Daily;
-            var minDate = isDaily ? sequence.StartDate.Date : sequence.StartDate.SundayDate();
+            var streakType = GetStreakType();
+            var isDaily = streakType.OccurrenceFrequency == StreakOccurrenceFrequency.Daily;
+            var minDate = isDaily ? streakType.StartDate.Date : streakType.StartDate.SundayDate();
 
             if ( IsTargetingEngagementMap() )
             {
-                var enrollment = GetSequenceEnrollment();
+                var enrollment = GetStreak();
                 var enrollmentDate = isDaily ? enrollment.EnrollmentDate.Date : enrollment.EnrollmentDate.SundayDate();
 
                 if ( enrollmentDate > minDate )
@@ -558,7 +558,7 @@ namespace RockWeb.Blocks.Sequences
         /// </summary>
         private void SaveMapState()
         {
-            var sequence = GetSequence();
+            var streakType = GetStreakType();
             var map = GetTargetMap();
             var errorMessage = string.Empty;
 
@@ -568,12 +568,12 @@ namespace RockWeb.Blocks.Sequences
 
                 if ( representedDate.HasValue )
                 {
-                    map = SequenceService.SetBit( map, sequence.StartDate, representedDate.Value,
-                        sequence.OccurrenceFrequency, checkbox.Selected, out errorMessage );
+                    map = StreakTypeService.SetBit( map, streakType.StartDate, representedDate.Value,
+                        streakType.OccurrenceFrequency, checkbox.Selected, out errorMessage );
                 }
             }
 
-            ViewState[ViewStateKey.Map] = SequenceService.GetHexDigitStringFromMap( map );
+            ViewState[ViewStateKey.Map] = StreakTypeService.GetHexDigitStringFromMap( map );
         }
 
         /// <summary>
@@ -601,7 +601,7 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private bool IsTargetingEngagementMap()
         {
-            return GetSequenceEnrollment() != null;
+            return GetStreak() != null;
         }
 
         /// <summary>
@@ -610,7 +610,7 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private bool IsTargetingExclusionMap()
         {
-            return !IsTargetingEngagementMap() && GetSequenceOccurrenceExclusion() != null;
+            return !IsTargetingEngagementMap() && GetStreakTypeExclusion() != null;
         }
 
         /// <summary>
@@ -619,50 +619,50 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private bool IsTargetingOccurrenceMap()
         {
-            return !IsTargetingEngagementMap() && !IsTargetingExclusionMap() && GetSequence() != null;
+            return !IsTargetingEngagementMap() && !IsTargetingExclusionMap() && GetStreakType() != null;
         }
 
         /// <summary>
-        /// Get the actual sequence enrollment model for deleting or editing
+        /// Get the actual streak model for deleting or editing
         /// </summary>
         /// <returns></returns>
-        private SequenceEnrollment GetSequenceEnrollment()
+        private Streak GetStreak()
         {
-            if ( _sequenceEnrollment == null )
+            if ( _streak == null )
             {
-                var sequenceEnrollmentId = PageParameter( PageParameterKey.SequenceEnrollmentId ).AsIntegerOrNull();
+                var streakId = PageParameter( PageParameterKey.StreakId ).AsIntegerOrNull();
 
-                if ( sequenceEnrollmentId.HasValue && sequenceEnrollmentId.Value > 0 )
+                if ( streakId.HasValue && streakId.Value > 0 )
                 {
-                    var sequenceEnrollmentService = GetSequenceEnrollmentService();
-                    _sequenceEnrollment = sequenceEnrollmentService.Get( sequenceEnrollmentId.Value );
+                    var streakService = GetStreakService();
+                    _streak = streakService.Get( streakId.Value );
                 }
             }
 
-            return _sequenceEnrollment;
+            return _streak;
         }
-        private SequenceEnrollment _sequenceEnrollment = null;
+        private Streak _streak = null;
 
         /// <summary>
         /// Get the exclusion model
         /// </summary>
         /// <returns></returns>
-        private SequenceOccurrenceExclusion GetSequenceOccurrenceExclusion()
+        private StreakTypeExclusion GetStreakTypeExclusion()
         {
-            if ( _sequenceOccurrenceExclusion == null )
+            if ( _streakTypeExclusion == null )
             {
-                var id = PageParameter( PageParameterKey.SequenceOccurrenceExclusionId ).AsIntegerOrNull();
+                var id = PageParameter( PageParameterKey.StreakTypeExclusionId ).AsIntegerOrNull();
 
                 if ( id.HasValue && id.Value > 0 )
                 {
-                    var service = GetSequenceOccurrenceExclusionService();
-                    _sequenceOccurrenceExclusion = service.Get( id.Value );
+                    var service = GetStreakTypeExclusionService();
+                    _streakTypeExclusion = service.Get( id.Value );
                 }
             }
 
-            return _sequenceOccurrenceExclusion;
+            return _streakTypeExclusion;
         }
-        private SequenceOccurrenceExclusion _sequenceOccurrenceExclusion = null;
+        private StreakTypeExclusion _streakTypeExclusion = null;
 
         /// <summary>
         /// Get the rock context
@@ -680,52 +680,52 @@ namespace RockWeb.Blocks.Sequences
         private RockContext _rockContext = null;
 
         /// <summary>
-        /// Get the sequence service
+        /// Get the streak type service
         /// </summary>
         /// <returns></returns>
-        private SequenceService GetSequenceService()
+        private StreakTypeService GetStreakTypeService()
         {
-            if ( _sequenceService == null )
+            if ( _streakTypeService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceService = new SequenceService( rockContext );
+                _streakTypeService = new StreakTypeService( rockContext );
             }
 
-            return _sequenceService;
+            return _streakTypeService;
         }
-        private SequenceService _sequenceService = null;
+        private StreakTypeService _streakTypeService = null;
 
         /// <summary>
-        /// Get the sequence enrollment service
+        /// Get the streak service
         /// </summary>
         /// <returns></returns>
-        private SequenceEnrollmentService GetSequenceEnrollmentService()
+        private StreakService GetStreakService()
         {
-            if ( _sequenceEnrollmentService == null )
+            if ( _streakService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceEnrollmentService = new SequenceEnrollmentService( rockContext );
+                _streakService = new StreakService( rockContext );
             }
 
-            return _sequenceEnrollmentService;
+            return _streakService;
         }
-        private SequenceEnrollmentService _sequenceEnrollmentService = null;
+        private StreakService _streakService = null;
 
         /// <summary>
-        /// Get the sequence exclusion service
+        /// Get the streak type exclusion service
         /// </summary>
         /// <returns></returns>
-        private SequenceOccurrenceExclusionService GetSequenceOccurrenceExclusionService()
+        private StreakTypeExclusionService GetStreakTypeExclusionService()
         {
-            if ( _sequenceOccurrenceExclusionService == null )
+            if ( _streakTypeExclusionService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceOccurrenceExclusionService = new SequenceOccurrenceExclusionService( rockContext );
+                _streakTypeExclusionService = new StreakTypeExclusionService( rockContext );
             }
 
-            return _sequenceOccurrenceExclusionService;
+            return _streakTypeExclusionService;
         }
-        private SequenceOccurrenceExclusionService _sequenceOccurrenceExclusionService = null;
+        private StreakTypeExclusionService _streakTypeExclusionService = null;
 
         #endregion Data Interface Methods        
     }

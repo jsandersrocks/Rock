@@ -177,7 +177,7 @@ namespace Rock.Model
             attendance.StartDateTime = checkinDateTime;
             attendance.DidAttend = true;
 
-            // Sync this attendance to any matching sequences and sequence enrollments
+            // Sync this attendance to any matching streaks
             if ( syncMatchingStreaks )
             {
                 StreakTypeService.HandleAttendanceRecordAsync( attendance );

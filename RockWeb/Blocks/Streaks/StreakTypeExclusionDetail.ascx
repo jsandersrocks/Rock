@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeExclusionDetail.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceExclusionDetail" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeExclusionDetail.ascx.cs" Inherits="RockWeb.Blocks.Streaks.StreakTypeExclusionDetail" %>
 
 <asp:UpdatePanel ID="upEnrollmentDetail" runat="server">
     <ContentTemplate>
@@ -36,7 +36,7 @@
                 <div id="pnlEditDetails" runat="server">
                     <div class="row">
                         <div class="col-sm-6 col-md-4">
-                            <Rock:LocationPicker ID="rlpLocation" runat="server" AllowedPickerModes="Named" SourceTypeName="Rock.Model.SequenceEnrollment, Rock" PropertyName="LocationId" Label="Location" />
+                            <Rock:LocationPicker ID="rlpLocation" runat="server" AllowedPickerModes="Named" SourceTypeName="Rock.Model.Streak, Rock" PropertyName="LocationId" Label="Location" />
                         </div>
                     </div>
 

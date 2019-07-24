@@ -32,13 +32,13 @@ using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
-namespace RockWeb.Blocks.Sequences
+namespace RockWeb.Blocks.Streaks
 {
-    [DisplayName( "Sequence Enrollment Detail" )]
-    [Category( "Sequences" )]
-    [Description( "Displays the details of the given Enrollment for editing." )]
+    [DisplayName( "Streak Detail" )]
+    [Category( "Streaks" )]
+    [Description( "Displays the details of the given streak for editing." )]
 
-    public partial class SequenceEnrollmentDetail : RockBlock, IDetailBlock
+    public partial class StreakDetail : RockBlock, IDetailBlock
     {
         #region Keys
 
@@ -48,14 +48,14 @@ namespace RockWeb.Blocks.Sequences
         protected static class PageParameterKey
         {
             /// <summary>
-            /// The sequence id page parameter key
+            /// The streak type id page parameter key
             /// </summary>
-            public const string SequenceId = "SequenceId";
+            public const string StreakTypeId = "StreakTypeId";
 
             /// <summary>
-            /// The sequence enrollment id page parameter key
+            /// The streak id page parameter key
             /// </summary>
-            public const string SequenceEnrollmentId = "SequenceEnrollmentId";
+            public const string StreakId = "StreakId";
 
             /// <summary>
             /// The person id page parameter key
@@ -89,14 +89,14 @@ namespace RockWeb.Blocks.Sequences
 
             if ( !Page.IsPostBack )
             {
-                var enrollment = GetSequenceEnrollment();
+                var enrollment = GetStreak();
                 pdAuditDetails.SetEntity( enrollment, ResolveRockUrl( "~" ) );
 
-                var sequence = GetSequence();
+                var streakType = GetStreakType();
 
-                if ( sequence == null )
+                if ( streakType == null )
                 {
-                    nbEditModeMessage.Text = "A sequence is required.";
+                    nbEditModeMessage.Text = "A streak type is required.";
                     return;
                 }
 
@@ -115,7 +115,7 @@ namespace RockWeb.Blocks.Sequences
         {
             var breadCrumbs = new List<BreadCrumb>();
 
-            var enrollment = GetSequenceEnrollment();
+            var enrollment = GetStreak();
             breadCrumbs.Add( new BreadCrumb( IsAddMode() ? "New Enrollment" : enrollment.PersonAlias.Person.FullName, pageReference ) );
 
             return breadCrumbs;
@@ -126,8 +126,8 @@ namespace RockWeb.Blocks.Sequences
         /// </summary>
         private void InitializeActionButtons()
         {
-            btnRebuild.Attributes["onclick"] = "javascript: return Rock.dialogs.confirmDelete(event, 'data', 'Enrollment map data belonging to this person for this sequence will be deleted and rebuilt from attendance records! This process occurs real-time (not in a job).');";
-            btnDelete.Attributes["onclick"] = string.Format( "javascript: return Rock.dialogs.confirmDelete(event, '{0}', 'Are you sure?');", Sequence.FriendlyTypeName );
+            btnRebuild.Attributes["onclick"] = "javascript: return Rock.dialogs.confirmDelete(event, 'data', 'Enrollment map data belonging to this person for this streak type will be deleted and rebuilt from attendance records! This process occurs real-time (not in a job).');";
+            btnDelete.Attributes["onclick"] = string.Format( "javascript: return Rock.dialogs.confirmDelete(event, '{0}', 'Are you sure?');", Streak.FriendlyTypeName );
         }
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace RockWeb.Blocks.Sequences
             if ( enrollmentId.HasValue )
             {
                 NavigateToCurrentPage( new Dictionary<string, string> {
-                    { PageParameterKey.SequenceEnrollmentId, enrollmentId.Value.ToString() }
+                    { PageParameterKey.StreakId, enrollmentId.Value.ToString() }
                 } );
             }
         }
@@ -221,13 +221,13 @@ namespace RockWeb.Blocks.Sequences
         }
 
         /// <summary>
-        /// Go to the parent page and use the sequence id in the params
+        /// Go to the parent page and use the streak type id in the params
         /// </summary>
         /// <returns></returns>
         private bool NavigateToParentPage()
         {
             return NavigateToParentPage( new Dictionary<string, string> {
-                { PageParameterKey.SequenceId, GetSequence().Id.ToString() }
+                { PageParameterKey.StreakTypeId, GetStreakType().Id.ToString() }
             } );
         }
 
@@ -287,16 +287,16 @@ namespace RockWeb.Blocks.Sequences
         private void RebuildData()
         {
             var rockContext = GetRockContext();
-            var enrollment = GetSequenceEnrollment();
+            var streak = GetStreak();
 
-            if ( !enrollment.IsAuthorized( Authorization.ADMINISTRATE, CurrentPerson ) )
+            if ( !streak.IsAuthorized( Authorization.ADMINISTRATE, CurrentPerson ) )
             {
                 mdDeleteWarning.Show( "You are not authorized to rebuild this item.", ModalAlertType.Information );
                 return;
             }
 
             var errorMessage = string.Empty;
-            SequenceService.RebuildEnrollmentFromAttendance( enrollment.SequenceId, enrollment.PersonAliasId, out errorMessage );
+            StreakTypeService.RebuildStreakFromAttendance( streak.StreakTypeId, streak.PersonAliasId, out errorMessage );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
             {
@@ -304,7 +304,7 @@ namespace RockWeb.Blocks.Sequences
                 return;
             }
 
-            ShowBlockSuccess( nbEditModeMessage, "The enrollment rebuild was successful!" );
+            ShowBlockSuccess( nbEditModeMessage, "The streak rebuild was successful!" );
         }
 
         /// <summary>
@@ -312,7 +312,7 @@ namespace RockWeb.Blocks.Sequences
         /// </summary>
         private void DeleteRecord()
         {
-            var enrollment = GetSequenceEnrollment();
+            var enrollment = GetStreak();
 
             if ( enrollment != null )
             {
@@ -322,7 +322,7 @@ namespace RockWeb.Blocks.Sequences
                     return;
                 }
 
-                var service = GetSequenceEnrollmentService();
+                var service = GetStreakService();
                 var errorMessage = string.Empty;
 
                 if ( !service.CanDelete( enrollment, out errorMessage ) )
@@ -344,12 +344,12 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private void SaveRecord()
         {
-            // Validate the sequence            
-            var sequence = GetSequence();
+            // Validate the streak type            
+            var streakType = GetStreakType();
 
-            if ( sequence == null )
+            if ( streakType == null )
             {
-                nbEditModeMessage.Text = "Sequence is required.";
+                nbEditModeMessage.Text = "Streak Type is required.";
                 return;
             }
 
@@ -364,9 +364,9 @@ namespace RockWeb.Blocks.Sequences
             }
 
             // Get the other non-required values
-            var sequenceService = GetSequenceService();
-            var sequenceCache = SequenceCache.Get( sequence.Id );
-            var enrollment = GetSequenceEnrollment();
+            var streakTypeService = GetStreakTypeService();
+            var streakTypeCache = StreakTypeCache.Get( streakType.Id );
+            var enrollment = GetStreak();
             var enrollmentDate = rdpEnrollmentDate.SelectedDate;
             var locationId = rlpLocation.Location != null ? rlpLocation.Location.Id : ( int? ) null;
 
@@ -374,7 +374,7 @@ namespace RockWeb.Blocks.Sequences
             if ( enrollment == null )
             {
                 var errorMessage = string.Empty;
-                enrollment = sequenceService.Enroll( sequenceCache, personId.Value, out errorMessage, enrollmentDate, locationId );
+                enrollment = streakTypeService.Enroll( streakTypeCache, personId.Value, out errorMessage, enrollmentDate, locationId );
 
                 if ( !errorMessage.IsNullOrWhiteSpace() )
                 {
@@ -428,8 +428,8 @@ namespace RockWeb.Blocks.Sequences
 
             // If the save was successful, reload the page using the new record Id.
             NavigateToPage( RockPage.Guid, new Dictionary<string, string> {
-                { PageParameterKey.SequenceId, sequence.Id.ToString() },
-                { PageParameterKey.SequenceEnrollmentId, enrollment.Id.ToString() }
+                { PageParameterKey.StreakTypeId, streakType.Id.ToString() },
+                { PageParameterKey.StreakId, enrollment.Id.ToString() }
             } );
         }
 
@@ -468,7 +468,7 @@ namespace RockWeb.Blocks.Sequences
         }
 
         /// <summary>
-        /// Shows the mode where the user can edit an existing sequence
+        /// Shows the mode where the user can edit an existing streak type
         /// </summary>
         private void ShowEditMode()
         {
@@ -482,8 +482,8 @@ namespace RockWeb.Blocks.Sequences
             HideSecondaryBlocks( true );
             pdAuditDetails.Visible = true;
 
-            var enrollment = GetSequenceEnrollment();
-            lReadOnlyTitle.Text = ActionTitle.Edit( SequenceEnrollment.FriendlyTypeName ).FormatAsHtmlTitle();
+            var enrollment = GetStreak();
+            lReadOnlyTitle.Text = ActionTitle.Edit( Streak.FriendlyTypeName ).FormatAsHtmlTitle();
 
             rppPerson.SetValue( enrollment.PersonAlias.Person );
             rppPerson.Enabled = false;
@@ -495,7 +495,7 @@ namespace RockWeb.Blocks.Sequences
         }
 
         /// <summary>
-        /// Show the mode where a user can add a new sequence
+        /// Show the mode where a user can add a new streak type
         /// </summary>
         private void ShowAddMode()
         {
@@ -509,7 +509,7 @@ namespace RockWeb.Blocks.Sequences
             HideSecondaryBlocks( true );
             pdAuditDetails.Visible = false;
 
-            lReadOnlyTitle.Text = ActionTitle.Add( SequenceEnrollment.FriendlyTypeName ).FormatAsHtmlTitle();
+            lReadOnlyTitle.Text = ActionTitle.Add( Streak.FriendlyTypeName ).FormatAsHtmlTitle();
 
             rdpEnrollmentDate.SelectedDate = RockDateTime.Today;
 
@@ -517,14 +517,14 @@ namespace RockWeb.Blocks.Sequences
 
             if ( presetPersonId.HasValue )
             {
-                var enrollmentService = GetSequenceEnrollmentService();
-                var sequence = GetSequence();
-                var enrollments = enrollmentService.GetBySequenceAndPerson( sequence.Id, presetPersonId.Value );
+                var streakService = GetStreakService();
+                var streakType = GetStreakType();
+                var enrollments = streakService.GetByStreakTypeAndPerson( streakType.Id, presetPersonId.Value );
 
                 if ( enrollments.Any() )
                 {
                     NavigateToCurrentPage( new Dictionary<string, string> {
-                        { PageParameterKey.SequenceEnrollmentId, enrollments.First().Id.ToString() }
+                        { PageParameterKey.StreakId, enrollments.First().Id.ToString() }
                     } );
                 }
                 else
@@ -541,7 +541,7 @@ namespace RockWeb.Blocks.Sequences
         }
 
         /// <summary>
-        /// Shows the mode where the user is only viewing an existing sequence
+        /// Shows the mode where the user is only viewing an existing streak type
         /// </summary>
         private void ShowViewMode()
         {
@@ -560,13 +560,13 @@ namespace RockWeb.Blocks.Sequences
             btnEdit.Visible = canEdit;
             btnDelete.Visible = canEdit;
 
-            var enrollment = GetSequenceEnrollment();
-            var sequence = GetSequence();
-            lReadOnlyTitle.Text = ActionTitle.View( SequenceEnrollment.FriendlyTypeName ).FormatAsHtmlTitle();
-            btnRebuild.Enabled = sequence.IsActive;
+            var enrollment = GetStreak();
+            var streakType = GetStreakType();
+            lReadOnlyTitle.Text = ActionTitle.View( Streak.FriendlyTypeName ).FormatAsHtmlTitle();
+            btnRebuild.Enabled = streakType.IsActive;
 
             var descriptionList = new DescriptionList();
-            descriptionList.Add( "Sequence", sequence.Name );
+            descriptionList.Add( "Streak Type", streakType.Name );
             descriptionList.Add( "Person", enrollment.PersonAlias.Person.FullName );
             descriptionList.Add( "Enrollment Date", enrollment.EnrollmentDate.ToShortDateString() );
 
@@ -577,14 +577,14 @@ namespace RockWeb.Blocks.Sequences
 
             lEnrollmentDescription.Text = descriptionList.Html;
 
-            var streakData = GetSequenceEnrollmentData();
+            var streakData = GetStreakData();
             var streakDetailsList = new DescriptionList();
 
             if ( streakData != null )
             {
                 if ( streakData.EnrollmentCount > 1 )
                 {
-                    var enrollments = GetPersonSequenceEnrollments();
+                    var enrollments = GetPersonStreaks();
 
                     if ( enrollments != null && enrollments.Count > 1 )
                     {
@@ -633,7 +633,7 @@ namespace RockWeb.Blocks.Sequences
         /// </summary>
         private void RenderStreakChart()
         {
-            var streakData = GetSequenceEnrollmentData();
+            var streakData = GetStreakData();
 
             if ( streakData == null || streakData.PerFrequencyUnit == null )
             {
@@ -669,7 +669,7 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private bool CanEdit()
         {
-            return UserCanAdministrate && GetSequenceEnrollment() != null;
+            return UserCanAdministrate && GetStreak() != null;
         }
 
         /// <summary>
@@ -678,7 +678,7 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private bool CanAdd()
         {
-            return UserCanAdministrate && GetSequenceEnrollment() == null;
+            return UserCanAdministrate && GetStreak() == null;
         }
 
         /// <summary>
@@ -705,7 +705,7 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private bool IsViewMode()
         {
-            return GetSequenceEnrollment() != null && hfIsEditMode.Value.Trim().ToLower() != "true";
+            return GetStreak() != null && hfIsEditMode.Value.Trim().ToLower() != "true";
         }
 
         #endregion State Determining Methods
@@ -713,81 +713,81 @@ namespace RockWeb.Blocks.Sequences
         #region Data Interface Methods
 
         /// <summary>
-        /// Get the actual enrollment model for deleting or editing
+        /// Get the actual streak type model for deleting or editing
         /// </summary>
         /// <returns></returns>
-        private Sequence GetSequence()
+        private StreakType GetStreakType()
         {
-            if ( _sequence == null )
+            if ( _streakType == null )
             {
-                var enrollment = GetSequenceEnrollment();
+                var streak = GetStreak();
 
-                if ( enrollment != null && enrollment.Sequence != null )
+                if ( streak != null && streak.StreakType != null )
                 {
-                    _sequence = enrollment.Sequence;
+                    _streakType = streak.StreakType;
                 }
-                else if ( enrollment != null )
+                else if ( streak != null )
                 {
-                    var sequenceService = GetSequenceService();
-                    _sequence = sequenceService.Get( enrollment.SequenceId );
+                    var streakTypeService = GetStreakTypeService();
+                    _streakType = streakTypeService.Get( streak.StreakTypeId );
                 }
                 else
                 {
-                    var sequenceId = PageParameter( PageParameterKey.SequenceId ).AsIntegerOrNull();
+                    var streakTypeId = PageParameter( PageParameterKey.StreakTypeId ).AsIntegerOrNull();
 
-                    if ( sequenceId.HasValue && sequenceId.Value > 0 )
+                    if ( streakTypeId.HasValue && streakTypeId.Value > 0 )
                     {
-                        var sequenceService = GetSequenceService();
-                        _sequence = sequenceService.Get( sequenceId.Value );
+                        var streakTypeService = GetStreakTypeService();
+                        _streakType = streakTypeService.Get( streakTypeId.Value );
                     }
                 }
             }
 
-            return _sequence;
+            return _streakType;
         }
-        private Sequence _sequence = null;
+        private StreakType _streakType = null;
 
         /// <summary>
-        /// Get the actual sequence enrollment model for deleting or editing
+        /// Get the actual streak model for deleting or editing
         /// </summary>
         /// <returns></returns>
-        private SequenceEnrollment GetSequenceEnrollment()
+        private Streak GetStreak()
         {
-            if ( _sequenceEnrollment == null )
+            if ( _streak == null )
             {
-                var sequenceEnrollmentId = PageParameter( PageParameterKey.SequenceEnrollmentId ).AsIntegerOrNull();
+                var streakId = PageParameter( PageParameterKey.StreakId ).AsIntegerOrNull();
 
-                if ( sequenceEnrollmentId.HasValue && sequenceEnrollmentId.Value > 0 )
+                if ( streakId.HasValue && streakId.Value > 0 )
                 {
-                    var sequenceEnrollmentService = GetSequenceEnrollmentService();
-                    _sequenceEnrollment = sequenceEnrollmentService.Get( sequenceEnrollmentId.Value );
+                    var service = GetStreakService();
+                    _streak = service.Get( streakId.Value );
                 }
             }
 
-            return _sequenceEnrollment;
+            return _streak;
         }
-        private SequenceEnrollment _sequenceEnrollment = null;
+        private Streak _streak = null;
 
         /// <summary>
-        /// Get the sequence enrollment models for the person
+        /// Get the streak models for the person
         /// </summary>
         /// <returns></returns>
-        private List<SequenceEnrollment> GetPersonSequenceEnrollments()
+        private List<Streak> GetPersonStreaks()
         {
-            if ( _sequenceEnrollments == null )
+            if ( _streaks == null )
             {
-                var enrollment = GetSequenceEnrollment();
+                var streak = GetStreak();
 
-                if ( enrollment != null )
+                if ( streak != null )
                 {
-                    var service = GetSequenceEnrollmentService();
-                    _sequenceEnrollments = service.GetBySequenceAndPerson( enrollment.SequenceId, enrollment.PersonAlias.PersonId ).ToList();
+                    var service = GetStreakService();
+                    _streaks = service.GetByStreakTypeAndPerson( streak.StreakTypeId, streak.PersonAlias.PersonId ).ToList();
                 }
             }
 
-            return _sequenceEnrollments;
+            return _streaks;
         }
-        private List<SequenceEnrollment> _sequenceEnrollments = null;
+        private List<Streak> _streaks = null;
 
         /// <summary>
         /// Get the rock context
@@ -805,44 +805,44 @@ namespace RockWeb.Blocks.Sequences
         private RockContext _rockContext = null;
 
         /// <summary>
-        /// Get the streak data for the enrollment
+        /// Get the streak data for the person
         /// </summary>
         /// <returns></returns>
-        private SequenceStreakData GetSequenceEnrollmentData()
+        private StreakData GetStreakData()
         {
-            if ( _sequenceEnrollmentData == null )
+            if ( _streakData == null )
             {
-                var sequence = GetSequence();
+                var streakType = GetStreakType();
                 var person = GetPerson();
 
-                if ( sequence != null && person != null )
+                if ( streakType != null && person != null )
                 {
-                    var service = GetSequenceService();
-                    var sequenceCache = SequenceCache.Get( sequence.Id );
+                    var service = GetStreakTypeService();
+                    var streakTypeCache = StreakTypeCache.Get( streakType.Id );
                     var errorMessage = string.Empty;
-                    _sequenceEnrollmentData = service.GetSequenceStreakData( sequenceCache, person.Id, out errorMessage, createObjectArray: true );
+                    _streakData = service.GetStreakData( streakTypeCache, person.Id, out errorMessage, createObjectArray: true );
                 }
             }
 
-            return _sequenceEnrollmentData;
+            return _streakData;
         }
-        private SequenceStreakData _sequenceEnrollmentData = null;
+        private StreakData _streakData = null;
 
         /// <summary>
-        /// Get the sequence service
+        /// Get the streak type service
         /// </summary>
         /// <returns></returns>
-        private SequenceService GetSequenceService()
+        private StreakTypeService GetStreakTypeService()
         {
-            if ( _sequenceService == null )
+            if ( _streakTypeService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceService = new SequenceService( rockContext );
+                _streakTypeService = new StreakTypeService( rockContext );
             }
 
-            return _sequenceService;
+            return _streakTypeService;
         }
-        private SequenceService _sequenceService = null;
+        private StreakTypeService _streakTypeService = null;
 
         /// <summary>
         /// Get the person alias service
@@ -868,7 +868,7 @@ namespace RockWeb.Blocks.Sequences
         {
             if ( _person == null )
             {
-                var enrollment = GetSequenceEnrollment();
+                var enrollment = GetStreak();
 
                 if ( enrollment != null )
                 {
@@ -882,20 +882,20 @@ namespace RockWeb.Blocks.Sequences
         private Person _person = null;
 
         /// <summary>
-        /// Get the sequence enrollment service
+        /// Get the streak service
         /// </summary>
         /// <returns></returns>
-        private SequenceEnrollmentService GetSequenceEnrollmentService()
+        private StreakService GetStreakService()
         {
-            if ( _sequenceEnrollmentService == null )
+            if ( _streakService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceEnrollmentService = new SequenceEnrollmentService( rockContext );
+                _streakService = new StreakService( rockContext );
             }
 
-            return _sequenceEnrollmentService;
+            return _streakService;
         }
-        private SequenceEnrollmentService _sequenceEnrollmentService = null;
+        private StreakService _streakService = null;
 
         #endregion Data Interface Methods        
     }

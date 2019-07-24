@@ -33,11 +33,11 @@ using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
-namespace RockWeb.Blocks.Sequences
+namespace RockWeb.Blocks.Streaks
 {
-    [DisplayName( "Sequence Enrollment List" )]
-    [Category( "Sequences" )]
-    [Description( "Lists all the people enrolled in a sequence." )]
+    [DisplayName( "Streak List" )]
+    [Category( "Streaks" )]
+    [Description( "Lists all the people enrolled in a streak type." )]
 
     #region Block Attributes
 
@@ -55,7 +55,7 @@ namespace RockWeb.Blocks.Sequences
 
     #endregion
 
-    public partial class SequenceEnrollmentList : RockBlock, ISecondaryBlock, ICustomGridColumns
+    public partial class StreakList : RockBlock, ISecondaryBlock, ICustomGridColumns
     {
         #region Keys
 
@@ -81,14 +81,14 @@ namespace RockWeb.Blocks.Sequences
         protected static class PageParameterKey
         {
             /// <summary>
-            /// The sequence id page parameter key
+            /// The streak type id page parameter key
             /// </summary>
-            public const string SequenceId = "SequenceId";
+            public const string StreakTypeId = "StreakTypeId";
 
             /// <summary>
-            /// The sequence enrollment id page parameter key
+            /// The streak id page parameter key
             /// </summary>
-            public const string SequenceEnrollmentId = "SequenceEnrollmentId";
+            public const string StreakId = "StreakId";
         }
 
         /// <summary>
@@ -221,11 +221,11 @@ namespace RockWeb.Blocks.Sequences
 
             if ( lBiStateGraph != null )
             {
-                var sequence = GetSequence();
+                var streakType = GetStreakType();
 
-                if ( sequence != null )
+                if ( streakType != null )
                 {
-                    var mostRecentBits = SequenceService.GetMostRecentBits( enrollmentViewModel.SequenceEnrollmentMap, sequence.StartDate, sequence.OccurrenceFrequency );
+                    var mostRecentBits = StreakTypeService.GetMostRecentBits( enrollmentViewModel.EngagementMap, streakType.StartDate, streakType.OccurrenceFrequency );
                     var stringBuilder = new StringBuilder();
 
                     foreach ( var bit in mostRecentBits )
@@ -320,19 +320,19 @@ namespace RockWeb.Blocks.Sequences
         protected void DeleteEnrollment_Click( object sender, RowEventArgs e )
         {
             var rockContext = GetRockContext();
-            var service = GetSequenceEnrollmentService();
-            var enrollment = service.Get( e.RowKeyId );
+            var streakService = GetStreakService();
+            var enrollment = streakService.Get( e.RowKeyId );
 
             if ( enrollment != null )
             {
                 var errorMessage = string.Empty;
-                if ( !service.CanDelete( enrollment, out errorMessage ) )
+                if ( !streakService.CanDelete( enrollment, out errorMessage ) )
                 {
                     mdGridWarning.Show( errorMessage, ModalAlertType.Information );
                     return;
                 }
 
-                service.Delete( enrollment );
+                streakService.Delete( enrollment );
                 rockContext.SaveChanges();
             }
 
@@ -346,8 +346,8 @@ namespace RockWeb.Blocks.Sequences
         /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
         protected void gEnrollments_AddClick( object sender, EventArgs e )
         {
-            var sequence = GetSequence();
-            NavigateToLinkedPage( "DetailPage", PageParameterKey.SequenceEnrollmentId, 0, PageParameterKey.SequenceId, sequence.Id );
+            var streakType = GetStreakType();
+            NavigateToLinkedPage( "DetailPage", PageParameterKey.StreakId, 0, PageParameterKey.StreakTypeId, streakType.Id );
         }
 
         /// <summary>
@@ -357,7 +357,7 @@ namespace RockWeb.Blocks.Sequences
         /// <param name="e">The <see cref="RowEventArgs" /> instance containing the event data.</param>
         protected void gEnrollments_Edit( object sender, RowEventArgs e )
         {
-            NavigateToLinkedPage( "DetailPage", PageParameterKey.SequenceEnrollmentId, e.RowKeyId );
+            NavigateToLinkedPage( "DetailPage", PageParameterKey.StreakId, e.RowKeyId );
         }
 
         /// <summary>
@@ -393,53 +393,53 @@ namespace RockWeb.Blocks.Sequences
         /// Retrieve a singleton enrollment service for data operations in this block.
         /// </summary>
         /// <returns></returns>
-        private SequenceEnrollmentService GetSequenceEnrollmentService()
+        private StreakService GetStreakService()
         {
-            if ( _sequenceEnrollmentService == null )
+            if ( _streakService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceEnrollmentService = new SequenceEnrollmentService( rockContext );
+                _streakService = new StreakService( rockContext );
             }
 
-            return _sequenceEnrollmentService;
+            return _streakService;
         }
-        private SequenceEnrollmentService _sequenceEnrollmentService = null;
+        private StreakService _streakService = null;
 
         /// <summary>
-        /// Retrieve a singleton sequence service for data operations in this block.
+        /// Retrieve a singleton streak type service for data operations in this block.
         /// </summary>
         /// <returns></returns>
-        private SequenceService GetSequenceService()
+        private StreakTypeService GetStreakTypeService()
         {
-            if ( _sequenceService == null )
+            if ( _streakTypeService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceService = new SequenceService( rockContext );
+                _streakTypeService = new StreakTypeService( rockContext );
             }
 
-            return _sequenceService;
+            return _streakTypeService;
         }
-        private SequenceService _sequenceService = null;
+        private StreakTypeService _streakTypeService = null;
 
         /// <summary>
-        /// Get the sequence
+        /// Get the streak type
         /// </summary>
         /// <returns></returns>
-        private Sequence GetSequence()
+        private StreakType GetStreakType()
         {
-            if ( _sequence == null )
+            if ( _streakType == null )
             {
-                var sequenceId = PageParameter( PageParameterKey.SequenceId ).AsIntegerOrNull();
+                var streakTypeId = PageParameter( PageParameterKey.StreakTypeId ).AsIntegerOrNull();
 
-                if ( sequenceId.HasValue )
+                if ( streakTypeId.HasValue )
                 {
-                    _sequence = GetSequenceService().Get( sequenceId.Value );
+                    _streakType = GetStreakTypeService().Get( streakTypeId.Value );
                 }
             }
 
-            return _sequence;
+            return _streakType;
         }
-        private Sequence _sequence = null;
+        private StreakType _streakType = null;
 
         /// <summary>
         /// Initialize handlers for block configuration changes.
@@ -457,9 +457,9 @@ namespace RockWeb.Blocks.Sequences
         /// </summary>
         private void InitializeBlockContext()
         {
-            var sequence = GetSequence();
+            var streakType = GetStreakType();
 
-            if ( sequence != null && sequence.IsAuthorized( Authorization.VIEW, CurrentPerson ) )
+            if ( streakType != null && streakType.IsAuthorized( Authorization.VIEW, CurrentPerson ) )
             {
                 _canView = true;
             }
@@ -472,11 +472,11 @@ namespace RockWeb.Blocks.Sequences
         {
             if ( !Page.IsPostBack )
             {
-                var sequence = GetSequence();
+                var streakType = GetStreakType();
 
-                if ( sequence != null )
+                if ( streakType != null )
                 {
-                    rFilter.UserPreferenceKeyPrefix = string.Format( "{0}-", sequence.Id );
+                    rFilter.UserPreferenceKeyPrefix = string.Format( "{0}-", streakType.Id );
                 }
 
                 BindFilter();
@@ -492,22 +492,22 @@ namespace RockWeb.Blocks.Sequences
             gEnrollments.PersonIdField = "Person Id";
             gEnrollments.Actions.AddClick += gEnrollments_AddClick;
             gEnrollments.GridRebind += gEnrollments_GridRebind;
-            gEnrollments.RowItemText = "Sequence Enrollment";
+            gEnrollments.RowItemText = "Streak";
             gEnrollments.ExportSource = ExcelExportSource.DataSource;
             gEnrollments.ShowConfirmDeleteDialog = true;
 
-            var sequence = GetSequence();
+            var streakType = GetStreakType();
             var canEditBlock =
                 IsUserAuthorized( Authorization.EDIT ) ||
-                sequence.IsAuthorized( Authorization.EDIT, CurrentPerson ) ||
-                sequence.IsAuthorized( Authorization.MANAGE_MEMBERS, CurrentPerson );
+                streakType.IsAuthorized( Authorization.EDIT, CurrentPerson ) ||
+                streakType.IsAuthorized( Authorization.MANAGE_MEMBERS, CurrentPerson );
 
             gEnrollments.Actions.ShowAdd = canEditBlock;
             gEnrollments.IsDeleteEnabled = canEditBlock;
 
-            if ( sequence != null )
+            if ( streakType != null )
             {
-                gEnrollments.ExportFilename = sequence.Name;
+                gEnrollments.ExportFilename = streakType.Name;
             }
         }
 
@@ -609,9 +609,9 @@ namespace RockWeb.Blocks.Sequences
         /// </summary>
         protected void BindEnrollmentGrid( bool isExporting = false, bool isCommunication = false )
         {
-            var sequence = GetSequence();
+            var streakType = GetStreakType();
 
-            if ( sequence == null )
+            if ( streakType == null )
             {
                 pnlEnrollments.Visible = false;
                 return;
@@ -621,18 +621,18 @@ namespace RockWeb.Blocks.Sequences
             rFilter.Visible = true;
             gEnrollments.Visible = true;
 
-            lHeading.Text = string.Format( "{0} Enrollments", sequence.Name );
+            lHeading.Text = string.Format( "{0} Enrollments", streakType.Name );
 
             _fullNameField = gEnrollments.ColumnsOfType<RockLiteralField>().Where( a => a.ID == "lExportFullName" ).FirstOrDefault();
             _nameWithHtmlField = gEnrollments.ColumnsOfType<RockLiteralField>().Where( a => a.ID == "lNameWithHtml" ).FirstOrDefault();
             _lBiStateGraph = gEnrollments.ColumnsOfType<RockLiteralField>().Where( a => a.ID == "lBiStateGraph" ).FirstOrDefault();
 
-            var enrollmentService = GetSequenceEnrollmentService();
+            var streakService = GetStreakService();
 
-            var query = enrollmentService.Queryable()
+            var query = streakService.Queryable()
                 .Include( se => se.PersonAlias.Person )
                 .AsNoTracking()
-                .Where( se => se.SequenceId == sequence.Id );
+                .Where( se => se.StreakTypeId == streakType.Id );
 
             // Filter by First Name
             var firstName = tbFirstName.Text;
@@ -664,7 +664,7 @@ namespace RockWeb.Blocks.Sequences
             }
 
             // Sort the grid
-            gEnrollments.EntityTypeId = new SequenceEnrollment().TypeId;
+            gEnrollments.EntityTypeId = new Streak().TypeId;
             var sortProperty = gEnrollments.SortProperty;
 
             if ( sortProperty != null )
@@ -687,7 +687,7 @@ namespace RockWeb.Blocks.Sequences
                 EngagementCount = se.EngagementCount,
                 CurrentStreakCount = se.CurrentStreakCount,
                 LongestStreakCount = se.LongestStreakCount,
-                SequenceEnrollmentMap = se.EngagementMap
+                EngagementMap = se.EngagementMap
             } ).DistinctBy( vm => vm.PersonId ).AsQueryable();
 
             gEnrollments.SetLinqDataSource( viewModelQuery );
@@ -735,7 +735,7 @@ namespace RockWeb.Blocks.Sequences
             public int EngagementCount { get; set; }
             public int CurrentStreakCount { get; set; }
             public int LongestStreakCount { get; set; }
-            public byte[] SequenceEnrollmentMap { get; set; }
+            public byte[] EngagementMap { get; set; }
         }
 
         #endregion View Models

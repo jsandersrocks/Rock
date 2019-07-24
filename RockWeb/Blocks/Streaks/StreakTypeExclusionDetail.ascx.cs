@@ -31,13 +31,13 @@ using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
-namespace RockWeb.Blocks.Sequences
+namespace RockWeb.Blocks.Streaks
 {
-    [DisplayName( "Sequence Exclusion Detail" )]
-    [Category( "Sequences" )]
+    [DisplayName( "Streak Type Exclusion Detail" )]
+    [Category( "Streaks" )]
     [Description( "Displays the details of the given Exclusion for editing." )]
 
-    public partial class SequenceExclusionDetail : RockBlock, IDetailBlock
+    public partial class StreakTypeExclusionDetail : RockBlock, IDetailBlock
     {
         #region Keys
 
@@ -47,14 +47,14 @@ namespace RockWeb.Blocks.Sequences
         protected static class PageParameterKey
         {
             /// <summary>
-            /// The sequence id page parameter key
+            /// The streak type id page parameter key
             /// </summary>
-            public const string SequenceId = "SequenceId";
+            public const string StreakTypeId = "StreakTypeId";
 
             /// <summary>
-            /// The sequence exclusion id page parameter key
+            /// The streak type exclusion id page parameter key
             /// </summary>
-            public const string SequenceExclusionId = "SequenceOccurrenceExclusionId";
+            public const string StreakTypeExclusionId = "StreakTypeExclusionId";
         }
 
         #endregion Keys
@@ -86,11 +86,11 @@ namespace RockWeb.Blocks.Sequences
                 var exclusion = GetExclusion();
                 pdAuditDetails.SetEntity( exclusion, ResolveRockUrl( "~" ) );
 
-                var sequence = GetSequence();
+                var streakType = GetStreakType();
 
-                if ( sequence == null )
+                if ( streakType == null )
                 {
-                    nbEditModeMessage.Text = "A sequence is required.";
+                    nbEditModeMessage.Text = "A streak type is required.";
                     return;
                 }
 
@@ -134,7 +134,7 @@ namespace RockWeb.Blocks.Sequences
         /// </summary>
         private void InitializeActionButtons()
         {
-            btnDelete.Attributes["onclick"] = string.Format( "javascript: return Rock.dialogs.confirmDelete(event, '{0}');", SequenceOccurrenceExclusion.FriendlyTypeName );
+            btnDelete.Attributes["onclick"] = string.Format( "javascript: return Rock.dialogs.confirmDelete(event, '{0}');", StreakTypeExclusion.FriendlyTypeName );
         }
 
         /// <summary>
@@ -201,13 +201,13 @@ namespace RockWeb.Blocks.Sequences
         }
 
         /// <summary>
-        /// Go to the parent page and use the sequence id in the params
+        /// Go to the parent page and use the streak type id in the params
         /// </summary>
         /// <returns></returns>
         private bool NavigateToParentPage()
         {
             return NavigateToParentPage( new Dictionary<string, string> {
-                { PageParameterKey.SequenceId, GetSequence().Id.ToString() }
+                { PageParameterKey.StreakTypeId, GetStreakType().Id.ToString() }
             } );
         }
 
@@ -276,7 +276,7 @@ namespace RockWeb.Blocks.Sequences
                     return;
                 }
 
-                var service = GetExclusionService();
+                var service = GetStreakTypeExclusionService();
                 var errorMessage = string.Empty;
 
                 if ( !service.CanDelete( exclusion, out errorMessage ) )
@@ -298,28 +298,28 @@ namespace RockWeb.Blocks.Sequences
         /// <returns></returns>
         private void SaveRecord()
         {
-            // Validate the sequence            
-            var sequence = GetSequence();
+            // Validate the streak type            
+            var streakType = GetStreakType();
 
-            if ( sequence == null )
+            if ( streakType == null )
             {
-                nbEditModeMessage.Text = "Sequence is required.";
+                nbEditModeMessage.Text = "Streak Type is required.";
                 return;
             }
 
             // Get the other non-required values
-            var sequenceService = GetSequenceService();
-            var exclusionService = GetExclusionService();
+            var streakTypeService = GetStreakTypeService();
+            var exclusionService = GetStreakTypeExclusionService();
             var exclusion = GetExclusion();
             var locationId = rlpLocation.Location != null ? rlpLocation.Location.Id : ( int? ) null;
 
             // Add the new exclusion if we are adding
             if ( exclusion == null )
             {
-                exclusion = new SequenceOccurrenceExclusion
+                exclusion = new StreakTypeExclusion
                 {
                     LocationId = locationId,
-                    SequenceId = sequence.Id
+                    StreakTypeId = streakType.Id
                 };
 
                 exclusionService.Add( exclusion );
@@ -364,8 +364,8 @@ namespace RockWeb.Blocks.Sequences
 
             // If the save was successful, reload the page using the new record Id.
             NavigateToPage( RockPage.Guid, new Dictionary<string, string> {
-                { PageParameterKey.SequenceId, sequence.Id.ToString() },
-                { PageParameterKey.SequenceExclusionId, exclusion.Id.ToString() }
+                { PageParameterKey.StreakTypeId, streakType.Id.ToString() },
+                { PageParameterKey.StreakTypeExclusionId, exclusion.Id.ToString() }
             } );
         }
 
@@ -404,7 +404,7 @@ namespace RockWeb.Blocks.Sequences
         }
 
         /// <summary>
-        /// Shows the mode where the user can edit an existing sequence
+        /// Shows the mode where the user can edit an existing exclusion
         /// </summary>
         private void ShowEditMode()
         {
@@ -419,12 +419,12 @@ namespace RockWeb.Blocks.Sequences
             pdAuditDetails.Visible = true;
 
             var exclusion = GetExclusion();
-            lReadOnlyTitle.Text = ActionTitle.Edit( SequenceOccurrenceExclusion.FriendlyTypeName ).FormatAsHtmlTitle();
+            lReadOnlyTitle.Text = ActionTitle.Edit( StreakTypeExclusion.FriendlyTypeName ).FormatAsHtmlTitle();
             rlpLocation.Location = exclusion.Location;
         }
 
         /// <summary>
-        /// Show the mode where a user can add a new sequence
+        /// Show the mode where a user can add a new exclusion
         /// </summary>
         private void ShowAddMode()
         {
@@ -439,11 +439,11 @@ namespace RockWeb.Blocks.Sequences
             pdAuditDetails.Visible = false;
 
             var exclusion = GetExclusion();
-            lReadOnlyTitle.Text = ActionTitle.Add( SequenceEnrollment.FriendlyTypeName ).FormatAsHtmlTitle();
+            lReadOnlyTitle.Text = ActionTitle.Add( StreakTypeExclusion.FriendlyTypeName ).FormatAsHtmlTitle();
         }
 
         /// <summary>
-        /// Shows the mode where the user is only viewing an existing sequence
+        /// Shows the mode where the user is only viewing an existing exclusion
         /// </summary>
         private void ShowViewMode()
         {
@@ -463,12 +463,12 @@ namespace RockWeb.Blocks.Sequences
             btnDelete.Visible = canEdit;
 
             var exclusion = GetExclusion();
-            var sequence = GetSequence();
-            lReadOnlyTitle.Text = ActionTitle.View( SequenceOccurrenceExclusion.FriendlyTypeName ).FormatAsHtmlTitle();
+            var streakType = GetStreakType();
+            lReadOnlyTitle.Text = ActionTitle.View( StreakTypeExclusion.FriendlyTypeName ).FormatAsHtmlTitle();
             var locationName = exclusion.Location != null ? exclusion.Location.Name : "Unspecified";
 
             var descriptionList = new DescriptionList();
-            descriptionList.Add( "Sequence", sequence.Name );
+            descriptionList.Add( "Streak Type", streakType.Name );
             descriptionList.Add( "Location", locationName );
 
             lExclusionDescription.Text = descriptionList.Html;
@@ -531,57 +531,57 @@ namespace RockWeb.Blocks.Sequences
         /// Get the actual enrollment model for deleting or editing
         /// </summary>
         /// <returns></returns>
-        private Sequence GetSequence()
+        private StreakType GetStreakType()
         {
-            if ( _sequence == null )
+            if ( _streakType == null )
             {
                 var exclusion = GetExclusion();
 
-                if ( exclusion != null && exclusion.Sequence != null )
+                if ( exclusion != null && exclusion.StreakType != null )
                 {
-                    _sequence = exclusion.Sequence;
+                    _streakType = exclusion.StreakType;
                 }
                 else if ( exclusion != null )
                 {
-                    var sequenceService = GetSequenceService();
-                    _sequence = sequenceService.Get( exclusion.SequenceId );
+                    var streakTypeService = GetStreakTypeService();
+                    _streakType = streakTypeService.Get( exclusion.StreakTypeId );
                 }
                 else
                 {
-                    var sequenceId = PageParameter( PageParameterKey.SequenceId ).AsIntegerOrNull();
+                    var streakTypeId = PageParameter( PageParameterKey.StreakTypeId ).AsIntegerOrNull();
 
-                    if ( sequenceId.HasValue && sequenceId.Value > 0 )
+                    if ( streakTypeId.HasValue && streakTypeId.Value > 0 )
                     {
-                        var sequenceService = GetSequenceService();
-                        _sequence = sequenceService.Get( sequenceId.Value );
+                        var streakTypeService = GetStreakTypeService();
+                        _streakType = streakTypeService.Get( streakTypeId.Value );
                     }
                 }
             }
 
-            return _sequence;
+            return _streakType;
         }
-        private Sequence _sequence = null;
+        private StreakType _streakType = null;
 
         /// <summary>
-        /// Get the actual sequence exclusion model for deleting or editing
+        /// Get the actual streak exclusion model for deleting or editing
         /// </summary>
         /// <returns></returns>
-        private SequenceOccurrenceExclusion GetExclusion()
+        private StreakTypeExclusion GetExclusion()
         {
-            if ( _sequenceOccurrenceExclusion == null )
+            if ( _streakTypeExclusion == null )
             {
-                var id = PageParameter( PageParameterKey.SequenceExclusionId ).AsIntegerOrNull();
+                var id = PageParameter( PageParameterKey.StreakTypeExclusionId ).AsIntegerOrNull();
 
                 if ( id.HasValue && id.Value > 0 )
                 {
-                    var service = GetExclusionService();
-                    _sequenceOccurrenceExclusion = service.Get( id.Value );
+                    var service = GetStreakTypeExclusionService();
+                    _streakTypeExclusion = service.Get( id.Value );
                 }
             }
 
-            return _sequenceOccurrenceExclusion;
+            return _streakTypeExclusion;
         }
-        private SequenceOccurrenceExclusion _sequenceOccurrenceExclusion = null;
+        private StreakTypeExclusion _streakTypeExclusion = null;
 
         /// <summary>
         /// Get the rock context
@@ -599,36 +599,36 @@ namespace RockWeb.Blocks.Sequences
         private RockContext _rockContext = null;
 
         /// <summary>
-        /// Get the sequence service
+        /// Get the streak type service
         /// </summary>
         /// <returns></returns>
-        private SequenceService GetSequenceService()
+        private StreakTypeService GetStreakTypeService()
         {
-            if ( _sequenceService == null )
+            if ( _streakTypeService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceService = new SequenceService( rockContext );
+                _streakTypeService = new StreakTypeService( rockContext );
             }
 
-            return _sequenceService;
+            return _streakTypeService;
         }
-        private SequenceService _sequenceService = null;
+        private StreakTypeService _streakTypeService = null;
 
         /// <summary>
-        /// Get the sequence exclusion service
+        /// Get the streak exclusion service
         /// </summary>
         /// <returns></returns>
-        private SequenceOccurrenceExclusionService GetExclusionService()
+        private StreakTypeExclusionService GetStreakTypeExclusionService()
         {
-            if ( _sequenceOccurrenceExclusionService == null )
+            if ( _streakTypeExclusionService == null )
             {
                 var rockContext = GetRockContext();
-                _sequenceOccurrenceExclusionService = new SequenceOccurrenceExclusionService( rockContext );
+                _streakTypeExclusionService = new StreakTypeExclusionService( rockContext );
             }
 
-            return _sequenceOccurrenceExclusionService;
+            return _streakTypeExclusionService;
         }
-        private SequenceOccurrenceExclusionService _sequenceOccurrenceExclusionService = null;
+        private StreakTypeExclusionService _streakTypeExclusionService = null;
 
         #endregion Data Interface Methods
     }

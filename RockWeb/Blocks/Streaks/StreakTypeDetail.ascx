@@ -1,6 +1,6 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeDetail.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceDetail" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeDetail.ascx.cs" Inherits="RockWeb.Blocks.Streaks.StreakTypeDetail" %>
 
-<asp:UpdatePanel ID="upSequenceDetail" runat="server">
+<asp:UpdatePanel ID="upStreakTypeDetail" runat="server">
     <ContentTemplate>
         <asp:HiddenField ID="hfIsEditMode" runat="server" />
 
@@ -17,12 +17,12 @@
             <Rock:PanelDrawer ID="pdAuditDetails" runat="server"></Rock:PanelDrawer>
             <div class="panel-body">
                 <Rock:NotificationBox ID="nbEditModeMessage" runat="server" NotificationBoxType="Info" />
-                <asp:ValidationSummary ID="valSequenceDetail" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" />
+                <asp:ValidationSummary ID="valStreakTypeDetail" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" />
 
                 <div id="pnlViewDetails" runat="server">
                     <div class="row">
                         <div class="col-md-6">
-                            <asp:Literal ID="lSequenceDescription" runat="server" />
+                            <asp:Literal ID="lStreakTypeDescription" runat="server" />
                         </div>
                         <div class="col-md-6">
                             <asp:LinkButton ID="btnMapEditor" runat="server" CssClass="btn btn-default" OnClick="btnMapEditor_Click" CausesValidation="false"><i class="fa fa-calendar-check"></i> Map Editor</asp:LinkButton>
@@ -44,34 +44,34 @@
                 <div id="pnlEditDetails" runat="server">
                     <div class="row">
                         <div class="col-md-6 col-sm-9">
-                            <Rock:DataTextBox ID="tbName" runat="server" SourceTypeName="Rock.Model.Sequence, Rock" PropertyName="Name" />
+                            <Rock:DataTextBox ID="tbName" runat="server" SourceTypeName="Rock.Model.StreakType, Rock" PropertyName="Name" />
                         </div>
                         <div class="col-md-6 col-sm-3">
-                            <Rock:RockCheckBox ID="cbActive" runat="server" SourceTypeName="Rock.Model.Sequence, Rock" PropertyName="IsActive" Label="Active" Checked="true" Text="Yes" />
+                            <Rock:RockCheckBox ID="cbActive" runat="server" SourceTypeName="Rock.Model.StreakType, Rock" PropertyName="IsActive" Label="Active" Checked="true" Text="Yes" />
                         </div>
                         <div class="col-sm-12">
-                            <Rock:DataTextBox ID="tbDescription" runat="server" SourceTypeName="Rock.Model.Sequence, Rock" PropertyName="Description" TextMode="MultiLine" Rows="4" />
+                            <Rock:DataTextBox ID="tbDescription" runat="server" SourceTypeName="Rock.Model.StreakType, Rock" PropertyName="Description" TextMode="MultiLine" Rows="4" />
                         </div>
                         <div class="col-sm-6">
-                            <Rock:DatePicker ID="rdpStartDate" runat="server" SourceTypeName="Rock.Model.Sequence, Rock" PropertyName="StartDate" Label="Start Date" />
+                            <Rock:DatePicker ID="rdpStartDate" runat="server" SourceTypeName="Rock.Model.StreakType, Rock" PropertyName="StartDate" Label="Start Date" />
                         </div>
                         <div class="col-sm-3 col-xs-6">
-                            <Rock:RockCheckBox CssClass="col-sm-6" ID="cbEnableAttendance" runat="server" SourceTypeName="Rock.Model.Sequence, Rock" PropertyName="EnableAttendance" Label="Enable Attendance" Checked="true" Text="Yes" />
+                            <Rock:RockCheckBox CssClass="col-sm-6" ID="cbEnableAttendance" runat="server" SourceTypeName="Rock.Model.StreakType, Rock" PropertyName="EnableAttendance" Label="Enable Attendance" Checked="true" Text="Yes" />
                         </div>
                         <div class="col-sm-3 col-xs-6">
-                            <Rock:RockCheckBox CssClass="col-sm-6" ID="cbRequireEnrollment" runat="server" SourceTypeName="Rock.Model.Sequence, Rock" PropertyName="RequiresEnrollment" Label="Require Enrollment" Checked="false" Text="Yes" />
+                            <Rock:RockCheckBox CssClass="col-sm-6" ID="cbRequireEnrollment" runat="server" SourceTypeName="Rock.Model.StreakType, Rock" PropertyName="RequiresEnrollment" Label="Require Enrollment" Checked="false" Text="Yes" />
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6">
-                            <Rock:DataDropDownList ID="ddlStructureType" runat="server" SourceTypeName="Rock.Model.Sequence, Rock" Label="Structure Type" PropertyName="StructureType" DataTextField="Text" DataValueField="Value" OnSelectedIndexChanged="ddlStructureType_SelectedIndexChanged" AutoPostBack="true" />
+                            <Rock:DataDropDownList ID="ddlStructureType" runat="server" SourceTypeName="Rock.Model.StreakType, Rock" Label="Structure Type" PropertyName="StructureType" DataTextField="Text" DataValueField="Value" OnSelectedIndexChanged="ddlStructureType_SelectedIndexChanged" AutoPostBack="true" />
                             <Rock:GroupPicker ID="gpStructureGroupPicker" runat="server" Visible="false" />
                             <Rock:GroupTypePicker ID="gtpStructureGroupTypePicker" runat="server" Visible="false" />
                             <Rock:DefinedValuePicker ID="dvpStructureGroupTypePurposePicker" runat="server" Visible="false" />
                         </div>
                         <div class="col-md-6">
-                            <Rock:DataDropDownList ID="ddlFrequencyOccurrence" runat="server" SourceTypeName="Rock.Model.Sequence, Rock" Label="Frequency" PropertyName="OccurrenceFrequency" DataTextField="Text" DataValueField="Value" />
+                            <Rock:DataDropDownList ID="ddlFrequencyOccurrence" runat="server" SourceTypeName="Rock.Model.StreakType, Rock" Label="Frequency" PropertyName="OccurrenceFrequency" DataTextField="Text" DataValueField="Value" />
                         </div>
                     </div>
 

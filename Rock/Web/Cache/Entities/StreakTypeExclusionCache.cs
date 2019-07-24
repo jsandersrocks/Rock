@@ -39,13 +39,13 @@ namespace Rock.Web.Cache
         public int StreakTypeId { get; private set; }
 
         /// <summary>
-        /// Gets or sets the location identifier by which the sequences's exclusions will be associated.
+        /// Gets or sets the location identifier by which the streak type's exclusions will be associated.
         /// </summary>
         [DataMember]
         public int? LocationId { get; private set; }
 
         /// <summary>
-        /// The sequence of bits that represent exclusions. The least significant bit is representative of the Sequence's StartDate.
+        /// The sequence of bits that represent exclusions. The least significant bit is representative of the Streak Type's StartDate.
         /// More significant bits (going left) are more recent dates.
         /// </summary>
         [DataMember]
@@ -63,15 +63,15 @@ namespace Rock.Web.Cache
         {
             base.SetFromEntity( entity );
 
-            var sequenceOccurrenceExclusion = entity as StreakTypeExclusion;
-            if ( sequenceOccurrenceExclusion == null )
+            var exclusion = entity as StreakTypeExclusion;
+            if ( exclusion == null )
             {
                 return;
             }
 
-            StreakTypeId = sequenceOccurrenceExclusion.StreakTypeId;
-            LocationId = sequenceOccurrenceExclusion.LocationId;
-            ExclusionMap = sequenceOccurrenceExclusion.ExclusionMap;
+            StreakTypeId = exclusion.StreakTypeId;
+            LocationId = exclusion.LocationId;
+            ExclusionMap = exclusion.ExclusionMap;
         }
 
         #endregion

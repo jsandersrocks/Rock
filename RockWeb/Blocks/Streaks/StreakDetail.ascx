@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakDetail.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceEnrollmentDetail" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakDetail.ascx.cs" Inherits="RockWeb.Blocks.Streaks.StreakDetail" %>
 
 <script type="text/javascript">
     Sys.Application.add_load(function () {
@@ -59,13 +59,13 @@
                 <div id="pnlEditDetails" runat="server">
                     <div class="row">
                         <div class="col-sm-6 col-md-4">
-                            <Rock:PersonPicker ID="rppPerson" runat="server" SourceTypeName="Rock.Model.SequenceEnrollment, Rock" PropertyName="PersonAliasId" Required="true" Label="Person" />
+                            <Rock:PersonPicker ID="rppPerson" runat="server" SourceTypeName="Rock.Model.Streak, Rock" PropertyName="PersonAliasId" Required="true" Label="Person" />
                         </div>
                         <div class="col-sm-6 col-md-4">
-                            <Rock:LocationPicker ID="rlpLocation" runat="server" AllowedPickerModes="Named" SourceTypeName="Rock.Model.SequenceEnrollment, Rock" PropertyName="LocationId" Label="Location" />
+                            <Rock:LocationPicker ID="rlpLocation" runat="server" AllowedPickerModes="Named" SourceTypeName="Rock.Model.Streak, Rock" PropertyName="LocationId" Label="Location" />
                         </div>
                         <div class="col-sm-6 col-md-4">
-                            <Rock:DatePicker ID="rdpEnrollmentDate" runat="server" SourceTypeName="Rock.Model.SequenceEnrollment, Rock" PropertyName="EnrollmentDate" Label="Enrollment Date" />
+                            <Rock:DatePicker ID="rdpEnrollmentDate" runat="server" SourceTypeName="Rock.Model.Streak, Rock" PropertyName="EnrollmentDate" Label="Enrollment Date" />
                         </div>
                     </div>
 

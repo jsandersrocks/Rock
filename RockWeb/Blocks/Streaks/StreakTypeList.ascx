@@ -1,6 +1,6 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeList.ascx.cs" Inherits="RockWeb.Blocks.Sequences.SequenceList" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="StreakTypeList.ascx.cs" Inherits="RockWeb.Blocks.Streaks.StreakTypeList" %>
 
-<asp:UpdatePanel ID="upSequenceList" runat="server">
+<asp:UpdatePanel ID="upStreakTypeList" runat="server">
     <ContentTemplate>
 
         <Rock:ModalAlert ID="mdGridWarning" runat="server" />
@@ -9,7 +9,7 @@
             <div class="panel-heading">
                 <h1 class="panel-title">
                     <i class="fa fa-list-ol"></i>
-                    Sequences
+                    Streak Types
                 </h1>
             </div>
             <div class="panel-body">
@@ -22,7 +22,7 @@
                             <asp:ListItem Text="Inactive" Value="Inactive"></asp:ListItem>
                         </Rock:RockDropDownList>
                     </Rock:GridFilter>
-                    <Rock:Grid ID="gSequence" runat="server" AllowSorting="true">
+                    <Rock:Grid ID="gStreakTypes" runat="server" AllowSorting="true">
                         <Columns>
                             <Rock:RockBoundField DataField="Name" HeaderText="Name" SortExpression="Name" />
                             <Rock:BoolField DataField="IsActive" HeaderText="Is Active?" SortExpression="IsActive" />
@@ -30,7 +30,7 @@
                             <Rock:DateTimeField HeaderText="Start Date" DataField="StartDate" SortExpression="StartDate" DataFormatString="{0:d}"  />
                             <Rock:RockBoundField DataField="EnrollmentCount" HeaderText="Enrollments" SortExpression="EnrollmentCount" HeaderStyle-HorizontalAlign="Right" ItemStyle-HorizontalAlign="Right" />
                             <Rock:SecurityField />
-                            <Rock:DeleteField OnClick="gSequence_Delete" />
+                            <Rock:DeleteField OnClick="gStreakTypes_Delete" />
                         </Columns>
                     </Rock:Grid>
                 </div>

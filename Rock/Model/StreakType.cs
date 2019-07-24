@@ -35,7 +35,7 @@ namespace Rock.Model
         public string Description { get; set; }
 
         /// <summary>
-        /// Gets or sets the attendance association (<see cref="Rock.Model.StreakStructureType"/>). If not set, this sequence
+        /// Gets or sets the attendance association (<see cref="Rock.Model.StreakStructureType"/>). If not set, this streak type
         /// will account for any attendance record.
         /// </summary>
         [DataMember]
@@ -56,7 +56,7 @@ namespace Rock.Model
         public bool EnableAttendance { get; set; }
 
         /// <summary>
-        /// Gets or sets a flag indicating if this sequence requires explicit enrollment. If not set, a person can be
+        /// Gets or sets a flag indicating if this streak type requires explicit enrollment. If not set, a person can be
         /// implicitly enrolled through attendance.
         /// </summary>
         [DataMember]
@@ -127,7 +127,7 @@ namespace Rock.Model
         #region Virtual Properties
 
         /// <summary>
-        /// Gets or sets a collection containing the <see cref="Streak">Streaks</see> that are of this sequence.
+        /// Gets or sets a collection containing the <see cref="Streak">Streaks</see> that are of this streak type.
         /// </summary>
         [DataMember]
         public virtual ICollection<Streak> Streaks
@@ -139,7 +139,7 @@ namespace Rock.Model
 
         /// <summary>
         /// Gets or sets a collection containing the <see cref="StreakTypeExclusion">StreakTypeExclusions</see>
-        /// that are of this sequence.
+        /// that are of this streak type.
         /// </summary>
         [DataMember]
         public virtual ICollection<StreakTypeExclusion> StreakTypeExclusions

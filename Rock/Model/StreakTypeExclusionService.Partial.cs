@@ -25,13 +25,13 @@ namespace Rock.Model
     public partial class StreakTypeExclusionService
     {
         /// <summary>
-        /// Gets the exclusions for the given sequence id
+        /// Gets the exclusions for the given streak type id
         /// </summary>
-        /// <param name="sequenceId"></param>
+        /// <param name="streakTypeId"></param>
         /// <returns></returns>
-        public IQueryable<StreakTypeExclusion> GetByStreakTypeId( int sequenceId )
+        public IQueryable<StreakTypeExclusion> GetByStreakTypeId( int streakTypeId )
         {
-            return Queryable().Where( soe => soe.StreakTypeId == sequenceId );
+            return Queryable().Where( soe => soe.StreakTypeId == streakTypeId );
         }
     }
 }

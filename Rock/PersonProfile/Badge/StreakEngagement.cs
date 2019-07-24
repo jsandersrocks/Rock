@@ -72,7 +72,7 @@ namespace Rock.PersonProfile.Badge
         protected static class AttributeKey
         {
             /// <summary>
-            /// The sequence attribute key
+            /// The streak type attribute key
             /// </summary>
             public const string StreakType = "StreakType";
 
@@ -132,14 +132,14 @@ namespace Rock.PersonProfile.Badge
                 return;
             }
             
-            var sequence = GetStreakTypeCache( badge );
+            var streakTypeCache = GetStreakTypeCache( badge );
 
-            if ( sequence == null )
+            if ( streakTypeCache == null )
             {
                 return;
             }
 
-            var isDaily = sequence.OccurrenceFrequency == StreakOccurrenceFrequency.Daily;
+            var isDaily = streakTypeCache.OccurrenceFrequency == StreakOccurrenceFrequency.Daily;
             var timeUnit = isDaily ? "day" : "week";
             var timeUnits = isDaily ? "days" : "weeks";
 
@@ -158,7 +158,7 @@ namespace Rock.PersonProfile.Badge
     Sys.Application.add_load(function () {{
         $.ajax({{
                 type: 'GET',
-                url: Rock.settings.get('baseUrl') + 'api/Sequences/RecentEngagement/{sequence.Id}/{Person.Id}?unitCount={unitsToDisplay}' ,
+                url: Rock.settings.get('baseUrl') + 'api/Sequences/RecentEngagement/{streakTypeCache.Id}/{Person.Id}?unitCount={unitsToDisplay}' ,
                 statusCode: {{
                     200: function (data, status, xhr) {{
                             var chartHtml = ['<ul class=\'attendance-chart list-unstyled\'>'];
@@ -189,13 +189,13 @@ namespace Rock.PersonProfile.Badge
             }
             else
             {
-                var link = $"/page/{linkedPageId.Value}?sequenceId={sequence.Id}&personId={Person.Id}";                
+                var link = $"/page/{linkedPageId.Value}?streakTypeId={streakTypeCache.Id}&personId={Person.Id}";                
                 writer.Write( $@"<a href=""{link}"">{chartHtml}</a>{script}" );
             }
         }
 
         /// <summary>
-        /// Get the sequence described by the attribute value
+        /// Get the streak type described by the attribute value
         /// </summary>
         /// <param name="badge"></param>
         /// <returns></returns>

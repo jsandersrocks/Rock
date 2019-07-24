@@ -27,13 +27,13 @@ namespace Rock.Model
         public int StreakTypeId { get; set; }
 
         /// <summary>
-        /// Gets or sets the location identifier by which the sequences's exclusions will be associated.
+        /// Gets or sets the location identifier by which the streak type's exclusions will be associated.
         /// </summary>
         [DataMember]
         public int? LocationId { get; set; }
 
         /// <summary>
-        /// The sequence of bits that represent exclusions. The least significant bit is representative of the Sequence's StartDate.
+        /// The sequence of bits that represent exclusions. The least significant bit is representative of the Streak Type's StartDate.
         /// More significant bits (going left) are more recent dates.
         /// </summary>
         [DataMember]
