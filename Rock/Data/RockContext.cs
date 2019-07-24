@@ -1630,6 +1630,86 @@ namespace Rock.Data
         public DbSet<PageShortLink> PageShortLinks { get; set; }
 
         /// <summary>
+        /// Gets or sets the Steps.
+        /// </summary>
+        /// <value>
+        /// The Steps.
+        /// </value>
+        public DbSet<Step> Steps { get; set; }
+
+        /// <summary>
+        /// Gets or sets the StepPrograms.
+        /// </summary>
+        /// <value>
+        /// The StepPrograms.
+        /// </value>
+        public DbSet<StepProgram> StepPrograms { get; set; }
+
+        /// <summary>
+        /// Gets or sets the StepStatuses.
+        /// </summary>
+        /// <value>
+        /// The StepStatuses.
+        /// </value>
+        public DbSet<StepStatus> StepStatuses { get; set; }
+
+        /// <summary>
+        /// Gets or sets the StepTypes.
+        /// </summary>
+        /// <value>
+        /// The StepTypes.
+        /// </value>
+        public DbSet<StepType> StepTypes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the StepTypePrerequisites.
+        /// </summary>
+        /// <value>
+        /// The StepTypePrerequisites.
+        /// </value>
+        public DbSet<StepTypePrerequisite> StepTypePrerequisites { get; set; }
+
+        /// <summary>
+        /// Gets or sets the StepWorkflow.
+        /// </summary>
+        /// <value>
+        /// The StepWorkflow.
+        /// </value>
+        public DbSet<StepWorkflow> StepWorkflows { get; set; }
+
+        /// <summary>
+        /// Gets or sets the StepWorkflowTriggers.
+        /// </summary>
+        /// <value>
+        /// The StepWorkflowTriggers.
+        /// </value>
+        public DbSet<StepWorkflowTrigger> StepWorkflowTriggers { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Streaks.
+        /// </summary>
+        /// <value>
+        /// The Streaks.
+        /// </value>
+        public DbSet<Streak> Streaks { get; set; }
+
+        /// <summary>
+        /// Gets or sets the StreakTypes.
+        /// </summary>
+        /// <value>
+        /// The StreakTypes.
+        /// </value>
+        public DbSet<StreakType> StreakTypes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the StreakTypeExclusions.
+        /// </summary>
+        /// <value>
+        /// The StreakTypeExclusions.
+        /// </value>
+        public DbSet<StreakTypeExclusion> StreakTypeExclusions { get; set; }
+
+        /// <summary>
         /// Gets or sets the system emails.
         /// </summary>
         /// <value>

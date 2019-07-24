@@ -27,30 +27,30 @@ using System.Collections.Generic;
 namespace Rock.Client
 {
     /// <summary>
-    /// Base client model for Tag that only includes the non-virtual fields. Use this for PUT/POSTs
+    /// Base client model for Streak that only includes the non-virtual fields. Use this for PUT/POSTs
     /// </summary>
-    public partial class TagEntity
+    public partial class StreakEntity
     {
         /// <summary />
         public int Id { get; set; }
 
         /// <summary />
-        public string BackgroundColor { get; set; } = @"#e0e0e0";
+        public int CurrentStreakCount { get; set; }
 
         /// <summary />
-        public int? CategoryId { get; set; }
+        public DateTime? CurrentStreakStartDate { get; set; }
 
         /// <summary />
-        public string Description { get; set; }
+        public int EngagementCount { get; set; }
 
         /// <summary />
-        public int? EntityTypeId { get; set; }
+        public Byte[] EngagementMap { get; set; }
 
         /// <summary />
-        public string EntityTypeQualifierColumn { get; set; }
+        public DateTime EnrollmentDate { get; set; }
 
         /// <summary />
-        public string EntityTypeQualifierValue { get; set; }
+        public Byte[] ExclusionMap { get; set; }
 
         /// <summary />
         public Guid? ForeignGuid { get; set; }
@@ -59,13 +59,19 @@ namespace Rock.Client
         public string ForeignKey { get; set; }
 
         /// <summary />
-        public string IconCssClass { get; set; }
+        public DateTime? InactiveDateTime { get; set; }
 
         /// <summary />
-        public bool IsActive { get; set; } = true;
+        public int? LocationId { get; set; }
 
         /// <summary />
-        public bool IsSystem { get; set; }
+        public int LongestStreakCount { get; set; }
+
+        /// <summary />
+        public DateTime? LongestStreakEndDate { get; set; }
+
+        /// <summary />
+        public DateTime? LongestStreakStartDate { get; set; }
 
         /// <summary>
         /// If the ModifiedByPersonAliasId is being set manually and should not be overwritten with current user when saved, set this value to true
@@ -73,13 +79,10 @@ namespace Rock.Client
         public bool ModifiedAuditValuesAlreadyUpdated { get; set; }
 
         /// <summary />
-        public string Name { get; set; }
+        public int PersonAliasId { get; set; }
 
         /// <summary />
-        public int Order { get; set; }
-
-        /// <summary />
-        public int? OwnerPersonAliasId { get; set; }
+        public int StreakTypeId { get; set; }
 
         /// <summary>
         /// Leave this as NULL to let Rock set this
@@ -108,27 +111,28 @@ namespace Rock.Client
         public int? ForeignId { get; set; }
 
         /// <summary>
-        /// Copies the base properties from a source Tag object
+        /// Copies the base properties from a source Streak object
         /// </summary>
         /// <param name="source">The source.</param>
-        public void CopyPropertiesFrom( Tag source )
+        public void CopyPropertiesFrom( Streak source )
         {
             this.Id = source.Id;
-            this.BackgroundColor = source.BackgroundColor;
-            this.CategoryId = source.CategoryId;
-            this.Description = source.Description;
-            this.EntityTypeId = source.EntityTypeId;
-            this.EntityTypeQualifierColumn = source.EntityTypeQualifierColumn;
-            this.EntityTypeQualifierValue = source.EntityTypeQualifierValue;
+            this.CurrentStreakCount = source.CurrentStreakCount;
+            this.CurrentStreakStartDate = source.CurrentStreakStartDate;
+            this.EngagementCount = source.EngagementCount;
+            this.EngagementMap = source.EngagementMap;
+            this.EnrollmentDate = source.EnrollmentDate;
+            this.ExclusionMap = source.ExclusionMap;
             this.ForeignGuid = source.ForeignGuid;
             this.ForeignKey = source.ForeignKey;
-            this.IconCssClass = source.IconCssClass;
-            this.IsActive = source.IsActive;
-            this.IsSystem = source.IsSystem;
+            this.InactiveDateTime = source.InactiveDateTime;
+            this.LocationId = source.LocationId;
+            this.LongestStreakCount = source.LongestStreakCount;
+            this.LongestStreakEndDate = source.LongestStreakEndDate;
+            this.LongestStreakStartDate = source.LongestStreakStartDate;
             this.ModifiedAuditValuesAlreadyUpdated = source.ModifiedAuditValuesAlreadyUpdated;
-            this.Name = source.Name;
-            this.Order = source.Order;
-            this.OwnerPersonAliasId = source.OwnerPersonAliasId;
+            this.PersonAliasId = source.PersonAliasId;
+            this.StreakTypeId = source.StreakTypeId;
             this.CreatedDateTime = source.CreatedDateTime;
             this.ModifiedDateTime = source.ModifiedDateTime;
             this.CreatedByPersonAliasId = source.CreatedByPersonAliasId;
@@ -140,15 +144,21 @@ namespace Rock.Client
     }
 
     /// <summary>
-    /// Client model for Tag that includes all the fields that are available for GETs. Use this for GETs (use TagEntity for POST/PUTs)
+    /// Client model for Streak that includes all the fields that are available for GETs. Use this for GETs (use StreakEntity for POST/PUTs)
     /// </summary>
-    public partial class Tag : TagEntity
+    public partial class Streak : StreakEntity
     {
         /// <summary />
-        public Category Category { get; set; }
+        public bool IsActive { get; set; }
 
         /// <summary />
-        public EntityType EntityType { get; set; }
+        public Location Location { get; set; }
+
+        /// <summary />
+        public PersonAlias PersonAlias { get; set; }
+
+        /// <summary />
+        public StreakType StreakType { get; set; }
 
         /// <summary>
         /// NOTE: Attributes are only populated when ?loadAttributes is specified. Options for loadAttributes are true, false, 'simple', 'expanded' 

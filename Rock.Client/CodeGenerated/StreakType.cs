@@ -27,30 +27,18 @@ using System.Collections.Generic;
 namespace Rock.Client
 {
     /// <summary>
-    /// Base client model for Tag that only includes the non-virtual fields. Use this for PUT/POSTs
+    /// Base client model for StreakType that only includes the non-virtual fields. Use this for PUT/POSTs
     /// </summary>
-    public partial class TagEntity
+    public partial class StreakTypeEntity
     {
         /// <summary />
         public int Id { get; set; }
 
         /// <summary />
-        public string BackgroundColor { get; set; } = @"#e0e0e0";
-
-        /// <summary />
-        public int? CategoryId { get; set; }
-
-        /// <summary />
         public string Description { get; set; }
 
         /// <summary />
-        public int? EntityTypeId { get; set; }
-
-        /// <summary />
-        public string EntityTypeQualifierColumn { get; set; }
-
-        /// <summary />
-        public string EntityTypeQualifierValue { get; set; }
+        public bool EnableAttendance { get; set; }
 
         /// <summary />
         public Guid? ForeignGuid { get; set; }
@@ -59,13 +47,7 @@ namespace Rock.Client
         public string ForeignKey { get; set; }
 
         /// <summary />
-        public string IconCssClass { get; set; }
-
-        /// <summary />
         public bool IsActive { get; set; } = true;
-
-        /// <summary />
-        public bool IsSystem { get; set; }
 
         /// <summary>
         /// If the ModifiedByPersonAliasId is being set manually and should not be overwritten with current user when saved, set this value to true
@@ -76,10 +58,22 @@ namespace Rock.Client
         public string Name { get; set; }
 
         /// <summary />
-        public int Order { get; set; }
+        public Rock.Client.Enums.StreakOccurrenceFrequency OccurrenceFrequency { get; set; }
 
         /// <summary />
-        public int? OwnerPersonAliasId { get; set; }
+        public Byte[] OccurrenceMap { get; set; }
+
+        /// <summary />
+        public bool RequiresEnrollment { get; set; }
+
+        /// <summary />
+        public DateTime StartDate { get; set; }
+
+        /// <summary />
+        public int? StructureEntityId { get; set; }
+
+        /// <summary />
+        public Rock.Client.Enums.StreakStructureType? StructureType { get; set; }
 
         /// <summary>
         /// Leave this as NULL to let Rock set this
@@ -108,27 +102,25 @@ namespace Rock.Client
         public int? ForeignId { get; set; }
 
         /// <summary>
-        /// Copies the base properties from a source Tag object
+        /// Copies the base properties from a source StreakType object
         /// </summary>
         /// <param name="source">The source.</param>
-        public void CopyPropertiesFrom( Tag source )
+        public void CopyPropertiesFrom( StreakType source )
         {
             this.Id = source.Id;
-            this.BackgroundColor = source.BackgroundColor;
-            this.CategoryId = source.CategoryId;
             this.Description = source.Description;
-            this.EntityTypeId = source.EntityTypeId;
-            this.EntityTypeQualifierColumn = source.EntityTypeQualifierColumn;
-            this.EntityTypeQualifierValue = source.EntityTypeQualifierValue;
+            this.EnableAttendance = source.EnableAttendance;
             this.ForeignGuid = source.ForeignGuid;
             this.ForeignKey = source.ForeignKey;
-            this.IconCssClass = source.IconCssClass;
             this.IsActive = source.IsActive;
-            this.IsSystem = source.IsSystem;
             this.ModifiedAuditValuesAlreadyUpdated = source.ModifiedAuditValuesAlreadyUpdated;
             this.Name = source.Name;
-            this.Order = source.Order;
-            this.OwnerPersonAliasId = source.OwnerPersonAliasId;
+            this.OccurrenceFrequency = source.OccurrenceFrequency;
+            this.OccurrenceMap = source.OccurrenceMap;
+            this.RequiresEnrollment = source.RequiresEnrollment;
+            this.StartDate = source.StartDate;
+            this.StructureEntityId = source.StructureEntityId;
+            this.StructureType = source.StructureType;
             this.CreatedDateTime = source.CreatedDateTime;
             this.ModifiedDateTime = source.ModifiedDateTime;
             this.CreatedByPersonAliasId = source.CreatedByPersonAliasId;
@@ -140,15 +132,15 @@ namespace Rock.Client
     }
 
     /// <summary>
-    /// Client model for Tag that includes all the fields that are available for GETs. Use this for GETs (use TagEntity for POST/PUTs)
+    /// Client model for StreakType that includes all the fields that are available for GETs. Use this for GETs (use StreakTypeEntity for POST/PUTs)
     /// </summary>
-    public partial class Tag : TagEntity
+    public partial class StreakType : StreakTypeEntity
     {
         /// <summary />
-        public Category Category { get; set; }
+        public ICollection<Streak> Streaks { get; set; }
 
         /// <summary />
-        public EntityType EntityType { get; set; }
+        public ICollection<StreakTypeExclusion> StreakTypeExclusions { get; set; }
 
         /// <summary>
         /// NOTE: Attributes are only populated when ?loadAttributes is specified. Options for loadAttributes are true, false, 'simple', 'expanded' 
