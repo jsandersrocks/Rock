@@ -96,6 +96,10 @@
     <Compile Include="Migrations\201907231834153_BadgeContext.Designer.cs">
       <DependentUpon>201907231834153_BadgeContext.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201907241900531_SequencesToStreaks.cs" />
+    <Compile Include="Migrations\201907241900531_SequencesToStreaks.Designer.cs">
+      <DependentUpon>201907241900531_SequencesToStreaks.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Version 9.0\Version 1.9.0\201907082136571_Rollup0708.cs" />
     <Compile Include="Migrations\Version 9.0\Version 1.9.0\201907082136571_Rollup0708.Designer.cs">
       <DependentUpon>201907082136571_Rollup0708.cs</DependentUpon>
@@ -728,6 +732,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201907231834153_BadgeContext.resx">
       <DependentUpon>201907231834153_BadgeContext.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201907241900531_SequencesToStreaks.resx">
+      <DependentUpon>201907241900531_SequencesToStreaks.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 9.0\Version 1.9.0\201907082136571_Rollup0708.resx">
       <DependentUpon>201907082136571_Rollup0708.cs</DependentUpon>
