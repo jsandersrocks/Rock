@@ -440,6 +440,8 @@ namespace Rock.Reporting
                     Selection = a.GetSelection()
                 } ).ToList();
 
+                HashSet<int> ignoreDataViewPersistedValues = new HashSet<int>();
+
                 if ( dataView != null )
                 {
                     // only include overrides that are different than the saved dataview's filter
@@ -454,11 +456,19 @@ namespace Rock.Reporting
                                 // the filter override is the same as the saved dataview, so no need to override it
                                 dataViewFilterOverrideList.Remove( dataViewFilterOverride );
                             }
+                            else
+                            {
+                                // if the selection has changed, and it is from a 'other data view'  filter, add the other dataview to the list of dataviews that should not use the persisted values
+                                if ( originalFilter.FromOtherDataViewId.HasValue )
+                                {
+                                    ignoreDataViewPersistedValues.Add( originalFilter.FromOtherDataViewId.Value );
+                                }
+                            }
                         }
                     }
                 }
 
-                return new DataViewFilterOverrides( dataViewFilterOverrideList );
+                return new DataViewFilterOverrides( dataViewFilterOverrideList ) { IgnoreDataViewPersistedValues = ignoreDataViewPersistedValues };
             }
 
             return null;
@@ -718,12 +728,34 @@ namespace Rock.Reporting
             public Type ReportEntityTypeModel { get; internal set; }
 
             /// <summary>
-            /// Gets or sets from other data view.
+            /// Gets or sets name of the other data view.
             /// </summary>
             /// <value>
             /// From other data view.
             /// </value>
-            public string FromOtherDataView { get; set; }
+            [Obsolete( "Use FromOtherDataViewName instead" )]
+            public string FromOtherDataView
+            {
+                get => FromOtherDataViewName;
+                set => FromOtherDataViewName = value;
+            }
+
+
+            /// <summary>
+            /// If this Filter is part of another dataview, gets Id of the DataView that this filter is from
+            /// </summary>
+            /// <value>
+            /// From other data view identifier.
+            /// </value>
+            public int? FromOtherDataViewId { get; internal set; }
+
+            /// <summary>
+            /// If this Filter is part of another dataview, gets Name of the DataView that this filter is from
+            /// </summary>
+            /// <value>
+            /// The name of from other data view.
+            /// </value>
+            public string FromOtherDataViewName { get; internal set; }
 
             /// <summary>
             /// Gets or sets the selection.
@@ -825,9 +857,10 @@ namespace Rock.Reporting
                     GetFilterListRecursive( otherDataViewFilterList, otherDataView.DataViewFilter, reportEntityType );
                     foreach ( var otherFilter in otherDataViewFilterList )
                     {
-                        if ( otherFilter.FromOtherDataView == null )
+                        if ( otherFilter.FromOtherDataViewId == null )
                         {
-                            otherFilter.FromOtherDataView = otherDataView.Name;
+                            otherFilter.FromOtherDataViewId = otherDataView.Id;
+                            otherFilter.FromOtherDataViewName = otherDataView.Name;
                         }
                     }
 
