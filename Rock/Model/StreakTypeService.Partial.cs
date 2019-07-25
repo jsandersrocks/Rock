@@ -105,7 +105,7 @@ namespace Rock.Model
                 .ToArray();
 
             var enrollmentMap = GetAggregateMap( enrollmentMaps );
-            return GetMostRecentEngagementBits( enrollmentMap, streakType.OccurrenceMap, unitCount );
+            return GetMostRecentEngagementBits( enrollmentMap, streakType.OccurrenceMap, streakType.StartDate, streakType.OccurrenceFrequency, unitCount );
         }
 
         /// <summary>
@@ -1086,63 +1086,158 @@ namespace Rock.Model
                 return null;
             }
 
-            // Use the
-            startdate
-
             // If there is no data then return as if all unset bits
             if ( engagementMap == null || engagementMap.Length == 0 || occurrenceMap == null || occurrenceMap.Length == 0 )
             {
                 return new bool[unitCount];
             }
 
-            var occurrencesFound = 0;
-            var bits = new bool[ unitCount ];
+            // The max date is today, since we want the most recent data
+            var isDaily = streakOccurrenceFrequency == StreakOccurrenceFrequency.Daily;
+            var maxDate = isDaily ? RockDateTime.Today : RockDateTime.Now.SundayDate();
 
-            var currentByteBitValue = 1;
+            // Calculate the number of frequency units between today and the start date
+            var numberOfFrequencyUnits = GetFrequencyUnitDifference( startDate, maxDate, streakOccurrenceFrequency, true );
 
+            // Calculate streaks and object array if requested
+            var currentStreak = 0;
+            var currentStreakStartDate = ( DateTime? ) null;
+
+            var longestStreak = 0;
+            var longestStreakStartDate = ( DateTime? ) null;
+            var longestStreakEndDate = ( DateTime? ) null;
+
+            var occurrenceCount = 0;
+            var engagementCount = 0;
+            var absenceCount = 0;
+            var excludedAbsenceCount = 0;
+
+            var objectArray = createObjectArray ? new List<StreakData.FrequencyUnitData>( numberOfFrequencyUnits ) : null;
+
+            // Prepare to iterate over the bytes
+            var currentUnit = 0;
+            var initialByteOffset = slideStartUnitsToFuture / BitsPerByte + 1;
+            var currentByteBitValue = 1 << ( slideStartUnitsToFuture % BitsPerByte );
+
+            var occurrenceMap = streakTypeCache.OccurrenceMap ?? new byte[0];
             var occurrenceMapLength = occurrenceMap.Length;
-            var currentOccurrenceByteIndex = occurrenceMapLength - 1;
+            var currentOccurrenceByteIndex = occurrenceMapLength - initialByteOffset;
             var currentOccurrenceByte = GetByteFromMap( occurrenceMap, currentOccurrenceByteIndex );
 
-            var engagementMapLength = engagementMap.Length;
-            var currentEngagementByteIndex = engagementMapLength - 1;
-            var currentEngagementByte = GetByteFromMap( engagementMap, currentEngagementByteIndex );
+            var engagementMapLength = aggregateEngagementMap.Length;
+            var currentEngagementByteIndex = engagementMapLength - initialByteOffset;
+            var currentEngagementByte = GetByteFromMap( aggregateEngagementMap, currentEngagementByteIndex );
 
-            while ( occurrencesFound < unitCount )
+            var exclusionMapLength = aggregateExclusionMap.Length;
+            var currentExclusionByteIndex = exclusionMapLength - initialByteOffset;
+            var currentExclusionByte = GetByteFromMap( aggregateExclusionMap, currentExclusionByteIndex );
+
+            // Loop for each unit expected in the date range
+            while ( currentUnit < numberOfFrequencyUnits )
             {
+                var hasEngagement = ( currentEngagementByte & currentByteBitValue ) == currentByteBitValue;
+                var hasExclusion = ( currentExclusionByte & currentByteBitValue ) == currentByteBitValue;
                 var hasOccurrence = ( currentOccurrenceByte & currentByteBitValue ) == currentByteBitValue;
 
                 if ( hasOccurrence )
                 {
-                    var hasEngagement = ( currentEngagementByte & currentByteBitValue ) == currentByteBitValue;
-                    bits[occurrencesFound] = hasEngagement;
-                    occurrencesFound++;                    
+                    occurrenceCount++;
+
+                    if ( hasEngagement )
+                    {
+                        engagementCount++;
+
+                        // If starting a new streak, record the date
+                        if ( currentStreak == 0 )
+                        {
+                            currentStreakStartDate = CalculateDateFromOffset( startDate.Value, currentUnit, streakTypeCache.OccurrenceFrequency );
+                        }
+
+                        // Count this engagement toward the current streak
+                        currentStreak++;
+
+                        // If this is now the longest streak, update the longest counters
+                        if ( currentStreak > longestStreak )
+                        {
+                            longestStreak = currentStreak;
+                            longestStreakStartDate = currentStreakStartDate;
+                            longestStreakEndDate = CalculateDateFromOffset( startDate.Value, currentUnit, streakTypeCache.OccurrenceFrequency );
+                        }
+                    }
+                    else if ( hasExclusion )
+                    {
+                        // Excluded/excused absences don't count toward streaks in a positive nor a negative manner, just ignore other
+                        // than this count
+                        excludedAbsenceCount++;
+                    }
+                    else
+                    {
+                        absenceCount++;
+
+                        // Break the current streak
+                        currentStreak = 0;
+                        currentStreakStartDate = null;
+                    }
+                }
+
+                if ( createObjectArray )
+                {
+                    objectArray.Add( new StreakData.FrequencyUnitData
+                    {
+                        DateTime = CalculateDateFromOffset( startDate.Value, currentUnit, streakTypeCache.OccurrenceFrequency ),
+                        HasEngagement = hasEngagement,
+                        HasExclusion = hasExclusion,
+                        HasOccurrence = hasOccurrence
+                    } );
                 }
 
                 // Iterate to the next bit
+                currentUnit++;
                 currentByteBitValue = currentByteBitValue << 1;
 
                 // If the bit value is beyond the current byte, then increment to the next byte
                 if ( currentByteBitValue > byte.MaxValue )
                 {
-                    // Check if we're at the end of the map so the loop doesn't go to infinity
-                    if ( currentOccurrenceByteIndex <= 0 )
-                    {
-                        break;
-                    }
-
-                    // Iterate to next byte
                     currentByteBitValue = 1;
 
                     currentOccurrenceByteIndex--;
                     currentOccurrenceByte = GetByteFromMap( occurrenceMap, currentOccurrenceByteIndex );
 
                     currentEngagementByteIndex--;
-                    currentEngagementByte = GetByteFromMap( engagementMap, currentEngagementByteIndex );
+                    currentEngagementByte = GetByteFromMap( aggregateEngagementMap, currentEngagementByteIndex );
+
+                    currentExclusionByteIndex--;
+                    currentExclusionByte = GetByteFromMap( aggregateExclusionMap, currentExclusionByteIndex );
                 }
             }
 
-            return bits;
+            // Create the return object
+            var data = new StreakData
+            {
+                EnrollmentCount = streaks.Count,
+                FirstEnrollmentDate = enrollmentDate,
+                StartDate = startDate.Value,
+                EndDate = endDate.Value,
+                OccurrenceMap = includeBitMaps ? GetHexDigitStringFromMap( occurrenceMap ) : null,
+                ExclusionMap = includeBitMaps ? GetHexDigitStringFromMap( aggregateExclusionMap ) : null,
+                EngagementMap = includeBitMaps ? GetHexDigitStringFromMap( aggregateEngagementMap ) : null,
+                OccurrenceFrequency = streakTypeCache.OccurrenceFrequency,
+                CurrentStreakCount = currentStreak,
+                CurrentStreakStartDate = currentStreakStartDate,
+                LongestStreakCount = longestStreak,
+                LongestStreakStartDate = longestStreakStartDate,
+                LongestStreakEndDate = longestStreakEndDate,
+                PerFrequencyUnit = objectArray,
+                AbsenceCount = absenceCount,
+                EngagementCount = engagementCount,
+                ExcludedAbsenceCount = excludedAbsenceCount,
+                OccurrenceCount = occurrenceCount
+            };
+
+            stopwatch.Stop();
+            data.ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds;
+
+            return data;
         }
 
         /// <summary>
@@ -1513,6 +1608,13 @@ namespace Rock.Model
             }
 
             return map[byteIndex];
+        }
+
+        private static void IterateMaps( DateTime mapStartDate, DateTime iterationStartDate, DateTime iterationEndDate,
+            StreakOccurrenceFrequency streakOccurrenceFrequency, byte[] occurrenceMap, byte[] engagementMap, byte[] exclusionMap,
+            Action<bool, bool, bool> actionPerIteration )
+        {
+            do something
         }
 
         #endregion Bit Manipulation
