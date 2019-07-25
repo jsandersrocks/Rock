@@ -662,8 +662,8 @@ namespace Rock.Slingshot
             {
                 try
                 {
-                    HttpWebRequest imageRequest = (HttpWebRequest)HttpWebRequest.Create( photoUri );
-                    HttpWebResponse imageResponse = (HttpWebResponse)imageRequest.GetResponse();
+                    HttpWebRequest imageRequest = ( HttpWebRequest ) HttpWebRequest.Create( photoUri );
+                    HttpWebResponse imageResponse = ( HttpWebResponse ) imageRequest.GetResponse();
                     var imageStream = imageResponse.GetResponseStream();
                     using ( MemoryStream ms = new MemoryStream() )
                     {
@@ -884,7 +884,7 @@ namespace Rock.Slingshot
                     financialAccountImport.CampusId = this.CampusLookupByForeignId[slingshotFinancialAccount.CampusId.Value]?.Id;
                 }
 
-                financialAccountImport.ParentFinancialAccountForeignId = slingshotFinancialAccount.ParentAccountId == 0 ? (int?)null : slingshotFinancialAccount.ParentAccountId;
+                financialAccountImport.ParentFinancialAccountForeignId = slingshotFinancialAccount.ParentAccountId == 0 ? null : slingshotFinancialAccount.ParentAccountId;
 
                 financialAccountImportList.Add( financialAccountImport );
             }
@@ -935,7 +935,7 @@ namespace Rock.Slingshot
                         break;
                 }
 
-                financialBatchImport.CampusId = slingshotFinancialBatch.CampusId.HasValue ? this.CampusLookupByForeignId[slingshotFinancialBatch.CampusId.Value]?.Id : (int?)null;
+                financialBatchImport.CampusId = slingshotFinancialBatch.CampusId.HasValue ? this.CampusLookupByForeignId[slingshotFinancialBatch.CampusId.Value]?.Id : null;
 
                 financialBatchImportList.Add( financialBatchImport );
             }
@@ -1231,7 +1231,7 @@ namespace Rock.Slingshot
                     groupImport.CampusId = this.CampusLookupByForeignId[slingshotGroup.CampusId.Value]?.Id;
                 }
 
-                groupImport.ParentGroupForeignId = slingshotGroup.ParentGroupId == 0 ? (int?)null : slingshotGroup.ParentGroupId;
+                groupImport.ParentGroupForeignId = slingshotGroup.ParentGroupId == 0 ? ( int? ) null : slingshotGroup.ParentGroupId;
                 groupImport.GroupMemberImports = new List<Rock.Slingshot.Model.GroupMemberImport>();
 
                 foreach ( var groupMember in slingshotGroup.GroupMembers )
@@ -1526,7 +1526,7 @@ namespace Rock.Slingshot
             Results.Add( "Person Import", result );
         }
 
-        
+
 
         /// <summary>
         /// Bulks the importer on progress.
@@ -1623,7 +1623,7 @@ namespace Rock.Slingshot
                         .FirstOrDefault()
                         .Value;
 
-                    if (titleValue != null )
+                    if ( titleValue != null )
                     {
                         personImport.TitleValueId = titleValue.Id;
                     }
@@ -1654,21 +1654,21 @@ namespace Rock.Slingshot
                 {
                     personImport.BirthMonth = slingshotPerson.Birthdate.Value.Month;
                     personImport.BirthDay = slingshotPerson.Birthdate.Value.Day;
-                    personImport.BirthYear = slingshotPerson.Birthdate.Value.Year == slingshotPerson.BirthdateNoYearMagicYear ? (int?)null : slingshotPerson.Birthdate.Value.Year;
+                    personImport.BirthYear = slingshotPerson.Birthdate.Value.Year == slingshotPerson.BirthdateNoYearMagicYear ? ( int? ) null : slingshotPerson.Birthdate.Value.Year;
                 }
 
                 switch ( slingshotPerson.Gender )
                 {
                     case SlingshotCore.Model.Gender.Male:
-                        personImport.Gender = (int)Rock.Model.Gender.Male;
+                        personImport.Gender = ( int ) Rock.Model.Gender.Male;
                         break;
 
                     case SlingshotCore.Model.Gender.Female:
-                        personImport.Gender = (int)Rock.Model.Gender.Female;
+                        personImport.Gender = ( int ) Rock.Model.Gender.Female;
                         break;
 
                     case SlingshotCore.Model.Gender.Unknown:
-                        personImport.Gender = (int)Rock.Model.Gender.Unknown;
+                        personImport.Gender = ( int ) Rock.Model.Gender.Unknown;
                         break;
                 }
 
@@ -1718,15 +1718,15 @@ namespace Rock.Slingshot
                 switch ( slingshotPerson.EmailPreference )
                 {
                     case SlingshotCore.Model.EmailPreference.EmailAllowed:
-                        personImport.EmailPreference = (int)Rock.Model.EmailPreference.EmailAllowed;
+                        personImport.EmailPreference = ( int ) Rock.Model.EmailPreference.EmailAllowed;
                         break;
 
                     case SlingshotCore.Model.EmailPreference.DoNotEmail:
-                        personImport.EmailPreference = (int)Rock.Model.EmailPreference.DoNotEmail;
+                        personImport.EmailPreference = ( int ) Rock.Model.EmailPreference.DoNotEmail;
                         break;
 
                     case SlingshotCore.Model.EmailPreference.NoMassEmails:
-                        personImport.EmailPreference = (int)Rock.Model.EmailPreference.NoMassEmails;
+                        personImport.EmailPreference = ( int ) Rock.Model.EmailPreference.NoMassEmails;
                         break;
                 }
 
