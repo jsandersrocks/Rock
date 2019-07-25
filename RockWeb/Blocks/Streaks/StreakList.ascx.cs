@@ -225,12 +225,15 @@ namespace RockWeb.Blocks.Streaks
 
                 if ( streakType != null )
                 {
-                    var mostRecentBits = StreakTypeService.GetMostRecentEngagementBits( enrollmentViewModel.EngagementMap, streakType.OccurrenceMap );
+                    var occurrenceEngagements = StreakTypeService.GetMostRecentEngagementBits( enrollmentViewModel.EngagementMap, streakType.OccurrenceMap,
+                        streakType.StartDate, streakType.OccurrenceFrequency );
                     var stringBuilder = new StringBuilder();
 
-                    foreach ( var bit in mostRecentBits )
+                    foreach ( var occurrence in occurrenceEngagements )
                     {
-                        stringBuilder.Insert( 0, string.Format( @"<li><span style=""height: {0}%""></span></li>", ( bit ? "100" : "5" ) ) );
+                        var bitIsSet = occurrence != null && occurrence.HasEngagement;
+                        var title = occurrence != null ? occurrence.DateTime.ToShortDateString() : string.Empty;
+                        stringBuilder.Insert( 0, string.Format( @"<li title=""{0}""><span style=""height: {1}%""></span></li>", title, ( bitIsSet ? "100" : "5" ) ) );
                     }
 
                     lBiStateGraph.Text = string.Format( @"

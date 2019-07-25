@@ -158,16 +158,18 @@ namespace Rock.PersonProfile.Badge
     Sys.Application.add_load(function () {{
         $.ajax({{
                 type: 'GET',
-                url: Rock.settings.get('baseUrl') + 'api/Sequences/RecentEngagement/{streakTypeCache.Id}/{Person.Id}?unitCount={unitsToDisplay}' ,
+                url: Rock.settings.get('baseUrl') + 'api/StreakTypes/RecentEngagement/{streakTypeCache.Id}/{Person.Id}?unitCount={unitsToDisplay}' ,
                 statusCode: {{
                     200: function (data, status, xhr) {{
                             var chartHtml = ['<ul class=\'attendance-chart list-unstyled\'>'];
 
                             if (data) {{
                                 for(var i = data.length - 1; i >= 0; i--) {{
-                                    var isBitSet = data[i];
+                                    var occurrenceEngagement = data[i];
+                                    var isBitSet = occurrenceEngagement && occurrenceEngagement.HasEngagement;
+                                    var title = occurrenceEngagement ? new Date(occurrenceEngagement.DateTime).toLocaleDateString() : '';
                                     var barHeight = isBitSet ? 100 : {minBarHeight};                                
-                                    chartHtml.push('<li><span style=\'height: ' + barHeight + '%\'></span></li>');
+                                    chartHtml.push('<li title=""' + title + '""><span style=\'height: ' + barHeight + '%\'></span></li>');
                                 }}
                             }}
 

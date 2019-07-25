@@ -42,10 +42,10 @@ namespace Rock.Rest.Controllers
         [Authenticate, Secured]
         [HttpGet]
         [System.Web.Http.Route( "api/StreakTypes/RecentEngagement/{streakTypeId}/{personId}" )]
-        public bool[] GetRecentEngagement( int streakTypeId, int personId, [FromUri] int unitCount = 24 )
+        public OccurrenceEngagement[] GetRecentEngagement( int streakTypeId, int personId, [FromUri] int unitCount = 24 )
         {
             var service = Service as StreakTypeService;
-            var bits = service.GetRecentEngagementBits( streakTypeId, personId, unitCount, out var errorMessage );
+            var occurrenceEngagement = service.GetRecentEngagementBits( streakTypeId, personId, unitCount, out var errorMessage );
 
             if ( !errorMessage.IsNullOrWhiteSpace() )
             {
@@ -53,13 +53,13 @@ namespace Rock.Rest.Controllers
                 throw new HttpResponseException( errorResponse );
             }
 
-            if ( bits == null )
+            if ( occurrenceEngagement == null )
             {
                 var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.InternalServerError, "The data calculation was not successful but no error was specified" );
                 throw new HttpResponseException( errorResponse );
             }
 
-            return bits;
+            return occurrenceEngagement;
         }
 
         /// <summary>

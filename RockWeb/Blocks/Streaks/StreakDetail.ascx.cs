@@ -640,20 +640,22 @@ namespace RockWeb.Blocks.Streaks
         /// </summary>
         private void RenderStreakChart()
         {
-            var recentBits = GetRecentBits();
+            var occurrenceEngagement = GetOccurrenceEngagement();
 
-            if ( recentBits == null )
+            if ( occurrenceEngagement == null )
             {
                 return;
             }
 
             var stringBuilder = new StringBuilder();
-            var bitItemFormat = @"<li><span style=""height: {0}%""></span></li>";
+            var bitItemFormat = @"<li title=""{0}""><span style=""height: {1}%""></span></li>";
 
-            for ( var i = 0; i < recentBits.Length; i++ )
+            for ( var i = 0; i < occurrenceEngagement.Length; i++ )
             {
-                var bitIsSet = recentBits[i];
-                stringBuilder.AppendFormat( bitItemFormat, bitIsSet ? 100 : 5 );
+                var occurrence = occurrenceEngagement[i];
+                var bitIsSet = occurrence != null && occurrence.HasEngagement;
+                var title = occurrence != null ? occurrence.DateTime.ToShortDateString() : string.Empty;
+                stringBuilder.AppendFormat( bitItemFormat, title, bitIsSet ? 100 : 5 );
             }
 
             lStreakChart.Text = stringBuilder.ToString();
@@ -832,22 +834,23 @@ namespace RockWeb.Blocks.Streaks
         /// Get the recent bits data for the chart
         /// </summary>
         /// <returns></returns>
-        private bool[] GetRecentBits()
+        private OccurrenceEngagement[] GetOccurrenceEngagement()
         {
-            if ( _recentBits == null )
+            if ( _occurrenceEngagement == null )
             {
                 var streak = GetStreak();
                 var streakType = GetStreakType();
 
                 if ( streak != null && streakType != null )
                 {
-                    _recentBits = StreakTypeService.GetMostRecentEngagementBits( streak.EngagementMap, streakType.OccurrenceMap, ChartBitsToShow );
+                    _occurrenceEngagement = StreakTypeService.GetMostRecentEngagementBits( streak.EngagementMap, streakType.OccurrenceMap, streakType.StartDate,
+                        streakType.OccurrenceFrequency, ChartBitsToShow );
                 }
             }
 
-            return _recentBits;
+            return _occurrenceEngagement;
         }
-        private bool[] _recentBits = null;
+        private OccurrenceEngagement[] _occurrenceEngagement = null;
 
         /// <summary>
         /// Get the streak type service
