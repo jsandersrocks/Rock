@@ -810,7 +810,7 @@ namespace RockWeb.Blocks.Reporting
                 lFilterDetails.Text = new DescriptionList()
                     .Add( "Filter", filterInfo.TitlePath )
                     .Add( "Summary", filterInfo.Summary )
-                    .Add( "Parent Data View", filterInfo.FromOtherDataViewName )
+                    .Add( "Parent Data View", filterInfo.FromDataViewName )
                     .Html;
             }
         }
