@@ -36,8 +36,7 @@
 
                     <div class="row">
                         <div class="col-lg-6">
-                            <h5 id="h5Left" runat="server">This Enrollment</h5>
-                            <Rock:ButtonGroup ID="rbgEnrollmentLinks" runat="server" OnSelectedIndexChanged="rbgEnrollmentLinks_SelectedIndexChanged" AutoPostBack="true" CssClass="margin-b-md" />
+                            <h5 id="h5Left" runat="server">This Enrollment</h5>                            
                             <asp:Literal ID="lEnrollmentDescription" runat="server" />
                         </div>
                         <div class="col-lg-6">

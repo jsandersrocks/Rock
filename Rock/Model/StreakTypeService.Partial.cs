@@ -66,7 +66,7 @@ namespace Rock.Model
         #region Methods
 
         /// <summary>
-        /// Get the most recent engagement bits for the person
+        /// Get the most recent engagement bits where there were occurrences for the person
         /// </summary>
         /// <param name="streakTypeId"></param>
         /// <param name="personId"></param>
@@ -105,7 +105,7 @@ namespace Rock.Model
                 .ToArray();
 
             var enrollmentMap = GetAggregateMap( enrollmentMaps );
-            return GetMostRecentBits( enrollmentMap, streakType.StartDate, streakType.OccurrenceFrequency, unitCount );
+            return GetMostRecentEngagementBits( enrollmentMap, streakType.OccurrenceMap, unitCount );
         }
 
         /// <summary>
@@ -1072,35 +1072,74 @@ namespace Rock.Model
         #region Static Methods
 
         /// <summary>
-        /// Get the most recent bits from a map
+        /// Get the most recent bits from a map where there was an occurrence
         /// </summary>
-        /// <param name="map"></param>
+        /// <param name="engagementMap"></param>
         /// <param name="mapStartDate"></param>
         /// <param name="streakOccurrenceFrequency"></param>
         /// <param name="unitCount"></param>
         /// <returns></returns>
-        public static bool[] GetMostRecentBits( byte[] map, DateTime mapStartDate, StreakOccurrenceFrequency streakOccurrenceFrequency, int unitCount = 24 )
+        public static bool[] GetMostRecentEngagementBits( byte[] engagementMap, byte[] occurrenceMap, DateTime startDate, StreakOccurrenceFrequency streakOccurrenceFrequency, int unitCount = 24 )
         {
             if ( unitCount < 1 )
             {
                 return null;
             }
 
+            // Use the
+            startdate
+
             // If there is no data then return as if all unset bits
-            if ( map == null || map.Length == 0 )
+            if ( engagementMap == null || engagementMap.Length == 0 || occurrenceMap == null || occurrenceMap.Length == 0 )
             {
                 return new bool[unitCount];
             }
 
-            var isDaily = streakOccurrenceFrequency == StreakOccurrenceFrequency.Daily;
-            var currentDate = isDaily ? RockDateTime.Today : RockDateTime.Today.SundayDate();
+            var occurrencesFound = 0;
             var bits = new bool[ unitCount ];
 
-            for ( var i = 0; i < unitCount; i++ )
+            var currentByteBitValue = 1;
+
+            var occurrenceMapLength = occurrenceMap.Length;
+            var currentOccurrenceByteIndex = occurrenceMapLength - 1;
+            var currentOccurrenceByte = GetByteFromMap( occurrenceMap, currentOccurrenceByteIndex );
+
+            var engagementMapLength = engagementMap.Length;
+            var currentEngagementByteIndex = engagementMapLength - 1;
+            var currentEngagementByte = GetByteFromMap( engagementMap, currentEngagementByteIndex );
+
+            while ( occurrencesFound < unitCount )
             {
-                var isBitSet = IsBitSet( map, mapStartDate, currentDate, streakOccurrenceFrequency, out var errorMessage );
-                bits[i] = isBitSet;
-                currentDate = currentDate.AddDays( 0 - ( isDaily ? 1 : DaysPerWeek ) );
+                var hasOccurrence = ( currentOccurrenceByte & currentByteBitValue ) == currentByteBitValue;
+
+                if ( hasOccurrence )
+                {
+                    var hasEngagement = ( currentEngagementByte & currentByteBitValue ) == currentByteBitValue;
+                    bits[occurrencesFound] = hasEngagement;
+                    occurrencesFound++;                    
+                }
+
+                // Iterate to the next bit
+                currentByteBitValue = currentByteBitValue << 1;
+
+                // If the bit value is beyond the current byte, then increment to the next byte
+                if ( currentByteBitValue > byte.MaxValue )
+                {
+                    // Check if we're at the end of the map so the loop doesn't go to infinity
+                    if ( currentOccurrenceByteIndex <= 0 )
+                    {
+                        break;
+                    }
+
+                    // Iterate to next byte
+                    currentByteBitValue = 1;
+
+                    currentOccurrenceByteIndex--;
+                    currentOccurrenceByte = GetByteFromMap( occurrenceMap, currentOccurrenceByteIndex );
+
+                    currentEngagementByteIndex--;
+                    currentEngagementByte = GetByteFromMap( engagementMap, currentEngagementByteIndex );
+                }
             }
 
             return bits;
@@ -1466,7 +1505,7 @@ namespace Rock.Model
         /// <param name="map"></param>
         /// <param name="byteIndex"></param>
         /// <returns></returns>
-        private byte GetByteFromMap( byte[] map, int byteIndex )
+        private static byte GetByteFromMap( byte[] map, int byteIndex )
         {
             if ( byteIndex < 0 || byteIndex >= map.Length )
             {

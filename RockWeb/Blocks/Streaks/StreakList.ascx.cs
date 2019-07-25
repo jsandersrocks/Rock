@@ -225,7 +225,7 @@ namespace RockWeb.Blocks.Streaks
 
                 if ( streakType != null )
                 {
-                    var mostRecentBits = StreakTypeService.GetMostRecentBits( enrollmentViewModel.EngagementMap, streakType.StartDate, streakType.OccurrenceFrequency );
+                    var mostRecentBits = StreakTypeService.GetMostRecentEngagementBits( enrollmentViewModel.EngagementMap, streakType.OccurrenceMap );
                     var stringBuilder = new StringBuilder();
 
                     foreach ( var bit in mostRecentBits )
@@ -688,7 +688,7 @@ namespace RockWeb.Blocks.Streaks
                 CurrentStreakCount = se.CurrentStreakCount,
                 LongestStreakCount = se.LongestStreakCount,
                 EngagementMap = se.EngagementMap
-            } ).DistinctBy( vm => vm.PersonId ).AsQueryable();
+            } ).AsQueryable();
 
             gEnrollments.SetLinqDataSource( viewModelQuery );
             gEnrollments.DataBind();

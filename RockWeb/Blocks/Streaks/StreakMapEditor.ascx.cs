@@ -15,20 +15,13 @@
 // </copyright>
 //
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data.Entity;
-using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using Rock;
 using Rock.Attribute;
-using Rock.Constants;
 using Rock.Data;
 using Rock.Model;
-using Rock.Security;
-using Rock.Web;
-using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
@@ -38,8 +31,34 @@ namespace RockWeb.Blocks.Streaks
     [Category( "Streaks" )]
     [Description( "Allows editing a streak occurrence, engagement, or exclusion map." )]
 
+    #region Block Attributes
+
+    [BooleanField(
+        name: "Show Streak Enrollment Exclusion Map",
+        description: "If this map editor is placed in the context of a streak enrollment, should it show the person exclusion map for that streak enrollment?",
+        defaultValue: false,
+        Key = AttributeKey.IsEngagementExclusion,
+        Order = 0 )]
+
+    #endregion
+
     public partial class StreakMapEditor : RockBlock, ISecondaryBlock
     {
+        #region Keys
+
+        /// <summary>
+        /// Keys to use for Block Attributes
+        /// </summary>
+        protected static class AttributeKey
+        {
+            /// <summary>
+            /// The is engagement exclusion map key
+            /// </summary>
+            public const string IsEngagementExclusion = "IsEngagementExclusion";
+        }
+
+        #endregion Keys
+
         #region Constants
 
         private const int DaysPerWeek = 7;
@@ -513,7 +532,8 @@ namespace RockWeb.Blocks.Streaks
 
             if ( IsTargetingEngagementMap() )
             {
-                return GetStreak().EngagementMap;
+                var isEngagementExclusionMap = GetAttributeValue( AttributeKey.IsEngagementExclusion ).AsBoolean();
+                return isEngagementExclusionMap ? GetStreak().ExclusionMap : GetStreak().EngagementMap;
             }
 
             if ( IsTargetingExclusionMap() )
@@ -584,7 +604,8 @@ namespace RockWeb.Blocks.Streaks
         {
             if ( IsTargetingEngagementMap() )
             {
-                return "Engagement Map Editor";
+                var isEngagementExclusionMap = GetAttributeValue( AttributeKey.IsEngagementExclusion ).AsBoolean();
+                return isEngagementExclusionMap ? "Engagement Exclusion Map Editor" : "Engagement Map Editor";
             }
 
             if ( IsTargetingExclusionMap() )

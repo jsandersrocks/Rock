@@ -40,6 +40,11 @@ namespace RockWeb.Blocks.Streaks
 
     public partial class StreakDetail : RockBlock, IDetailBlock
     {
+        /// <summary>
+        /// The number of chart bits to show
+        /// </summary>
+        private static int ChartBitsToShow = 250;
+
         #region Keys
 
         /// <summary>
@@ -143,23 +148,6 @@ namespace RockWeb.Blocks.Streaks
         #endregion
 
         #region Events
-
-        /// <summary>
-        /// Click event for the enrollment buttons
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        protected void rbgEnrollmentLinks_SelectedIndexChanged( object sender, EventArgs e )
-        {
-            var enrollmentId = rbgEnrollmentLinks.SelectedValue.AsIntegerOrNull();
-
-            if ( enrollmentId.HasValue )
-            {
-                NavigateToCurrentPage( new Dictionary<string, string> {
-                    { PageParameterKey.StreakId, enrollmentId.Value.ToString() }
-                } );
-            }
-        }
 
         /// <summary>
         /// The click event for the rebuild button
@@ -585,42 +573,16 @@ namespace RockWeb.Blocks.Streaks
                 if ( streakData.EnrollmentCount > 1 )
                 {
                     var enrollments = GetPersonStreaks();
-
-                    if ( enrollments != null && enrollments.Count > 1 )
-                    {
-                        rbgEnrollmentLinks.Visible = true;
-                        rbgEnrollmentLinks.DataSource = enrollments.OrderBy( e => e.Id ).Select( e => new ListItem
-                        {
-                            Text = e.Id.ToString(),
-                            Value = e.Id.ToString()
-                        } );
-                        rbgEnrollmentLinks.DataBind();
-                        rbgEnrollmentLinks.SelectedValue = enrollment.Id.ToString();
-                    }
-                    else
-                    {
-                        rbgEnrollmentLinks.Visible = false;
-                    }
-
                     streakDetailsList.Add( "First Enrollment Date", streakData.FirstEnrollmentDate.ToShortDateString() );
                 }
                 else
                 {
-                    rbgEnrollmentLinks.Visible = false;
                     h5Left.Visible = false;
                     h5Right.Visible = false;
                 }
 
-                streakDetailsList.Add( "Current Streak", streakData.CurrentStreakCount.ToString() );
-                streakDetailsList.Add( "Current Streak Start", streakData.CurrentStreakStartDate.ToShortDateString() );
-                streakDetailsList.Add( "Longest Streak", streakData.LongestStreakCount.ToString() );
-
-                if ( streakData.LongestStreakStartDate.HasValue && streakData.LongestStreakEndDate.HasValue )
-                {
-                    streakDetailsList.Add( "Longest Streak Range", string.Format( "{0} - {1}",
-                        streakData.LongestStreakStartDate.ToShortDateString(),
-                        streakData.LongestStreakEndDate.ToShortDateString() ) );
-                }
+                streakDetailsList.Add( "Current Streak", GetStreakStateString( streakData.CurrentStreakCount, streakData.CurrentStreakStartDate ) );
+                streakDetailsList.Add( "Longest Streak", GetStreakStateString( streakData.LongestStreakCount, streakData.LongestStreakStartDate, streakData.LongestStreakEndDate ) );
             }
 
             lStreakData.Text = streakDetailsList.Html;
@@ -629,31 +591,69 @@ namespace RockWeb.Blocks.Streaks
         }
 
         /// <summary>
+        /// Gets the streak state string.
+        /// </summary>
+        /// <param name="streakCount">The streak count.</param>
+        /// <param name="start">The start.</param>
+        /// <param name="end">The end.</param>
+        /// <returns></returns>
+        private string GetStreakStateString( int streakCount, DateTime? start, DateTime? end = null )
+        {
+            var dateString = GetStreakDateRangeString( start, end );
+
+            if ( dateString.IsNullOrWhiteSpace() )
+            {
+                return streakCount.ToString();
+            }
+
+            return string.Format( "{0} - ({1})", streakCount, dateString );
+        }
+
+        /// <summary>
+        /// Gets the streak date range string.
+        /// </summary>
+        /// <param name="start">The start.</param>
+        /// <param name="end">The end.</param>
+        /// <returns></returns>
+        private string GetStreakDateRangeString( DateTime? start, DateTime? end = null )
+        {
+            if ( !start.HasValue && !end.HasValue )
+            {
+                return string.Empty;
+            }
+
+            if ( !start.HasValue )
+            {
+                return string.Format( "Ended {0}", end.ToShortDateString() );
+            }
+
+            if ( !end.HasValue )
+            {
+                return string.Format( "Started {0}", start.ToShortDateString() );
+            }
+
+            return string.Format( "{0} - {1}", start.ToShortDateString(), end.ToShortDateString() );
+        }
+
+        /// <summary>
         /// Render the streak chart
         /// </summary>
         private void RenderStreakChart()
         {
-            var streakData = GetStreakData();
+            var recentBits = GetRecentBits();
 
-            if ( streakData == null || streakData.PerFrequencyUnit == null )
+            if ( recentBits == null )
             {
                 return;
             }
 
             var stringBuilder = new StringBuilder();
-            var bitsToShow = 250;
-            var bitItemFormat = @"<li title=""{0}""><span style=""height: {1}%""></span></li>";
-            var bitsRendered = 0;
+            var bitItemFormat = @"<li><span style=""height: {0}%""></span></li>";
 
-            while ( bitsRendered < bitsToShow )
+            for ( var i = 0; i < recentBits.Length; i++ )
             {
-                var currentBitIndex = streakData.PerFrequencyUnit.Count - 1 - bitsRendered;
-                var currentBit = currentBitIndex >= 0 ? streakData.PerFrequencyUnit[currentBitIndex] : null;
-                var title = currentBit == null ? string.Empty : currentBit.DateTime.ToShortDateString();
-                var bitIsSet = currentBit == null ? false : currentBit.HasEngagement;
-                stringBuilder.AppendFormat( bitItemFormat, title, bitIsSet ? 100 : 5 );
-
-                bitsRendered++;
+                var bitIsSet = recentBits[i];
+                stringBuilder.AppendFormat( bitItemFormat, bitIsSet ? 100 : 5 );
             }
 
             lStreakChart.Text = stringBuilder.ToString();
@@ -827,6 +827,27 @@ namespace RockWeb.Blocks.Streaks
             return _streakData;
         }
         private StreakData _streakData = null;
+
+        /// <summary>
+        /// Get the recent bits data for the chart
+        /// </summary>
+        /// <returns></returns>
+        private bool[] GetRecentBits()
+        {
+            if ( _recentBits == null )
+            {
+                var streak = GetStreak();
+                var streakType = GetStreakType();
+
+                if ( streak != null && streakType != null )
+                {
+                    _recentBits = StreakTypeService.GetMostRecentEngagementBits( streak.EngagementMap, streakType.OccurrenceMap, ChartBitsToShow );
+                }
+            }
+
+            return _recentBits;
+        }
+        private bool[] _recentBits = null;
 
         /// <summary>
         /// Get the streak type service
