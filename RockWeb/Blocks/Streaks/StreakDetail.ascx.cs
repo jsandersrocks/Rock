@@ -606,7 +606,7 @@ namespace RockWeb.Blocks.Streaks
                 return streakCount.ToString();
             }
 
-            return string.Format( "{0} - ({1})", streakCount, dateString );
+            return string.Format( "{0} <small>{1}</small>", streakCount, dateString );
         }
 
         /// <summary>
@@ -624,15 +624,15 @@ namespace RockWeb.Blocks.Streaks
 
             if ( !start.HasValue )
             {
-                return string.Format( "Ended {0}", end.ToShortDateString() );
+                return string.Format( "Ended on {0}", end.ToShortDateString() );
             }
 
             if ( !end.HasValue )
             {
-                return string.Format( "Started {0}", start.ToShortDateString() );
+                return string.Format( "Started on {0}", start.ToShortDateString() );
             }
 
-            return string.Format( "{0} - {1}", start.ToShortDateString(), end.ToShortDateString() );
+            return string.Format( "Ranging from {0} - {1}", start.ToShortDateString(), end.ToShortDateString() );
         }
 
         /// <summary>
