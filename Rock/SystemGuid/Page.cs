@@ -1443,10 +1443,28 @@ namespace Rock.SystemGuid
         public const string STEP_PROGRAMS = "F5E8A369-4856-42E5-B187-276DFCEB1F3F";
 
         /// <summary>
+        /// Gets the Streak page guid
+        /// ParentPage: Streak Type Detail
+        /// </summary>
+        public const string STREAK = "488BE67C-EDA0-489E-8D80-8CC67F5854D4";
+
+        /// <summary>
         /// Gets the Streak Types page guid
         /// ParentPage: Engagement
         /// </summary>
         public const string STREAK_TYPES = "F81097ED-3C96-45F2-A4F8-7D4D4F3D17F3";
+
+        /// <summary>
+        /// Gets the Streak Type Detail page guid
+        /// ParentPage: Streak Types
+        /// </summary>
+        public const string STREAK_TYPE_DETAIL = "CA566B33-0265-45C5-B1B2-6FFA6D4743F4";
+
+        /// <summary>
+        /// Gets the Streak Type Detail page guid
+        /// ParentPage: Streak Type Detail
+        /// </summary>
+        public const string STREAK_TYPE_EXCLUSION_DETAIL = "68EF459F-5D23-4930-8EA8-80CDF986BB94";
 
         /// <summary>
         /// Gets the Success page guid

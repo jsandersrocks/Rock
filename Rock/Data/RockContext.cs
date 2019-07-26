@@ -1558,30 +1558,6 @@ namespace Rock.Data
         public DbSet<Schedule> Schedules { get; set; }
 
         /// <summary>
-        /// Gets or sets the sequences.
-        /// </summary>
-        /// <value>
-        /// The sequences.
-        /// </value>
-        public DbSet<Sequence> Sequences { get; set; }
-
-        /// <summary>
-        /// Gets or sets the sequence enrollments.
-        /// </summary>
-        /// <value>
-        /// The sequence enrollments.
-        /// </value>
-        public DbSet<SequenceEnrollment> SequenceEnrollments { get; set; }
-
-        /// <summary>
-        /// Gets or sets the sequence occurrence exclusions.
-        /// </summary>
-        /// <value>
-        /// The sequence occurrence exclusions.
-        /// </value>
-        public DbSet<SequenceOccurrenceExclusion> SequenceOccurrenceExclusions { get; set; }
-
-        /// <summary>
         /// Gets or sets the service job histories.
         /// </summary>
         /// <value>
@@ -1708,62 +1684,6 @@ namespace Rock.Data
         /// The site URL maps.
         /// </value>
         public DbSet<PageShortLink> PageShortLinks { get; set; }
-
-        /// <summary>
-        /// Gets or sets the Steps.
-        /// </summary>
-        /// <value>
-        /// The Steps.
-        /// </value>
-        public DbSet<Step> Steps { get; set; }
-
-        /// <summary>
-        /// Gets or sets the StepPrograms.
-        /// </summary>
-        /// <value>
-        /// The StepPrograms.
-        /// </value>
-        public DbSet<StepProgram> StepPrograms { get; set; }
-
-        /// <summary>
-        /// Gets or sets the StepStatuses.
-        /// </summary>
-        /// <value>
-        /// The StepStatuses.
-        /// </value>
-        public DbSet<StepStatus> StepStatuses { get; set; }
-
-        /// <summary>
-        /// Gets or sets the StepTypes.
-        /// </summary>
-        /// <value>
-        /// The StepTypes.
-        /// </value>
-        public DbSet<StepType> StepTypes { get; set; }
-
-        /// <summary>
-        /// Gets or sets the StepTypePrerequisites.
-        /// </summary>
-        /// <value>
-        /// The StepTypePrerequisites.
-        /// </value>
-        public DbSet<StepTypePrerequisite> StepTypePrerequisites { get; set; }
-
-        /// <summary>
-        /// Gets or sets the StepWorkflow.
-        /// </summary>
-        /// <value>
-        /// The StepWorkflow.
-        /// </value>
-        public DbSet<StepWorkflow> StepWorkflows { get; set; }
-
-        /// <summary>
-        /// Gets or sets the StepWorkflowTriggers.
-        /// </summary>
-        /// <value>
-        /// The StepWorkflowTriggers.
-        /// </value>
-        public DbSet<StepWorkflowTrigger> StepWorkflowTriggers { get; set; }
 
         /// <summary>
         /// Gets or sets the Streaks.

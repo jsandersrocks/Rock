@@ -896,19 +896,24 @@ namespace Rock.Data
         }
 
         /// <summary>
-        /// Moves a page to a new parent
+        /// Updates the page icon.
         /// </summary>
         /// <param name="pageGuid">The page unique identifier.</param>
-        /// <param name="newParentPageGuid">The guid of the new parent page.</param>
-        public void UpdatePageParent( string pageGuid, string newParentPageGuid )
+        /// <param name="iconCssClass">The layout unique identifier.</param>
+        public void UpdatePageIcon( string pageGuid, string iconCssClass )
         {
-            string sql = $@"
-                DECLARE @parentId INT = (SELECT [Id] FROM [dbo].[Page] WHERE [Guid] = '{newParentPageGuid}' );
-                IF @parentId IS NOT NULL
-                BEGIN
-	                UPDATE [dbo].[Page] SET [ParentPageId] = @parentId WHERE [Guid] = '{pageGuid}'
-                END";
+            var sql = $"UPDATE [dbo].[Page] SET [IconCssClass] = '{iconCssClass}' WHERE [Guid] = '{pageGuid}'";
+            Migration.Sql( sql );
+        }
 
+        /// <summary>
+        /// Updates if the page's title shows in the breadcrumbs.
+        /// </summary>
+        /// <param name="pageGuid">The page unique identifier.</param>
+        /// <param name="breadCrumbDisplayName">if set to <c>true</c> [bread crumb display name].</param>
+        public void UpdatePageBreadcrumb( string pageGuid, bool breadCrumbDisplayName )
+        {
+            var sql = $"UPDATE [dbo].[Page] SET [BreadCrumbDisplayName] = {(breadCrumbDisplayName ? 1 : 0)} WHERE [Guid] = '{pageGuid}'";
             Migration.Sql( sql );
         }
 
