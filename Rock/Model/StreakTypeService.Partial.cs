@@ -1342,7 +1342,7 @@ namespace Rock.Model
         /// </summary>
         /// <param name="maps"></param>
         /// <returns></returns>
-        private byte[] GetAggregateMap( byte[][] maps )
+        public static byte[] GetAggregateMap( byte[][] maps )
         {
             if ( maps == null )
             {
@@ -1377,7 +1377,7 @@ namespace Rock.Model
         /// </summary>
         /// <param name="a"></param>
         /// <param name="b"></param>
-        private void OrBitOperation( byte[] a, byte[] b )
+        private static void OrBitOperation( byte[] a, byte[] b )
         {
             // Start at the right side (least significant bit) of each array
             var aIndex = a.Length - 1;
