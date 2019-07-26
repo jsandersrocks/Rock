@@ -1427,14 +1427,6 @@ namespace Rock.Slingshot
                 businessImport.Note = slingshotBusiness.Note;
                 businessImport.GivingIndividually = false;
 
-                // Person Search Keys
-                businessImport.PersonSearchKeys = new List<Rock.Slingshot.Model.PersonSearchKeyImport>();
-                foreach ( var slingshotPersonSearchKey in businessImport.PersonSearchKeys )
-                {
-                    var personSearchKeyImport = new Rock.Slingshot.Model.PersonSearchKeyImport();
-                    personSearchKeyImport.SearchValue = slingshotPersonSearchKey.SearchValue;
-                }
-
                 // Phone Numbers
                 businessImport.PhoneNumbers = new List<Rock.Slingshot.Model.PhoneNumberImport>();
                 foreach ( var slingshotBusinessPhone in slingshotBusiness.PhoneNumbers )
@@ -1746,10 +1738,11 @@ namespace Rock.Slingshot
 
                 // Person Search Keys
                 personImport.PersonSearchKeys = new List<Rock.Slingshot.Model.PersonSearchKeyImport>();
-                foreach( var slingshotPersonSearchKey in slingshotPerson.PersonSearchKeys)
+                foreach ( var slingshotPersonSearchKey in slingshotPerson.PersonSearchKeys )
                 {
                     var personSearchKeyImport = new Rock.Slingshot.Model.PersonSearchKeyImport();
                     personSearchKeyImport.SearchValue = slingshotPersonSearchKey.SearchValue;
+                    personImport.PersonSearchKeys.Add( personSearchKeyImport );
                 }
 
                 // Phone Numbers
@@ -2366,12 +2359,14 @@ namespace Rock.Slingshot
             Dictionary<int, List<SlingshotCore.Model.PersonAddress>> slingshotPersonAddressListLookup = LoadSlingshotListFromFile<SlingshotCore.Model.PersonAddress>( false ).GroupBy( a => a.PersonId ).ToDictionary( k => k.Key, v => v.ToList() );
             Dictionary<int, List<SlingshotCore.Model.PersonAttributeValue>> slingshotPersonAttributeValueListLookup = LoadSlingshotListFromFile<SlingshotCore.Model.PersonAttributeValue>().GroupBy( a => a.PersonId ).ToDictionary( k => k.Key, v => v.ToList() );
             Dictionary<int, List<SlingshotCore.Model.PersonPhone>> slingshotPersonPhoneListLookup = LoadSlingshotListFromFile<SlingshotCore.Model.PersonPhone>().GroupBy( a => a.PersonId ).ToDictionary( k => k.Key, v => v.ToList() );
+            Dictionary<int, List<SlingshotCore.Model.PersonSearchKey>> slingshotPersonSearchKeyListLookup = LoadSlingshotListFromFile<SlingshotCore.Model.PersonSearchKey>().GroupBy( a => a.PersonId ).ToDictionary( k => k.Key, v => v.ToList() );
 
             foreach ( var slingshotPerson in this.SlingshotPersonList )
             {
                 slingshotPerson.Addresses = slingshotPersonAddressListLookup.ContainsKey( slingshotPerson.Id ) ? slingshotPersonAddressListLookup[slingshotPerson.Id] : new List<SlingshotCore.Model.PersonAddress>();
                 slingshotPerson.Attributes = slingshotPersonAttributeValueListLookup.ContainsKey( slingshotPerson.Id ) ? slingshotPersonAttributeValueListLookup[slingshotPerson.Id].ToList() : new List<SlingshotCore.Model.PersonAttributeValue>();
                 slingshotPerson.PhoneNumbers = slingshotPersonPhoneListLookup.ContainsKey( slingshotPerson.Id ) ? slingshotPersonPhoneListLookup[slingshotPerson.Id].ToList() : new List<SlingshotCore.Model.PersonPhone>();
+                slingshotPerson.PersonSearchKeys = slingshotPersonSearchKeyListLookup.GetValueOrNull( slingshotPerson.Id )?.ToList() ?? new List<SlingshotCore.Model.PersonSearchKey>();
             }
 
             this.SlingshotPersonAttributes = LoadSlingshotListFromFile<SlingshotCore.Model.PersonAttribute>().ToList();
@@ -2495,15 +2490,20 @@ namespace Rock.Slingshot
                 } );
             }
 
-            if ( !this.TransactionTypeValues.ContainsKey( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_RECEIPT.AsGuid() ) )
+
+            // Add the Transaction Type of 'Receipt' if there are in import records that use it
+            if ( this.SlingshotFinancialTransactionList.Any( a => a.TransactionType == SlingshotCore.Model.TransactionType.Receipt ) )
             {
-                definedValuesToAdd.Add( new Rock.Model.DefinedValue
+                if ( !this.TransactionTypeValues.ContainsKey( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_RECEIPT.AsGuid() ) )
                 {
-                    DefinedTypeId = definedTypeIdTransactionType,
-                    Guid = Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_RECEIPT.AsGuid(),
-                    Value = "Receipt",
-                    Description = "A Receipt Transaction"
-                } );
+                    definedValuesToAdd.Add( new Rock.Model.DefinedValue
+                    {
+                        DefinedTypeId = definedTypeIdTransactionType,
+                        Guid = Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_RECEIPT.AsGuid(),
+                        Value = "Receipt",
+                        Description = "A Receipt Transaction"
+                    } );
+                }
             }
 
             if ( !this.GroupLocationTypeValues.ContainsKey( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_OTHER.AsGuid() ) )
@@ -2517,10 +2517,16 @@ namespace Rock.Slingshot
                 } );
             }
 
-            var rockContext = new RockContext();
-            var definedValueService = new DefinedValueService( rockContext );
-            definedValueService.AddRange( definedValuesToAdd );
-            rockContext.SaveChanges();
+            if ( definedValuesToAdd.Any() )
+            {
+                var rockContext = new RockContext();
+                var definedValueService = new DefinedValueService( rockContext );
+                definedValueService.AddRange( definedValuesToAdd );
+                rockContext.SaveChanges();
+
+                // if any DefinedValues were added, reload lookups
+                LoadLookups();
+            }
         }
 
         /// <summary>

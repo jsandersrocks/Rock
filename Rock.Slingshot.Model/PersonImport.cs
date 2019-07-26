@@ -20,7 +20,7 @@ using System.Collections.Generic;
 namespace Rock.Slingshot.Model
 {
     /// <summary>
-    /// 
+    /// Import Model for a Person (or Business)
     /// </summary>
     [System.Diagnostics.DebuggerDisplay( "{FirstName} {LastName}" )]
     public class PersonImport

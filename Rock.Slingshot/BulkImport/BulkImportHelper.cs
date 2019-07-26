@@ -637,12 +637,12 @@ namespace Rock.Slingshot
                             isBatchUpdated = true;
                         }
 
-                        if ( financialBatchImport.CreatedDateTime != existingFinancialBatch.CreatedDateTime )
+                        if ( financialBatchImport.CreatedDateTime.HasValue && financialBatchImport.CreatedDateTime != existingFinancialBatch.CreatedDateTime )
                         {
                             existingFinancialBatch.CreatedDateTime = financialBatchImport.CreatedDateTime;
                             isBatchUpdated = true;
                         }
-                        if ( financialBatchImport.ModifiedDateTime != existingFinancialBatch.ModifiedDateTime )
+                        if ( financialBatchImport.ModifiedDateTime.HasValue && financialBatchImport.ModifiedDateTime != existingFinancialBatch.ModifiedDateTime )
                         {
                             existingFinancialBatch.ModifiedDateTime = financialBatchImport.ModifiedDateTime;
                             isBatchUpdated = true;
@@ -1650,6 +1650,7 @@ WHERE gta.GroupTypeId IS NULL" );
             int familyGroupTypeId = familyGroupType.Id;
             int familyChildRoleId = familyGroupType.Roles.First( a => a.Guid == Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_CHILD.AsGuid() ).Id;
             _recordTypePersonId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+            int personSeachKeyTypeAlternateId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_SEARCH_KEYS_ALTERNATE_ID.AsGuid() ).Id;
 
             StringBuilder sbStats = new StringBuilder();
 
@@ -1658,8 +1659,6 @@ WHERE gta.GroupTypeId IS NULL" );
 
             Dictionary<int, Person> personLookup = qryAllPersons.Include( a => a.PhoneNumbers ).AsNoTracking().Where( a => a.ForeignId.HasValue && a.ForeignKey == foreignSystemKey )
                 .ToList().ToDictionary( k => k.ForeignId.Value, v => v );
-            
-            
 
             _defaultPhoneCountryCode = PhoneNumber.DefaultCountryCode();
 
@@ -1942,9 +1941,15 @@ WHERE gta.GroupTypeId IS NULL" );
                     {
                         var personSearchKeyToInsert = new PersonSearchKey();
                         personSearchKeyToInsert.PersonAliasId = personAliasId.Value;
+                        personSearchKeyToInsert.SearchValue = personSearchKeyImport.SearchValue.Left( 255 );
+                        personSearchKeyToInsert.SearchTypeValueId = personSeachKeyTypeAlternateId;
+
+                        personSearchKeysToInsert.Add( personSearchKeyToInsert );
                     }
                 }
             }
+
+            rockContext.BulkInsert( personSearchKeysToInsert );
 
             // PhoneNumbers
             List<PhoneNumber> phoneNumbersToInsert = new List<PhoneNumber>();
