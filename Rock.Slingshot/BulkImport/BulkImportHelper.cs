@@ -717,6 +717,8 @@ namespace Rock.Slingshot
 
             RockContext rockContext = new RockContext();
 
+            int? giverAnonymousPersonAliasId = new PersonService( rockContext ).GetSelect( Rock.SystemGuid.Person.GIVER_ANONYMOUS.AsGuid(), p => p.Aliases.Where( a => a.AliasPersonId == p.Id ).Select( a => a.Id ).FirstOrDefault() );
+
             var qryFinancialTransactionsWithForeignIds = new FinancialTransactionService( rockContext ).Queryable().Where( a => a.ForeignId.HasValue && a.ForeignKey == foreignSystemKey );
 
             var financialTransactionAlreadyExistForeignIdHash = new HashSet<int>( qryFinancialTransactionsWithForeignIds.Select( a => a.ForeignId.Value ).ToList() );
@@ -767,6 +769,11 @@ namespace Rock.Slingshot
                 if ( financialTransactionImport.AuthorizedPersonForeignId.HasValue )
                 {
                     financialTransaction.AuthorizedPersonAliasId = personAliasIdLookup.GetValueOrNull( financialTransactionImport.AuthorizedPersonForeignId.Value );
+                }
+
+                if (!financialTransaction.AuthorizedPersonAliasId.HasValue)
+                {
+                    financialTransaction.AuthorizedPersonAliasId = giverAnonymousPersonAliasId;
                 }
 
                 financialTransaction.BatchId = batchIdLookup.GetValueOrNull( financialTransactionImport.BatchForeignId );
@@ -1651,6 +1658,8 @@ WHERE gta.GroupTypeId IS NULL" );
 
             Dictionary<int, Person> personLookup = qryAllPersons.Include( a => a.PhoneNumbers ).AsNoTracking().Where( a => a.ForeignId.HasValue && a.ForeignKey == foreignSystemKey )
                 .ToList().ToDictionary( k => k.ForeignId.Value, v => v );
+            
+            
 
             _defaultPhoneCountryCode = PhoneNumber.DefaultCountryCode();
 
@@ -1917,6 +1926,25 @@ WHERE gta.GroupTypeId IS NULL" );
             }
 
             rockContext.BulkInsert( groupLocationsToInsert );
+
+            var personAliasIdLookupFromPersonId = new PersonAliasService( rockContext ).Queryable().Where( a => a.Person.ForeignId.HasValue && a.Person.ForeignKey == foreignSystemKey && a.PersonId == a.AliasPersonId )
+                .Select( a => new { PersonAliasId = a.Id, PersonId = a.PersonId } ).ToDictionary( k => k.PersonId, v => v.PersonAliasId );
+
+            // PersonSearchKeys
+            List<PersonSearchKey> personSearchKeysToInsert = new List<PersonSearchKey>();
+
+            foreach( var personsIds in personsIdsForPersonImport)
+            {
+                var personAliasId = personAliasIdLookupFromPersonId.GetValueOrNull( personsIds.PersonId );
+                if ( personAliasId.HasValue )
+                {
+                    foreach ( var personSearchKeyImport in personsIds.PersonImport.PersonSearchKeys )
+                    {
+                        var personSearchKeyToInsert = new PersonSearchKey();
+                        personSearchKeyToInsert.PersonAliasId = personAliasId.Value;
+                    }
+                }
+            }
 
             // PhoneNumbers
             List<PhoneNumber> phoneNumbersToInsert = new List<PhoneNumber>();

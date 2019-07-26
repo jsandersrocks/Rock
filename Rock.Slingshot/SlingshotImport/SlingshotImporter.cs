@@ -1023,6 +1023,10 @@ namespace Rock.Slingshot
                     case SlingshotCore.Model.TransactionType.EventRegistration:
                         financialTransactionImport.TransactionTypeValueId = this.TransactionTypeValues[Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_EVENT_REGISTRATION.AsGuid()].Id;
                         break;
+
+                    case SlingshotCore.Model.TransactionType.Receipt:
+                        financialTransactionImport.TransactionTypeValueId = this.TransactionTypeValues[Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_RECEIPT.AsGuid()].Id;
+                        break;
                 }
 
                 financialTransactionImport.FinancialTransactionDetailImports = new List<Rock.Slingshot.Model.FinancialTransactionDetailImport>();
@@ -1267,9 +1271,7 @@ namespace Rock.Slingshot
                                 break;
 
                             case SlingshotCore.Model.AddressType.Other:
-                                var locationTypeOther = this.GroupLocationTypeValues.Values.FirstOrDefault( t => t.Value.Equals( "Other" ) );
-                                groupLocationTypeValueId = locationTypeOther != null ? this.GroupLocationTypeValues[locationTypeOther.Guid].Id :
-                                    this.GroupLocationTypeValues[Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_PREVIOUS.AsGuid()].Id;
+                                groupLocationTypeValueId = this.GroupLocationTypeValues[Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_OTHER.AsGuid()].Id;
                                 break;
                         }
 
@@ -1425,6 +1427,14 @@ namespace Rock.Slingshot
                 businessImport.Note = slingshotBusiness.Note;
                 businessImport.GivingIndividually = false;
 
+                // Person Search Keys
+                businessImport.PersonSearchKeys = new List<Rock.Slingshot.Model.PersonSearchKeyImport>();
+                foreach ( var slingshotPersonSearchKey in businessImport.PersonSearchKeys )
+                {
+                    var personSearchKeyImport = new Rock.Slingshot.Model.PersonSearchKeyImport();
+                    personSearchKeyImport.SearchValue = slingshotPersonSearchKey.SearchValue;
+                }
+
                 // Phone Numbers
                 businessImport.PhoneNumbers = new List<Rock.Slingshot.Model.PhoneNumberImport>();
                 foreach ( var slingshotBusinessPhone in slingshotBusiness.PhoneNumbers )
@@ -1459,9 +1469,7 @@ namespace Rock.Slingshot
                                 break;
 
                             case SlingshotCore.Model.AddressType.Other:
-                                var locationTypeOther = this.GroupLocationTypeValues.Values.FirstOrDefault( t => t.Value.Equals( "Other" ) );
-                                groupLocationTypeValueId = locationTypeOther != null ? this.GroupLocationTypeValues[locationTypeOther.Guid].Id :
-                                    this.GroupLocationTypeValues[Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_PREVIOUS.AsGuid()].Id;
+                                groupLocationTypeValueId = this.GroupLocationTypeValues[Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_OTHER.AsGuid()].Id;
                                 break;
                         }
 
@@ -1736,6 +1744,14 @@ namespace Rock.Slingshot
                 personImport.Note = slingshotPerson.Note;
                 personImport.GivingIndividually = slingshotPerson.GiveIndividually;
 
+                // Person Search Keys
+                personImport.PersonSearchKeys = new List<Rock.Slingshot.Model.PersonSearchKeyImport>();
+                foreach( var slingshotPersonSearchKey in slingshotPerson.PersonSearchKeys)
+                {
+                    var personSearchKeyImport = new Rock.Slingshot.Model.PersonSearchKeyImport();
+                    personSearchKeyImport.SearchValue = slingshotPersonSearchKey.SearchValue;
+                }
+
                 // Phone Numbers
                 personImport.PhoneNumbers = new List<Rock.Slingshot.Model.PhoneNumberImport>();
                 foreach ( var slingshotPersonPhone in slingshotPerson.PhoneNumbers )
@@ -1770,9 +1786,7 @@ namespace Rock.Slingshot
                                 break;
 
                             case SlingshotCore.Model.AddressType.Other:
-                                var locationTypeOther = this.GroupLocationTypeValues.Values.FirstOrDefault( t => t.Value.Equals( "Other" ) );
-                                groupLocationTypeValueId = locationTypeOther != null ? this.GroupLocationTypeValues[locationTypeOther.Guid].Id :
-                                    this.GroupLocationTypeValues[Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_PREVIOUS.AsGuid()].Id;
+                                groupLocationTypeValueId = this.GroupLocationTypeValues[Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_OTHER.AsGuid()].Id;
                                 break;
                         }
 
@@ -2411,6 +2425,8 @@ namespace Rock.Slingshot
             List<Rock.Model.DefinedValue> definedValuesToAdd = new List<Rock.Model.DefinedValue>();
             int definedTypeIdCurrencyType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.FINANCIAL_CURRENCY_TYPE.AsGuid() ).Id;
             int definedTypeIdTransactionSourceType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.FINANCIAL_SOURCE_TYPE.AsGuid() ).Id;
+            int definedTypeIdTransactionType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.FINANCIAL_TRANSACTION_TYPE.AsGuid() ).Id;
+            int definedTypeIdGroupLocationType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.GROUP_LOCATION_TYPE.AsGuid() ).Id;
 
             // The following DefinedValues are not IsSystem, but are potentionally needed to do an import, so make sure they exist on the server
             if ( !this.CurrencyTypeValues.ContainsKey( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_NONCASH.AsGuid() ) )
@@ -2476,6 +2492,28 @@ namespace Rock.Slingshot
                     Guid = Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid(),
                     Value = "On-Site Collection",
                     Description = "Transactions that were collected on-site"
+                } );
+            }
+
+            if ( !this.TransactionTypeValues.ContainsKey( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_RECEIPT.AsGuid() ) )
+            {
+                definedValuesToAdd.Add( new Rock.Model.DefinedValue
+                {
+                    DefinedTypeId = definedTypeIdTransactionType,
+                    Guid = Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_RECEIPT.AsGuid(),
+                    Value = "Receipt",
+                    Description = "A Receipt Transaction"
+                } );
+            }
+
+            if ( !this.GroupLocationTypeValues.ContainsKey( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_OTHER.AsGuid() ) )
+            {
+                definedValuesToAdd.Add( new Rock.Model.DefinedValue
+                {
+                    DefinedTypeId = definedTypeIdGroupLocationType,
+                    Guid = Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_OTHER.AsGuid(),
+                    Value = "Other",
+                    Description = "Some other type of Address"
                 } );
             }
 
