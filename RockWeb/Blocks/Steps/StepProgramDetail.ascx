@@ -42,29 +42,25 @@
                                 <h5 class="margin-t-none">Steps Activity Summary</h5>
                             </div>
                             <div class="col-sm-6">
-                                <div class="row">
-                                    <div class="col-sm-8">
-                                        <Rock:SlidingDateRangePicker ID="drpSlidingDateRange"
+
+                                <asp:LinkButton ID="btnRefreshChart" runat="server" CssClass="btn btn-default pull-right" ToolTip="Refresh Chart"
+                                    OnClick="btnRefreshChart_Click"><i class="fa fa-refresh"></i></asp:LinkButton>
+
+                                <Rock:SlidingDateRangePicker ID="drpSlidingDateRange"
                                             runat="server"
                                             EnabledSlidingDateRangeTypes="Previous, Last, Current, DateRange"
                                             EnabledSlidingDateRangeUnits="Week, Month, Year"
                                             SlidingDateRangeMode="Current"
                                             TimeUnit="Year"
                                             CssClass="pull-right" Label="" />
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <span class="pull-right">
-                                            <asp:LinkButton ID="btnRefreshChart" runat="server" CssClass="btn btn-primary" Style="vertical-align: bottom" ToolTip="Refresh Chart" OnClick="btnRefreshChart_Click"><i class="fa fa-refresh"></i> Update</asp:LinkButton>
-                                        </span>
-                                    </div>
-                                </div>
+
                             </div>
                         </div>
                         <%-- Steps Activity Chart --%>
                         <Rock:NotificationBox ID="nbActivityChartMessage" runat="server" NotificationBoxType="Info" />
                         <div id="pnlActivityChart" runat="server">
-                            <div class="chart-container">
-                                <canvas id="chartCanvas" runat="server" style="height: 180px;" />
+                            <div class="chart-container" align="center">
+                                <canvas id="chartCanvas" runat="server" height="350" width="700" />
                             </div>
                         </div>
                     </div>
@@ -113,7 +109,7 @@
                                 <Columns>
                                     <Rock:ReorderField />
                                     <Rock:RockBoundField DataField="Name" HeaderText="Name" />
-                                    <Rock:BoolField DataField="IsCompleteStatus" HeaderText="Completion?" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center" />
+                                    <Rock:BoolField DataField="IsCompleteStatus" HeaderText="Completion" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center" />
                                     <Rock:EditField OnClick="gStatuses_Edit" />
                                     <Rock:DeleteField OnClick="gStatuses_Delete" />
                                 </Columns>
