@@ -42,7 +42,7 @@ namespace Rock.Model
         /// <summary>
         /// Bits per byte
         /// </summary>
-        private static int BitsPerByte = 8;        
+        private static int BitsPerByte = 8;
 
         /// <summary>
         /// The minimum size of a byte array for a streak related map. The point is to reduce memory reallocations which
@@ -691,7 +691,7 @@ namespace Rock.Model
             data.ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds;
 
             return data;
-        }        
+        }
 
         /// <summary>
         /// Calculate streak data (like the current streak and longest streak count)
@@ -1066,7 +1066,7 @@ namespace Rock.Model
                         DateTime = CalculateDateFromOffset( minDate, currentUnit, streakOccurrenceFrequency ),
                         HasEngagement = hasEngagement
                     };
-                
+
                     occurrencesFound++;
                 }
             }

@@ -896,6 +896,23 @@ namespace Rock.Data
         }
 
         /// <summary>
+        /// Moves a page to a new parent
+        /// </summary>
+        /// <param name="pageGuid">The page unique identifier.</param>
+        /// <param name="newParentPageGuid">The guid of the new parent page.</param>
+        public void UpdatePageParent( string pageGuid, string newParentPageGuid )
+        {
+            string sql = $@"
+                DECLARE @parentId INT = (SELECT [Id] FROM [dbo].[Page] WHERE [Guid] = '{newParentPageGuid}' );
+                IF @parentId IS NOT NULL
+                BEGIN
+	                UPDATE [dbo].[Page] SET [ParentPageId] = @parentId WHERE [Guid] = '{pageGuid}'
+                END";
+
+            Migration.Sql( sql );
+        }
+
+        /// <summary>
         /// Updates the page internal name, browser title, and page title
         /// </summary>
         /// <param name="pageGuid">The page unique identifier.</param>
