@@ -341,7 +341,7 @@ namespace RockWeb.Blocks.Streaks
             }
 
             var jobData = new Dictionary<string, string> {
-                { Rock.Jobs.RebuildStreakMaps.DataMapKeys.StreakTypeId, streakType.Id.ToString() }
+                { Rock.Jobs.RebuildStreakMaps.DataMapKey.StreakTypeId, streakType.Id.ToString() }
             };
 
             var transaction = new Rock.Transactions.RunJobNowTransaction( job.Id, jobData );

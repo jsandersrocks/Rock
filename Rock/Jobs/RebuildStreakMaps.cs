@@ -30,8 +30,11 @@ namespace Rock.Jobs
         /// <summary>
         /// Keys for the data map
         /// </summary>
-        public static class DataMapKeys
+        public static class DataMapKey
         {
+            /// <summary>
+            /// The streak type identifier
+            /// </summary>
             public const string StreakTypeId = "StreakTypeId";
         }
 
@@ -52,7 +55,7 @@ namespace Rock.Jobs
         /// <param name="context">The context.</param>
         public void Execute( IJobExecutionContext context )
         {
-            var streakTypeId = context.JobDetail.JobDataMap.GetString( DataMapKeys.StreakTypeId ).AsInteger();
+            var streakTypeId = context.JobDetail.JobDataMap.GetString( DataMapKey.StreakTypeId ).AsInteger();
             StreakTypeService.RebuildStreakTypeFromAttendance( streakTypeId, out var errorMessage );
 
             if ( errorMessage.IsNullOrWhiteSpace() )

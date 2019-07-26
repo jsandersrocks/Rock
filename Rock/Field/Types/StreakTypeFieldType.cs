@@ -15,10 +15,7 @@
 // </copyright>
 //
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
-
-using Rock.Data;
 using Rock.Model;
 using System;
 using System.Web.UI.WebControls;
@@ -31,12 +28,21 @@ namespace Rock.Field.Types
     /// </summary>
     public class StreakTypeFieldType : EntitySingleSelectionListFieldTypeBase<StreakType>
     {
+        /// <summary>
+        /// Returns a user-friendly description of the entity.
+        /// </summary>
+        /// <param name="entityGuid"></param>
+        /// <returns></returns>
         protected override string OnFormatValue( Guid entityGuid )
         {
             var entity = GetEntity( entityGuid.ToString() ) as StreakType;
             return entity.Name;
         }
 
+        /// <summary>
+        /// Returns a dictionary of the items available for selection.
+        /// </summary>
+        /// <returns></returns>
         protected override Dictionary<Guid, string> OnGetItemList()
         {
             return StreakTypeCache.All()

@@ -111,13 +111,13 @@ namespace Rock.Model
         /// <summary>
         /// Enroll the person into the streak type
         /// </summary>
-        /// <param name="streakTypeCache"></param>
-        /// <param name="personId"></param>
-        /// <param name="locationId"></param>
-        /// <param name="errorMessage"></param>
+        /// <param name="streakTypeCache">The streak type cache.</param>
+        /// <param name="personId">The person identifier.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <param name="enrollmentDate">The enrollment date.</param>
+        /// <param name="locationId">The location identifier.</param>
         /// <returns></returns>
-        public Streak Enroll( StreakTypeCache streakTypeCache, int personId, out string errorMessage,
-            DateTime? enrollmentDate = null, int? locationId = null )
+        public Streak Enroll( StreakTypeCache streakTypeCache, int personId, out string errorMessage, DateTime? enrollmentDate = null, int? locationId = null )
         {
             errorMessage = string.Empty;
 
@@ -373,8 +373,9 @@ namespace Rock.Model
         /// Rebuild the streak map from the attendance structure of the streak type.
         /// This method makes it's own Rock Context and saves changes.
         /// </summary>
-        /// <param name="streakTypeId"></param>
-        /// <param name="errorMessage"></param>
+        /// <param name="streakTypeId">The streak type identifier.</param>
+        /// <param name="personAliasId">The person alias identifier.</param>
+        /// <param name="errorMessage">The error message.</param>
         public static void RebuildStreakFromAttendance( int streakTypeId, int personAliasId, out string errorMessage )
         {
             errorMessage = string.Empty;
@@ -1038,10 +1039,11 @@ namespace Rock.Model
         /// <summary>
         /// Get the most recent bits from a map where there was an occurrence
         /// </summary>
-        /// <param name="engagementMap"></param>
-        /// <param name="mapStartDate"></param>
-        /// <param name="streakOccurrenceFrequency"></param>
-        /// <param name="unitCount"></param>
+        /// <param name="engagementMap">The engagement map.</param>
+        /// <param name="occurrenceMap">The occurrence map.</param>
+        /// <param name="startDate">The start date.</param>
+        /// <param name="streakOccurrenceFrequency">The streak occurrence frequency.</param>
+        /// <param name="unitCount">The unit count.</param>
         /// <returns></returns>
         public static OccurrenceEngagement[] GetMostRecentEngagementBits( byte[] engagementMap, byte[] occurrenceMap, DateTime startDate,
             StreakOccurrenceFrequency streakOccurrenceFrequency, int unitCount = 24 )
@@ -1251,9 +1253,10 @@ namespace Rock.Model
         /// <summary>
         /// Get the number of frequency units (days or weeks) between the two dates
         /// </summary>
-        /// <param name="startDate"></param>
-        /// <param name="endDate"></param>
-        /// <param name="occurrenceFrequency"></param>
+        /// <param name="startDate">The start date.</param>
+        /// <param name="endDate">The end date.</param>
+        /// <param name="occurrenceFrequency">The occurrence frequency.</param>
+        /// <param name="isInclusive">if set to <c>true</c> [is inclusive].</param>
         /// <returns></returns>
         public static int GetFrequencyUnitDifference( DateTime startDate, DateTime endDate, StreakOccurrenceFrequency occurrenceFrequency, bool isInclusive )
         {
@@ -1302,9 +1305,11 @@ namespace Rock.Model
         /// <summary>
         /// Get the groups that are contained with the structure
         /// </summary>
-        /// <param name="structureType"></param>
-        /// <param name="structureEntityId"></param>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="structureType">Type of the structure.</param>
+        /// <param name="structureEntityId">The structure entity identifier.</param>
         /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
         private static IQueryable<Group> GetGroupsQuery( RockContext rockContext, StreakStructureType structureType, int structureEntityId )
         {
             var groupService = new GroupService( rockContext );
