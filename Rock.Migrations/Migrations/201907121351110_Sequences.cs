@@ -80,7 +80,7 @@ namespace Rock.Migrations
                     '{Rock.SystemGuid.ServiceJob.REBUILD_STREAK}', -- Guid
                     GETDATE(), -- Created
                     1, -- All notifications
-                    '0 0 0 1 1 ? 2200' -- In the year 2200, so basically never run this scheduled since it runs on demand
+                    '{Rock.Model.ServiceJob.NeverScheduledCronExpression}' -- In the year 2200, so basically never run this scheduled since it runs on demand
                 );" );
         }
 

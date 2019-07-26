@@ -25,7 +25,7 @@
                     <Rock:Grid ID="gStreakTypes" runat="server" AllowSorting="true">
                         <Columns>
                             <Rock:RockBoundField DataField="Name" HeaderText="Name" SortExpression="Name" />
-                            <Rock:BoolField DataField="IsActive" HeaderText="Is Active?" SortExpression="IsActive" />
+                            <Rock:BoolField DataField="IsActive" HeaderText="Active" SortExpression="IsActive" />
                             <Rock:RockBoundField DataField="OccurrenceFrequency" HeaderText="Frequency" SortExpression="OccurrenceFrequency" />
                             <Rock:DateTimeField HeaderText="Start Date" DataField="StartDate" SortExpression="StartDate" DataFormatString="{0:d}"  />
                             <Rock:RockBoundField DataField="EnrollmentCount" HeaderText="Enrollments" SortExpression="EnrollmentCount" HeaderStyle-HorizontalAlign="Right" ItemStyle-HorizontalAlign="Right" />
