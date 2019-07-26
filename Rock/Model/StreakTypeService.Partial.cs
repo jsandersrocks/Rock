@@ -668,6 +668,8 @@ namespace Rock.Model
             // Create the return object
             var data = new StreakData
             {
+                StreakTypeId = streakTypeCache.Id,
+                StreakIds = streaks.Select( s => s.Id ).ToList(),
                 EnrollmentCount = streaks.Count,
                 FirstEnrollmentDate = enrollmentDate,
                 StartDate = startDate.Value,
@@ -1486,7 +1488,7 @@ namespace Rock.Model
                 return;
             }
 
-            if ( minDate >= maxDate )
+            if ( minDate > maxDate )
             {
                 errorMessage = "The max date must be after the min date";
                 return;
@@ -1657,6 +1659,16 @@ namespace Rock.Model
     /// </summary>
     public class StreakData
     {
+        /// <summary>
+        /// Gets or sets the streak type identifier.
+        /// </summary>
+        public int StreakTypeId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the streak ids.
+        /// </summary>
+        public List<int> StreakIds { get; set; }
+
         /// <summary>
         /// The number of enrollments the person has in the streak type (because of person aliases)
         /// </summary>

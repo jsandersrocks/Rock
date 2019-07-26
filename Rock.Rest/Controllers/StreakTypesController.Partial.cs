@@ -16,6 +16,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -201,8 +202,9 @@ namespace Rock.Rest.Controllers
 
         /// <summary>
         /// Returns the currently logged-in user or the person indicated's streak information.
+        /// The id list is used like the following: api/StreakTypes/StreakData/1,2,3?personId=4
         /// </summary>
-        /// <param name="streakTypeId"></param>
+        /// <param name="streakTypeIdList">The comma separated list of streak type identifiers</param>
         /// <param name="personId">Defaults to the current person</param>
         /// <param name="startDate">Defaults to the streak type start date</param>
         /// <param name="endDate">Defaults to now</param>
@@ -211,17 +213,22 @@ namespace Rock.Rest.Controllers
         /// <returns></returns>
         [Authenticate, Secured]
         [HttpGet]
-        [System.Web.Http.Route( "api/StreakTypes/StreakData/{streakTypeId}" )]
-        public virtual StreakData GetStreakData( int streakTypeId,
+        [System.Web.Http.Route( "api/StreakTypes/StreakData/{streakTypeIdList}" )]
+        public virtual List<StreakData> GetStreakData( string streakTypeIdList,
             [FromUri]int? personId = null, [FromUri]DateTime? startDate = null, [FromUri]DateTime? endDate = null,
             [FromUri]bool createObjectArray = false, [FromUri]bool includeBitMaps = false )
         {
-            // Make sure the streak type exists
-            var streakTypeCache = StreakTypeCache.Get( streakTypeId );
-
-            if ( streakTypeCache == null )
+            if ( streakTypeIdList.IsNullOrWhiteSpace() )
             {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, "The streak type id did not resolve" );
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.BadRequest, "The streak type identifier list is required" );
+                throw new HttpResponseException( errorResponse );
+            }
+
+            var streakTypeIds = streakTypeIdList.SplitDelimitedValues().AsIntegerList().Distinct().ToList();
+
+            if ( !streakTypeIds.Any() )
+            {
+                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.BadRequest, "At least one streak type identifier is required" );
                 throw new HttpResponseException( errorResponse );
             }
 
@@ -238,23 +245,40 @@ namespace Rock.Rest.Controllers
                 }
             }
 
-            // Get the data from the service
+            // Return a list of the results (one for each id)
             var streakTypeService = Service as StreakTypeService;
-            var streakData = streakTypeService.GetStreakData( streakTypeCache, personId.Value, out var errorMessage, startDate, endDate, createObjectArray, includeBitMaps );
+            var streakDataList = new List<StreakData>( streakTypeIds.Count );
 
-            if ( !errorMessage.IsNullOrWhiteSpace() )
+            foreach ( var streakTypeId in streakTypeIds )
             {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.BadRequest, errorMessage );
-                throw new HttpResponseException( errorResponse );
+                // Make sure the streak type exists
+                var streakTypeCache = StreakTypeCache.Get( streakTypeId );
+
+                if ( streakTypeCache == null )
+                {
+                    var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.NotFound, $"The streak type id '{streakTypeId}' did not resolve" );
+                    throw new HttpResponseException( errorResponse );
+                }
+
+                // Get the data from the service                
+                var streakData = streakTypeService.GetStreakData( streakTypeCache, personId.Value, out var errorMessage, startDate, endDate, createObjectArray, includeBitMaps );
+
+                if ( !errorMessage.IsNullOrWhiteSpace() )
+                {
+                    var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.BadRequest, errorMessage );
+                    throw new HttpResponseException( errorResponse );
+                }
+
+                if ( streakData == null )
+                {
+                    var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.InternalServerError, "The streak data calculation was not successful but no error was specified" );
+                    throw new HttpResponseException( errorResponse );
+                }
+
+                streakDataList.Add( streakData );
             }
 
-            if ( streakData == null )
-            {
-                var errorResponse = ControllerContext.Request.CreateErrorResponse( HttpStatusCode.InternalServerError, "The streak data calculation was not successful but no error was specified" );
-                throw new HttpResponseException( errorResponse );
-            }
-
-            return streakData;
+            return streakDataList;
         }
 
         /// <summary>
